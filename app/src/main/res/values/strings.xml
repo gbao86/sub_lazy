@@ -62,4 +62,19 @@
     <string name="notification_channel_name">Billing Alerts</string>
     <string name="notification_channel_desc">Notifications for upcoming subscription renewals</string>
     <string name="notification_message">Pay Alert for %1$s! Your %2$s bill of %3$s will renew in 2 days. Make sure you have enough funds!</string>
+
+    <!-- Additional Charts Label Strings -->
+    <string name="chart_all_categories">All Categories</string>
+    <string name="chart_weekly_forecast">Billing Cycle Comparison</string>
+    <string name="chart_upcoming_timeline">Upcoming Renewal Timeline</string>
+    <string name="chart_total_amount">Total Amount</string>
+    <string name="chart_reset">Reset</string>
+    <string name="chart_due_today">Due Today</string>
+    <string name="chart_due_tomorrow">Due Tomorrow</string>
+    <string name="chart_days_left">%1$d days left</string>
+    <string name="chart_day_left">1 day left</string>
+    <string name="chart_interactive_hint">Tap on segments or legend items for details</string>
+    <string name="chart_cycle_distribution">Monthly vs Yearly Spend</string>
+    <string name="chart_subs_count">%1$d services</string>
+    <string name="chart_sub_count">1 service</string>
 </resources>

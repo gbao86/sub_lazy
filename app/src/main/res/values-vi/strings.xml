@@ -62,4 +62,19 @@
     <string name="notification_channel_name">Cảnh báo thanh toán</string>
     <string name="notification_channel_desc">Thông báo về việc gia hạn dịch vụ sắp tới</string>
     <string name="notification_message">Cảnh báo thanh toán %1$s! Hóa đơn %2$s trị giá %3$s sẽ gia hạn sau 2 ngày. Hãy chuẩn bị đủ tiền nhé!</string>
+
+    <!-- Additional Charts Label Strings -->
+    <string name="chart_all_categories">Tất cả danh mục</string>
+    <string name="chart_weekly_forecast">So sánh chu kỳ thanh toán</string>
+    <string name="chart_upcoming_timeline">Lịch trình gia hạn sắp tới</string>
+    <string name="chart_total_amount">Tổng số tiền</string>
+    <string name="chart_reset">Đặt lại</string>
+    <string name="chart_due_today">Gia hạn hôm nay</string>
+    <string name="chart_due_tomorrow">Gia hạn ngày mai</string>
+    <string name="chart_days_left">còn %1$d ngày</string>
+    <string name="chart_day_left">còn 1 ngày</string>
+    <string name="chart_interactive_hint">Chạm phân đoạn hoặc danh mục để xem chi tiết</string>
+    <string name="chart_cycle_distribution">Chi tiêu Hàng tháng / Hàng năm</string>
+    <string name="chart_subs_count">%1$d dịch vụ</string>
+    <string name="chart_sub_count">1 dịch vụ</string>
 </resources>
