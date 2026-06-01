@@ -18,10 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added an animated **Billing Cycle Comparison** vertical bar chart showing Monthly vs. Yearly spending impact.
   - Added an interactive **Upcoming Renewals Timeline** with pulsing circles indicating urgent renewals (<= 3 days) and tap tooltips to view subscription dates.
 - **Dynamic Localization**: Added a dynamic language switcher (dropdown menu in top app bar) allowing users to switch between English and Vietnamese.
-- **Funny Cat Memes & Humor UX**:
-  - Generated and integrated a smug programmer cat meme (`cat_onboarding.png`) welcoming the user on a premium Card inside the onboarding flow.
-  - Generated and integrated a crying cat looking inside an empty bowl meme (`cat_empty_state.png`) in the subscription empty list state.
-  - Added localized humorous meme captions in English and Vietnamese locales describing the "lazy lifestyle" and financial status.
 - **Multi-language Support**: Created localized resource files (`strings.xml`) for English and Vietnamese locales.
 - **Local Reminders**: Set up `NotificationWorker` via WorkManager to trigger high-priority alerts 2 days before renewals.
 
