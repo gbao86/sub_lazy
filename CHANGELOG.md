@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Core Dependency**: Updated `MainActivity` base class to `AppCompatActivity` and added `androidx.appcompat` to project dependencies to support runtime locale changes.
 - **Dynamic Localized Currency**: Migrated from hardcoded VND formatting to dynamic currency formatting (VND/₫ for Vietnamese language, USD/$ for English) using `CurrencyFormatter`.
 - **System-Adaptive Theme (UI/UX)**: Created a customized Material 3 Light Color Scheme (`PremiumLightColorScheme`) and updated `Sub_lazyTheme` to automatically toggle between light and dark modes based on the user\'s Android device settings.
+- **Swipe to Delete (UX Confirmation)**: Intercepted immediate swipe-to-delete and added an `AlertDialog` confirmation popup with dynamic localized text (English/Vietnamese) showing the specific service name before performing database delete. Cancel transitions the swiped item back smoothly.
 
 ### Fixed
 - **Gradle wrapper startup**: Restructured Gradle wrapper jar and settings to compile correctly on JDK 21 environment.
