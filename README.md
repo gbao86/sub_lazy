@@ -11,20 +11,11 @@ Yeah, we've all been there.
 
 **Sub Lazy** was born to save your wallet from your own forgetfulness! It is a premium, modern subscription tracker and manager for Android that helps you easily track recurring services, visualizes the monthly damage, and yells at you (nicely, via local notifications) 2 days before a bill renews so you actually have enough funds.
 
-<p align="center">
-  <img src="app/src/main/res/drawable/cat_onboarding.png" width="220" alt="Lazy Onboarding Cat"/>
-  <br>
-  <i>"I watch your lazy bills so you can sleep all day!" — Onboarding Cat 🐱</i>
-</p>
-
 ---
 
 ## ✨ Features
 
 - **Quick Setup / Onboarding**: Start instantly by selecting from popular pre-defined subscription templates (Netflix, Spotify, YouTube Premium, Net/Wifi, etc.).
-- **Funny Cat Memes & Humor UX**:
-  - **Smug Onboarding Cat**: Welcomes you with black sunglasses and a pile of money, encouraging you to select templates.
-  - **Crying Empty State Cat**: Stares dramatically at an empty food bowl when your list is clean and empty.
 - **Interactive Dashboard**:
   - **Dynamic Spending Card**: Visualizes your total monthly subscription costs in a premium gradient card.
   - **Interactive Donut Chart**: Touch-responsive category spending donut chart. Tapping segments or the legend explodes (offsets) the segment and updates center details (category, price, percentage).
@@ -37,12 +28,6 @@ Yeah, we've all been there.
 - **Add / Edit Subscriptions**: Fully customizable forms for tracking custom services. Includes pricing, renewal date picker, categories, billing cycles, and dynamic currency prefix selection (₫/$) based on app language.
 - **Dynamic Localization**: Instantly switch the app language between **English** and **Vietnamese** dynamically using the Top Bar selector.
 - **Billing Alerts (Notifications)**: Schedules background reminders using **Android WorkManager** exactly 2 days before renewal at 9:00 AM.
-
-<p align="center">
-  <img src="app/src/main/res/drawable/cat_empty_state.png" width="200" alt="Empty Bowl Crying Cat"/>
-  <br>
-  <i>"Empty food bowl, empty wallet, empty list... A truly perfect lazy lifestyle!" 😿</i>
-</p>
 
 ---
 

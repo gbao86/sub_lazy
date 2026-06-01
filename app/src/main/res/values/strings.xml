@@ -83,8 +83,4 @@
     <string name="delete_dialog_message">Are you sure you want to stop tracking %1$s? This action cannot be undone.</string>
     <string name="delete_dialog_confirm">Delete</string>
     <string name="delete_dialog_cancel">Cancel</string>
-
-    <!-- Cat Meme Quotes -->
-    <string name="onboarding_meme_speech">Let me watch those lazy subscriptions so you can sleep all day! Select templates to start.</string>
-    <string name="list_empty_meme_caption">Empty bowl, empty wallet, empty list... A truly perfect lazy lifestyle!</string>
 </resources>

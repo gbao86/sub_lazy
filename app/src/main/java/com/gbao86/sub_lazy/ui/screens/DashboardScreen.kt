@@ -156,37 +156,21 @@ fun DashboardScreen(
                             )
                             .padding(24.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxHeight()) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.AutoMirrored.Rounded.TrendingUp, contentDescription = null, tint = Color.White.copy(alpha = 0.8f))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        stringResource(R.string.dashboard_monthly_spending),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = Color.White.copy(alpha = 0.8f)
-                                    )
-                                }
+                        Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxHeight()) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.AutoMirrored.Rounded.TrendingUp, contentDescription = null, tint = Color.White.copy(alpha = 0.8f))
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = currencyFormatter.format(totalMonthlyCost ?: 0.0),
-                                    style = MaterialTheme.typography.headlineLarge,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White
+                                    stringResource(R.string.dashboard_monthly_spending),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color.White.copy(alpha = 0.8f)
                                 )
                             }
-
-                            // Mascot Cat Avatar inside Gradient spending card
-                            Image(
-                                painter = painterResource(id = R.drawable.cat_onboarding),
-                                contentDescription = "Mascot Cat",
-                                modifier = Modifier
-                                    .size(90.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(1.5.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                            Text(
+                                text = currencyFormatter.format(totalMonthlyCost ?: 0.0),
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White
                             )
                         }
                     }
@@ -217,8 +201,7 @@ fun DashboardScreen(
             if (spendingByCategory.isEmpty()) {
                 item {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(32.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
@@ -228,26 +211,26 @@ fun DashboardScreen(
                                 .padding(32.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.cat_empty_state),
-                                contentDescription = "Crying Cat",
+                            Box(
                                 modifier = Modifier
-                                    .size(140.dp)
-                                    .clip(RoundedCornerShape(20.dp))
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
+                                    .size(80.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.TrendingUp,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(36.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(20.dp))
                             Text(
                                 text = stringResource(R.string.dashboard_no_data),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(R.string.list_empty_meme_caption),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline,
                                 textAlign = TextAlign.Center
                             )
                         }

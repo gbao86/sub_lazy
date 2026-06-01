@@ -83,8 +83,4 @@
     <string name="delete_dialog_message">Bạn có chắc chắn muốn ngừng theo dõi %1$s không? Hành động này không thể hoàn tác.</string>
     <string name="delete_dialog_confirm">Xóa</string>
     <string name="delete_dialog_cancel">Hủy</string>
-
-    <!-- Cat Meme Quotes -->
-    <string name="onboarding_meme_speech">Để mèo canh chừng đống hóa đơn này cho sen ngủ nướng! Chọn dịch vụ bên dưới nhé.</string>
-    <string name="list_empty_meme_caption">Bát ăn trống trơn, ví sạch tiền, danh sách rỗng tuếch... Sen quả là bậc thầy lười biếng!</string>
 </resources>
