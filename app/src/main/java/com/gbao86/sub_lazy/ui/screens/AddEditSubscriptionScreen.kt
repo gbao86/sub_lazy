@@ -26,6 +26,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.res.stringResource
 import com.gbao86.sub_lazy.R
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +35,12 @@ fun AddEditSubscriptionScreen(
     viewModel: SubscriptionViewModel = viewModel(),
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val locale = context.resources.configuration.locales[0]
+    val currencySymbol = remember(locale) {
+        if (locale.language == "vi") "₫" else "$"
+    }
+
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var nextBillingDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -140,7 +147,7 @@ fun AddEditSubscriptionScreen(
                 shape = RoundedCornerShape(16.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
-                prefix = { Text("₫ ", fontWeight = FontWeight.Bold) }
+                prefix = { Text("$currencySymbol ", fontWeight = FontWeight.Bold) }
             )
 
             // Billing Date

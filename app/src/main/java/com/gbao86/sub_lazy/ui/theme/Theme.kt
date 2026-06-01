@@ -58,7 +58,7 @@ private val PremiumLightColorScheme = lightColorScheme(
 @Composable
 fun Sub_lazyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(), // Auto-adapt to system light/dark theme settings
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

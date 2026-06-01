@@ -30,6 +30,9 @@ import androidx.compose.ui.res.stringResource
 import com.gbao86.sub_lazy.R
 import androidx.compose.ui.platform.LocalContext
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,18 +75,31 @@ fun SubscriptionListScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Rounded.Subscriptions,
-                        contentDescription = null,
-                        modifier = Modifier.size(80.dp),
-                        tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.cat_empty_state),
+                        contentDescription = "Empty food bowl cat",
+                        modifier = Modifier
+                            .size(180.dp)
+                            .clip(RoundedCornerShape(24.dp))
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
                         stringResource(R.string.list_empty),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.outline
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        stringResource(R.string.list_empty_meme_caption),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
