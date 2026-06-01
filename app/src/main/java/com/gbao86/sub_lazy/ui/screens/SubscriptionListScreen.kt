@@ -100,6 +100,7 @@ fun SubscriptionListScreen(
                     key = { it.id }
                 ) { subscription ->
                     SwipeToDeleteItem(
+                        subscriptionName = subscription.name,
                         onDelete = { viewModel.delete(subscription) }
                     ) {
                         SubscriptionItem(
@@ -116,19 +117,57 @@ fun SubscriptionListScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeToDeleteItem(
+    subscriptionName: String,
     onDelete: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    var showDialog by remember { mutableStateOf(false) }
+
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = {
             if (it == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
-                true
+                showDialog = true
+                false // Return false to automatically snap the item back while the dialog is visible
             } else {
                 false
             }
         }
     )
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.delete_dialog_title),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(text = stringResource(R.string.delete_dialog_message, subscriptionName))
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDialog = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(stringResource(R.string.delete_dialog_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDialog = false }
+                ) {
+                    Text(stringResource(R.string.delete_dialog_cancel))
+                }
+            }
+        )
+    }
 
     SwipeToDismissBox(
         state = dismissState,

@@ -77,4 +77,10 @@
     <string name="chart_cycle_distribution">Chi tiêu Hàng tháng / Hàng năm</string>
     <string name="chart_subs_count">%1$d dịch vụ</string>
     <string name="chart_sub_count">1 dịch vụ</string>
+
+    <!-- Delete Confirmation Dialog -->
+    <string name="delete_dialog_title">Xóa dịch vụ</string>
+    <string name="delete_dialog_message">Bạn có chắc chắn muốn ngừng theo dõi %1$s không? Hành động này không thể hoàn tác.</string>
+    <string name="delete_dialog_confirm">Xóa</string>
+    <string name="delete_dialog_cancel">Hủy</string>
 </resources>

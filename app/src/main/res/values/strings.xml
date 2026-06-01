@@ -77,4 +77,10 @@
     <string name="chart_cycle_distribution">Monthly vs Yearly Spend</string>
     <string name="chart_subs_count">%1$d services</string>
     <string name="chart_sub_count">1 service</string>
+
+    <!-- Delete Confirmation Dialog -->
+    <string name="delete_dialog_title">Delete Service</string>
+    <string name="delete_dialog_message">Are you sure you want to stop tracking %1$s? This action cannot be undone.</string>
+    <string name="delete_dialog_confirm">Delete</string>
+    <string name="delete_dialog_cancel">Cancel</string>
 </resources>
