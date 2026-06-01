@@ -12,7 +12,7 @@ Yeah, we've all been there.
 **Sub Lazy** was born to save your wallet from your own forgetfulness! It is a premium, modern subscription tracker and manager for Android that helps you easily track recurring services, visualizes the monthly damage, and yells at you (nicely, via local notifications) 2 days before a bill renews so you actually have enough funds.
 
 <p align="center">
-  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2o1b3R0ZXAwaG1kMml0MXh5ZzR0b3dqNno2OG9wMm1tNTR3bzU4byZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/VOPK1BXtCM8g/giphy.gif" width="220" alt="Lazy Cat coding"/>
+  <img src="assets/cat_coding.png" width="220" alt="Lazy Cat coding"/>
   <br>
   <i>Me trying to track all my subscriptions... 🐱</i>
 </p>
@@ -36,9 +36,9 @@ Yeah, we've all been there.
 - **Billing Alerts (Notifications)**: Schedules background reminders using **Android WorkManager** exactly 2 days before renewal at 9:00 AM.
 
 <p align="center">
-  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2o1b3R0ZXAwaG1kMml0MXh5ZzR0b3dqNno2OG9wMm1tNTR3bzU4byZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/11s7Ke7jcNxKPI/giphy.gif" width="250" alt="Lazy Sleeping Cat"/>
+  <img src="assets/cat_saving.png" width="220" alt="Lazy Cat with savings"/>
   <br>
-  <i>Current state of my bank account after subscription renewals... 😴</i>
+  <i>Current state of my bank account after subscription renewals... 💰</i>
 </p>
 
 ---
