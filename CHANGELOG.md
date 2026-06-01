@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Onboarding Setup**: Created onboarding screen with subscription templates (Netflix, Spotify, YouTube Premium, etc.) to quickly bootstrap user data.
 - **Subscription Tracking**: Enabled adding, editing, and deleting tracked subscriptions. Added currency formatting in VND and days-remaining counters.
 - **Dashboard Visualization**: Implemented custom canvas-drawn animated Pie Chart for category cost distribution and a premium gradient total spending card.
+- **Interactive Dashboard Charts**: 
+  - Added an interactive **Donut Chart** with selection highlights (exploding segment outward offset and thickness) and dynamic center text (category name, amount, percentage).
+  - Added an interactive **Category Breakdown Legend** where tapping legend items expands to display the full list of subscriptions under that category with slide animations.
+  - Added an animated **Billing Cycle Comparison** vertical bar chart showing Monthly vs. Yearly spending impact.
+  - Added an interactive **Upcoming Renewals Timeline** with pulsing circles indicating urgent renewals (<= 3 days) and tap tooltips to view subscription dates.
 - **Dynamic Localization**: Added a dynamic language switcher (dropdown menu in top app bar) allowing users to switch between English and Vietnamese.
 - **Multi-language Support**: Created localized resource files (`strings.xml`) for English and Vietnamese locales.
 - **Local Reminders**: Set up `NotificationWorker` via WorkManager to trigger high-priority alerts 2 days before renewals.
