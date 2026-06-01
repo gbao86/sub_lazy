@@ -5,7 +5,11 @@
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-blue.svg?style=for-the-badge&logo=jetpackcompose)](https://developer.android.com/jetpack/compose)
 [![Room](https://img.shields.io/badge/Room%20DB-SQLite-orange.svg?style=for-the-badge)](https://developer.android.com/training/data-storage/room)
 
-**Sub Lazy** is a premium, modern subscription tracker and manager for Android. It enables users to easily track their recurring subscriptions, view cost distributions, and receive timely local alerts before bills are renewed.
+Have you ever looked at your bank statement and gone, *"Wait, when did I sign up for a premium cheese-of-the-month club?!"* only to realize you\'ve been paying for it for the last two years? Or did you forget to cancel that "free trial" and paid the ultimate price? 
+
+Yeah, we\'ve all been there. 
+
+**Sub Lazy** was born to save your wallet from your own forgetfulness! It is a premium, modern subscription tracker and manager for Android that helps you easily track recurring services, visualizes the monthly damage, and yells at you (nicely, via local notifications) 2 days before a bill renews so you actually have enough funds.
 
 ---
 
