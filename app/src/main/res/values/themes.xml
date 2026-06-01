@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.Sub_lazy" parent="Theme.MaterialComponents.Light" />
+</resources>

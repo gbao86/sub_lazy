@@ -1,0 +1,65 @@
+<resources>
+    <!-- App Details -->
+    <string name="app_name">Sub Lazy</string>
+
+    <!-- General / Actions -->
+    <string name="back">Back</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Onboarding Screen -->
+    <string name="onboarding_title">Quick Setup</string>
+    <string name="onboarding_welcome">Welcome to Sub Lazy</string>
+    <string name="onboarding_subtitle">Select the services you currently use to populate your dashboard.</string>
+    <string name="onboarding_btn_start">Start Saving</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_btn_empty">I don\'t use any services</string>
+
+    <!-- Dashboard Screen -->
+    <string name="dashboard_monthly_spending">Monthly Spending</string>
+    <string name="dashboard_btn_manage">Manage Subscriptions</string>
+    <string name="dashboard_distribution">Distribution</string>
+    <string name="dashboard_no_data">No data to display</string>
+    <string name="dashboard_total">Total</string>
+    <string name="dashboard_lang_select_title">Language / Ngôn ngữ</string>
+
+    <!-- Subscription List Screen -->
+    <string name="list_title">Active Services</string>
+    <string name="list_empty">No subscriptions tracked</string>
+    <string name="list_days_left_today">Today</string>
+    <string name="list_days_left_plural">%1$d days</string>
+    <string name="list_days_left_suffix">left</string>
+    <string name="list_monthly_suffix">/ mo</string>
+    <string name="list_delete_confirm">Deleted subscription</string>
+
+    <!-- Add/Edit Subscription Screen -->
+    <string name="add_title">New Subscription</string>
+    <string name="edit_title">Edit Service</string>
+    <string name="add_edit_service_name">Service Name</string>
+    <string name="add_edit_service_name_hint">e.g. Netflix, Spotify</string>
+    <string name="add_edit_price">Price (VND)</string>
+    <string name="add_edit_renewal_date">Next Renewal Date</string>
+    <string name="add_edit_select_date">Select Date</string>
+    <string name="add_edit_category">Category</string>
+    <string name="add_edit_billing_cycle">Billing Cycle</string>
+    <string name="add_edit_btn_track">Track Subscription</string>
+    <string name="add_edit_btn_update">Update Service</string>
+
+    <!-- Billing Cycles -->
+    <string name="cycle_monthly">Monthly</string>
+    <string name="cycle_yearly">Yearly</string>
+
+    <!-- Categories -->
+    <string name="category_entertainment">Entertainment</string>
+    <string name="category_utilities">Utilities</string>
+    <string name="category_work">Work</string>
+    <string name="category_cloud">Cloud</string>
+    <string name="category_music">Music</string>
+    <string name="category_food">Food</string>
+    <string name="category_other">Other</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">Billing Alerts</string>
+    <string name="notification_channel_desc">Notifications for upcoming subscription renewals</string>
+    <string name="notification_message">Pay Alert for %1$s! Your %2$s bill of %3$s will renew in 2 days. Make sure you have enough funds!</string>
+</resources>

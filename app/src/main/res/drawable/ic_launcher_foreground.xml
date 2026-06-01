@@ -1,0 +1,24 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Background of the foreground layer to ensure it stands out if needed,
+         but usually foreground is just the logo. Here we draw a minimalist 'S' loop. -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#06B6D4"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M38,42 C38,32 70,32 70,42 C70,54 38,54 38,66 C38,76 70,76 70,66" />
+
+    <!-- Arrowhead to signify recurring/subscription -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M70,72 L76,66 L64,66 Z" />
+
+    <!-- A small dot to represent 'lazy' or 'minimalist' focus point -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M54,54 m-3,0 a3,3 0 1,1 6,0 a3,3 0 1,1 -6,0" />
+</vector>

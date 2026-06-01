@@ -1,0 +1,254 @@
+package com.gbao86.sub_lazy.ui.screens
+
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gbao86.sub_lazy.data.Subscription
+import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
+import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
+import java.util.*
+import java.util.concurrent.TimeUnit
+import androidx.compose.ui.res.stringResource
+import com.gbao86.sub_lazy.R
+import androidx.compose.ui.platform.LocalContext
+import com.gbao86.sub_lazy.ui.CurrencyFormatter
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SubscriptionListScreen(
+    viewModel: SubscriptionViewModel = viewModel(),
+    onNavigateToDetail: (Long) -> Unit,
+    onNavigateBack: () -> Unit
+) {
+    val subscriptions by viewModel.allSubscriptions.collectAsStateWithLifecycle(initialValue = emptyList())
+
+    Scaffold(
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(stringResource(R.string.list_title), fontWeight = FontWeight.ExtraBold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                },
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
+        floatingActionButton = {
+            LargeFloatingActionButton(
+                onClick = { onNavigateToDetail(-1L) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = RoundedCornerShape(24.dp)
+            ) {
+                Icon(Icons.Rounded.Add, contentDescription = "Add Subscription", modifier = Modifier.size(32.dp))
+            }
+        }
+    ) { padding ->
+        if (subscriptions.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Rounded.Subscriptions,
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp),
+                        tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        stringResource(R.string.list_empty),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(bottom = 100.dp, start = 24.dp, end = 24.dp, top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(
+                    items = subscriptions,
+                    key = { it.id }
+                ) { subscription ->
+                    SwipeToDeleteItem(
+                        onDelete = { viewModel.delete(subscription) }
+                    ) {
+                        SubscriptionItem(
+                            subscription = subscription,
+                            onClick = { onNavigateToDetail(subscription.id) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeToDeleteItem(
+    onDelete: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = {
+            if (it == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            } else {
+                false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val color by animateColorAsState(
+                when (dismissState.targetValue) {
+                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                    else -> Color.Transparent
+                }, label = "background"
+            )
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(color)
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    Icons.Rounded.Delete,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        },
+        enableDismissFromStartToEnd = false,
+        content = { content() }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SubscriptionItem(
+    subscription: Subscription,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val locale = context.resources.configuration.locales[0]
+    val currencyFormatter = remember(locale) { CurrencyFormatter.getFormatter(locale) }
+    val daysLeft = getDaysLeft(subscription.nextBillingDate)
+    
+    // Calculate monthly equivalent for display
+    val monthlyEquivalent = if (subscription.cycle == "Yearly") subscription.amount / 12 else subscription.amount
+    
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(android.graphics.Color.parseColor(subscription.colorHex)).copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = subscription.name.take(1),
+                    color = Color(android.graphics.Color.parseColor(subscription.colorHex)),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 24.sp
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 20.dp)
+            ) {
+                Text(
+                    text = subscription.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    text = "${currencyFormatter.format(monthlyEquivalent)}${stringResource(R.string.list_monthly_suffix)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = if (daysLeft <= 0) stringResource(R.string.list_days_left_today) else stringResource(R.string.list_days_left_plural, daysLeft),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (daysLeft <= 3) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    text = stringResource(R.string.list_days_left_suffix),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                )
+            }
+        }
+    }
+}
+
+fun getDaysLeft(nextBillingDate: Long): Long {
+    val diff = nextBillingDate - System.currentTimeMillis()
+    return if (diff < 0) 0 else TimeUnit.MILLISECONDS.toDays(diff)
+}
+
+@Preview(showBackground = true, device = "spec:width=411dp,height=891dp")
+@Composable
+fun SubscriptionListPreview() {
+    Sub_lazyTheme {
+        SubscriptionListScreen(
+            onNavigateToDetail = {},
+            onNavigateBack = {}
+        )
+    }
+}

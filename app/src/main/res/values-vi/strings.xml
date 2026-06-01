@@ -1,0 +1,65 @@
+<resources>
+    <!-- App Details -->
+    <string name="app_name">Sub Lazy</string>
+
+    <!-- General / Actions -->
+    <string name="back">Quay lại</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Hủy</string>
+
+    <!-- Onboarding Screen -->
+    <string name="onboarding_title">Thiết lập nhanh</string>
+    <string name="onboarding_welcome">Chào mừng đến với Sub Lazy</string>
+    <string name="onboarding_subtitle">Chọn các dịch vụ bạn đang sử dụng để hiển thị trên bảng điều khiển.</string>
+    <string name="onboarding_btn_start">Bắt đầu tiết kiệm</string>
+    <string name="onboarding_skip">Bỏ qua</string>
+    <string name="onboarding_btn_empty">Hiện tại chưa có dịch vụ nào</string>
+
+    <!-- Dashboard Screen -->
+    <string name="dashboard_monthly_spending">Chi tiêu hàng tháng</string>
+    <string name="dashboard_btn_manage">Quản lý dịch vụ</string>
+    <string name="dashboard_distribution">Phân bổ chi tiêu</string>
+    <string name="dashboard_no_data">Không có dữ liệu hiển thị</string>
+    <string name="dashboard_total">Tổng</string>
+    <string name="dashboard_lang_select_title">Language / Ngôn ngữ</string>
+
+    <!-- Subscription List Screen -->
+    <string name="list_title">Dịch vụ đang dùng</string>
+    <string name="list_empty">Chưa theo dõi dịch vụ nào</string>
+    <string name="list_days_left_today">Hôm nay</string>
+    <string name="list_days_left_plural">%1$d ngày</string>
+    <string name="list_days_left_suffix">còn lại</string>
+    <string name="list_monthly_suffix">/ tháng</string>
+    <string name="list_delete_confirm">Đã xóa dịch vụ</string>
+
+    <!-- Add/Edit Subscription Screen -->
+    <string name="add_title">Thêm dịch vụ mới</string>
+    <string name="edit_title">Chỉnh sửa dịch vụ</string>
+    <string name="add_edit_service_name">Tên dịch vụ</string>
+    <string name="add_edit_service_name_hint">Ví dụ: Netflix, Spotify</string>
+    <string name="add_edit_price">Giá tiền (VND)</string>
+    <string name="add_edit_renewal_date">Ngày gia hạn tiếp theo</string>
+    <string name="add_edit_select_date">Chọn ngày</string>
+    <string name="add_edit_category">Danh mục</string>
+    <string name="add_edit_billing_cycle">Chu kỳ thanh toán</string>
+    <string name="add_edit_btn_track">Theo dõi dịch vụ</string>
+    <string name="add_edit_btn_update">Cập nhật dịch vụ</string>
+
+    <!-- Billing Cycles -->
+    <string name="cycle_monthly">Hàng tháng</string>
+    <string name="cycle_yearly">Hàng năm</string>
+
+    <!-- Categories -->
+    <string name="category_entertainment">Giải trí</string>
+    <string name="category_utilities">Tiện ích</string>
+    <string name="category_work">Công việc</string>
+    <string name="category_cloud">Lưu trữ</string>
+    <string name="category_music">Âm nhạc</string>
+    <string name="category_food">Ăn uống</string>
+    <string name="category_other">Khác</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">Cảnh báo thanh toán</string>
+    <string name="notification_channel_desc">Thông báo về việc gia hạn dịch vụ sắp tới</string>
+    <string name="notification_message">Cảnh báo thanh toán %1$s! Hóa đơn %2$s trị giá %3$s sẽ gia hạn sau 2 ngày. Hãy chuẩn bị đủ tiền nhé!</string>
+</resources>
