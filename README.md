@@ -83,7 +83,7 @@ To switch languages programmatically, use the Globe/Language icon on the top rig
 ---
 
 ## 📜 Changelog
-Tất cả các thay đổi và cập nhật tính năng của dự án được lưu trữ đầy đủ trong file [CHANGELOG.md](file:///D:/App/lazy_sub/CHANGELOG.md).
+Tất cả các thay đổi và cập nhật tính năng của dự án được lưu trữ đầy đủ trong file [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
@@ -94,4 +94,4 @@ Tất cả các thay đổi và cập nhật tính năng của dự án được
 ---
 
 ## 📄 Bản quyền (License)
-Dự án được phân phối dưới bản quyền **GNU General Public License Version 3 (GPLv3)**. Chi tiết vui lòng xem file [LICENSE](file:///D:/App/lazy_sub/LICENSE).
+Dự án được phân phối dưới bản quyền **GNU General Public License Version 3 (GPLv3)**. Chi tiết vui lòng xem file [LICENSE](./LICENSE).
