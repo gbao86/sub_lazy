@@ -35,9 +35,29 @@ private val PremiumDarkColorScheme = darkColorScheme(
     outline = DarkOutline
 )
 
+private val PremiumLightColorScheme = lightColorScheme(
+    primary = LightPrimary,
+    onPrimary = LightOnPrimary,
+    primaryContainer = LightPrimaryContainer,
+    onPrimaryContainer = LightOnPrimaryContainer,
+    secondary = LightSecondary,
+    onSecondary = LightOnSecondary,
+    secondaryContainer = LightSecondaryContainer,
+    onSecondaryContainer = LightOnSecondaryContainer,
+    tertiary = LightTertiary,
+    onTertiary = LightOnTertiary,
+    background = LightBackground,
+    onBackground = LightOnBackground,
+    surface = LightSurface,
+    onSurface = LightOnSurface,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightOnSurfaceVariant,
+    outline = LightOutline
+)
+
 @Composable
 fun Sub_lazyTheme(
-    darkTheme: Boolean = true, // Force dark theme for "Premium Dark Mode" look as requested
+    darkTheme: Boolean = isSystemInDarkTheme(), // Auto-adapt to system light/dark theme settings
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
@@ -47,7 +67,7 @@ fun Sub_lazyTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         darkTheme -> PremiumDarkColorScheme
-        else -> PremiumDarkColorScheme // Fallback to Dark for Premium feel even in light mode if not dynamic
+        else -> PremiumLightColorScheme // Fallback to custom light mode palette
     }
     
     val view = LocalView.current

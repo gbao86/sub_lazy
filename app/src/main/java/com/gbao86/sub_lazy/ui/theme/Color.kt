@@ -31,3 +31,26 @@ val DarkOnSurface = Slate300
 val DarkSurfaceVariant = Slate700
 val DarkOnSurfaceVariant = Slate300
 val DarkOutline = Color(0xFF475569)
+
+// Material 3 Light Colors
+val LightPrimary = Indigo
+val LightOnPrimary = Color.White
+val LightPrimaryContainer = Color(0xFFE0E7FF)
+val LightOnPrimaryContainer = Color(0xFF312E81)
+
+val LightSecondary = Color(0xFF0284C7)
+val LightOnSecondary = Color.White
+val LightSecondaryContainer = Color(0xFFE0F2FE)
+val LightOnSecondaryContainer = Color(0xFF0369A1)
+
+val LightTertiary = Color(0xFFE11D48)
+val LightOnTertiary = Color.White
+
+val LightBackground = Color(0xFFF8FAFC)
+val LightOnBackground = Color(0xFF0F172A)
+val LightSurface = Color.White
+val LightOnSurface = Color(0xFF0F172A)
+val LightSurfaceVariant = Color(0xFFF1F5F9)
+val LightOnSurfaceVariant = Color(0xFF475569)
+val LightOutline = Color(0xFFCBD5E1)
+
