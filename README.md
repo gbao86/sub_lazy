@@ -79,3 +79,19 @@ lazy_sub/
 
 ## 🌍 Localization
 To switch languages programmatically, use the Globe/Language icon on the top right corner of the Dashboard screen. Selecting a language automatically updates the context locale via the `AppCompatDelegate` API.
+
+---
+
+## 📜 Changelog
+Tất cả các thay đổi và cập nhật tính năng của dự án được lưu trữ đầy đủ trong file [CHANGELOG.md](file:///D:/App/lazy_sub/CHANGELOG.md).
+
+---
+
+## 👥 Tác giả (Author)
+*   **Trịnh Gia Bảo**
+*   📧 Email: [tiktokthu10@gmail.com](mailto:tiktokthu10@gmail.com)
+
+---
+
+## 📄 Bản quyền (License)
+Dự án được phân phối dưới bản quyền **GNU General Public License Version 3 (GPLv3)**. Chi tiết vui lòng xem file [LICENSE](file:///D:/App/lazy_sub/LICENSE).
