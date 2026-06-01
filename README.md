@@ -5,26 +5,44 @@
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-blue.svg?style=for-the-badge&logo=jetpackcompose)](https://developer.android.com/jetpack/compose)
 [![Room](https://img.shields.io/badge/Room%20DB-SQLite-orange.svg?style=for-the-badge)](https://developer.android.com/training/data-storage/room)
 
-Have you ever looked at your bank statement and gone, *"Wait, when did I sign up for a premium cheese-of-the-month club?!"* only to realize you\'ve been paying for it for the last two years? Or did you forget to cancel that "free trial" and paid the ultimate price? 
+Have you ever looked at your bank statement and gone, *"Wait, when did I sign up for a premium cheese-of-the-month club?!"* only to realize you've been paying for it for the last two years? Or did you forget to cancel that "free trial" and paid the ultimate price? 
 
-Yeah, we\'ve all been there. 
+Yeah, we've all been there. 
 
 **Sub Lazy** was born to save your wallet from your own forgetfulness! It is a premium, modern subscription tracker and manager for Android that helps you easily track recurring services, visualizes the monthly damage, and yells at you (nicely, via local notifications) 2 days before a bill renews so you actually have enough funds.
+
+<p align="center">
+  <img src="app/src/main/res/drawable/cat_onboarding.png" width="220" alt="Lazy Onboarding Cat"/>
+  <br>
+  <i>"I watch your lazy bills so you can sleep all day!" — Onboarding Cat 🐱</i>
+</p>
 
 ---
 
 ## ✨ Features
 
 - **Quick Setup / Onboarding**: Start instantly by selecting from popular pre-defined subscription templates (Netflix, Spotify, YouTube Premium, Net/Wifi, etc.).
+- **Funny Cat Memes & Humor UX**:
+  - **Smug Onboarding Cat**: Welcomes you with black sunglasses and a pile of money, encouraging you to select templates.
+  - **Crying Empty State Cat**: Stares dramatically at an empty food bowl when your list is clean and empty.
 - **Interactive Dashboard**:
   - **Dynamic Spending Card**: Visualizes your total monthly subscription costs in a premium gradient card.
-  - **Animated Pie Chart**: Custom Canvas-drawn animated distribution chart showing category spending dynamically.
-  - **Language Switcher**: In-app dropdown switcher to toggle between **English** and **Vietnamese** seamlessly using standard Android AppCompat locale APIs.
-- **Subscription List**:
+  - **Interactive Donut Chart**: Touch-responsive category spending donut chart. Tapping segments or the legend explodes (offsets) the segment and updates center details (category, price, percentage).
+  - **Expanded Legends**: Tapping a category legend item expands a list showing all subscriptions tracked under that category with smooth slide animations.
+  - **Billing Cycle Comparison**: Dynamic vertical bar charts comparing Monthly vs. Yearly spending impacts.
+  - **Upcoming Renewals Timeline**: A scrollable horizontal timeline linking renewal dates. Urgently renewing items (due in <= 3 days) display a pulsing animated halo outer ring.
+- **Subscription List Screen**:
   - **Active Services Summary**: Shows monthly equivalent costs, renewal schedules, and color-coded countdown indicators.
-  - **Swipe-to-Delete**: Quick deletion of tracked subscriptions using fluid gesture animations.
-- **Add / Edit Subscriptions**: Fully customizable forms for tracking custom services. Includes pricing in VND, renewal date picker, categories, and billing cycles (Monthly vs Yearly).
+  - **Swipe-to-Delete Confirmation**: Prevent accidental deletions with an Android `AlertDialog` confirmation showing the service name. Cancel slides the item back smoothly.
+- **Add / Edit Subscriptions**: Fully customizable forms for tracking custom services. Includes pricing, renewal date picker, categories, billing cycles, and dynamic currency prefix selection (₫/$) based on app language.
+- **Dynamic Localization**: Instantly switch the app language between **English** and **Vietnamese** dynamically using the Top Bar selector.
 - **Billing Alerts (Notifications)**: Schedules background reminders using **Android WorkManager** exactly 2 days before renewal at 9:00 AM.
+
+<p align="center">
+  <img src="app/src/main/res/drawable/cat_empty_state.png" width="200" alt="Empty Bowl Crying Cat"/>
+  <br>
+  <i>"Empty food bowl, empty wallet, empty list... A truly perfect lazy lifestyle!" 😿</i>
+</p>
 
 ---
 
@@ -36,7 +54,7 @@ The project follows standard Android **MVVM (Model-View-ViewModel)** architectur
 - **Data Persistence**: [Room SQLite Database](https://developer.android.com/training/data-storage/room) for reactive storage and flow streams.
 - **Background Tasks**: [WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager) for reliable background notification scheduling that survives reboot and app termination.
 - **Asynchronous Execution**: Kotlin **Coroutines** and **StateFlow** for lifecycle-aware reactive UI updates.
-- **Design System**: Material Design 3 (M3) with custom HSL-based styling, subtle micro-animations, and edge-to-edge screens.
+- **Design System**: Material Design 3 (M3) with custom HSL-based styling, system-adaptive theme colors (light/dark mode toggle), and edge-to-edge screens.
 
 ---
 
@@ -56,6 +74,7 @@ lazy_sub/
 │           │   ├── viewmodel/          # State & business logic handlers
 │           │   └── worker/             # Background workers for notifications
 │           └── res/                    # UI resources (Drawables, Mipmaps, Values)
+│               ├── drawable/           # Custom cat drawables (onboarding & empty state)
 │               ├── values/strings.xml  # English string resource dictionary
 │               └── values-vi/strings.xml # Vietnamese translation resources
 ```
@@ -87,15 +106,18 @@ To switch languages programmatically, use the Globe/Language icon on the top rig
 ---
 
 ## 📜 Changelog
-Tất cả các thay đổi và cập nhật tính năng của dự án được lưu trữ đầy đủ trong file [CHANGELOG.md](./CHANGELOG.md).
+
+All notable changes and updates to this project are documented in the [CHANGELOG.md](./CHANGELOG.md) file.
 
 ---
 
-## 👥 Tác giả (Author)
-*   **Trịnh Gia Bảo**
+## 👥 Author
+
+*   **Trịnh Gia Bảo (gbao86)**
 *   📧 Email: [tiktokthu10@gmail.com](mailto:tiktokthu10@gmail.com)
 
 ---
 
-## 📄 Bản quyền (License)
-Dự án được phân phối dưới bản quyền **GNU General Public License Version 3 (GPLv3)**. Chi tiết vui lòng xem file [LICENSE](./LICENSE).
+## 📄 License
+
+This project is licensed under the **GNU General Public License Version 3 (GPLv3)**. See the [LICENSE](./LICENSE) file for details.
