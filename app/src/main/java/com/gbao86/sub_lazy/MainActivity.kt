@@ -13,14 +13,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import android.content.Context
 import androidx.navigation.compose.rememberNavController
 import com.gbao86.sub_lazy.ui.navigation.NavGraph
+import com.gbao86.sub_lazy.ui.navigation.Screen
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val isOnboardingCompleted = sharedPref.getBoolean("onboarding_completed", false)
+        val startDestination = if (isOnboardingCompleted) Screen.Dashboard.route else Screen.Onboarding.route
+
         setContent {
             Sub_lazyTheme {
                 val permissionLauncher = rememberLauncherForActivityResult(
@@ -40,7 +47,10 @@ class MainActivity : AppCompatActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    NavGraph(navController = navController)
+                    NavGraph(
+                        navController = navController,
+                        startDestination = startDestination
+                    )
                 }
             }
         }

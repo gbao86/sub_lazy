@@ -25,3 +25,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Gradle wrapper startup**: Restructured Gradle wrapper jar and settings to compile correctly on JDK 21 environment.
 - **Code Health / Warnings**: Resolved compiler warnings by migrating to `Icons.AutoMirrored` and suppressing legacy status bar color modifications in `Theme.kt`.
+- **State Persistence (UX Bug Fix)**: Fixed a bug where data appeared to be lost upon app exit by storing the onboarding completion state in `SharedPreferences`. The app now automatically loads directly into the `Dashboard` screen on subsequent launches instead of forcing the user through onboarding repeatedly.

@@ -27,8 +27,12 @@ fun NavGraph(navController: NavHostController, startDestination: String = Screen
         startDestination = startDestination
     ) {
         composable(Screen.Onboarding.route) {
+            val context = androidx.compose.ui.platform.LocalContext.current
             OnboardingScreen(
                 onFinishOnboarding = {
+                    val sharedPref = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+                    sharedPref.edit().putBoolean("onboarding_completed", true).apply()
+
                     navController.navigate(Screen.Dashboard.route) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }
                     }
