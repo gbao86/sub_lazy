@@ -119,4 +119,4 @@ All notable changes and updates to this project are documented in the [CHANGELOG
 
 ## 📄 License
 
-This project is proprietary and confidential. All rights reserved by the author. See the [LICENSE](./LICENSE) file for details.
+This project is licensed under a Non-Commercial License. You are free to copy and modify the code for personal use, but commercial exploitation or monetization is strictly prohibited. See the [LICENSE](./LICENSE) file for details.
