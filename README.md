@@ -22,18 +22,22 @@ Yeah, we've all been there.
 ## ✨ Features
 
 - **Quick Setup / Onboarding**: Start instantly by selecting from popular pre-defined subscription templates (Netflix, Spotify, YouTube Premium, Net/Wifi, etc.).
+- **Multi-Source Bill Ingestion**:
+  - **Offline OCR Scanning**: Parse bill details (prices, billing cycles, renewal dates) locally and privately using **Google ML Kit Text Recognition** (no API key required).
+  - **Notification Parsing**: Integrates a `BillNotificationListener` to capture SMS or banking app alerts (like MoMo, Vietcombank) and auto-prefill new subscriptions.
+  - **Gmail Synchronization**: Scan and download invoice receipts directly from Gmail using the OAuth client and import them via a checklist interface.
 - **Interactive Dashboard**:
   - **Dynamic Spending Card**: Visualizes your total monthly subscription costs in a premium gradient card.
-  - **Interactive Donut Chart**: Touch-responsive category spending donut chart. Tapping segments or the legend explodes (offsets) the segment and updates center details (category, price, percentage).
+  - **Interactive Donut Chart**: Touch-responsive category spending donut chart. Tapping segments explodes (offsets) the segment and updates center details.
   - **Expanded Legends**: Tapping a category legend item expands a list showing all subscriptions tracked under that category with smooth slide animations.
   - **Billing Cycle Comparison**: Dynamic vertical bar charts comparing Monthly vs. Yearly spending impacts.
-  - **Upcoming Renewals Timeline**: A scrollable horizontal timeline linking renewal dates. Urgently renewing items (due in <= 3 days) display a pulsing animated halo outer ring.
-- **Subscription List Screen**:
-  - **Active Services Summary**: Shows monthly equivalent costs, renewal schedules, and color-coded countdown indicators.
-  - **Swipe-to-Delete Confirmation**: Prevent accidental deletions with an Android `AlertDialog` confirmation showing the service name. Cancel slides the item back smoothly.
-- **Add / Edit Subscriptions**: Fully customizable forms for tracking custom services. Includes pricing, renewal date picker, categories, billing cycles, and dynamic currency prefix selection (₫/$) based on app language.
-- **Dynamic Localization**: Instantly switch the app language between **English** and **Vietnamese** dynamically using the Top Bar selector.
-- **Billing Alerts (Notifications)**: Schedules background reminders using **Android WorkManager** exactly 2 days before renewal at 9:00 AM.
+  - **Upcoming Renewals Timeline**: A scrollable horizontal timeline showing renewal dates. Urgently renewing items display a pulsing animated halo outer ring.
+- **Subscription List Screen**: Shows monthly equivalent costs, renewal schedules, and color-coded countdown indicators. Swift swipe-to-delete has a double-confirm dialog.
+- **Add / Edit Subscriptions**: Fully customizable forms. Includes pricing, renewal date picker, category dropdown, billing cycle, and a **currency toggle (VND/USD)** using Material 3 card controls.
+- **Dynamic Localization & Multi-Currency**:
+  - Instantly switch the app language between **English** and **Vietnamese** dynamically.
+  - **Real-Time Currency Conversions**: All amounts are dynamically formatted and converted based on the active language (VND displayed in Vietnamese, USD displayed in English) using a real-time exchange rate of `1 USD = 25,400 VND` to prevent raw numerical discrepancies.
+- **Billing Alerts (Notifications)**: Schedules background reminders using **Android WorkManager** exactly 2 days before renewal.
 
 <p align="center">
   <img src="assets/cat_saving.png" width="220" alt="Lazy Cat with savings"/>

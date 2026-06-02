@@ -13,5 +13,6 @@ data class Subscription(
     val cycle: String, // e.g., "Monthly", "Yearly"
     val category: String,
     val colorHex: String = "#6366F1", // Default Indigo
-    val iconName: String? = null
+    val iconName: String? = null,
+    val currency: String = "VND"
 )

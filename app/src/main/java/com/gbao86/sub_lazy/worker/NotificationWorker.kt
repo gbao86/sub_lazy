@@ -25,8 +25,7 @@ class NotificationWorker(
         val subscription = db.subscriptionDao().getSubscriptionById(subscriptionId) ?: return Result.failure()
 
         val locale = applicationContext.resources.configuration.locales[0]
-        val currencyFormatter = CurrencyFormatter.getFormatter(locale)
-        val amountFormatted = currencyFormatter.format(subscription.amount)
+        val amountFormatted = CurrencyFormatter.format(subscription.amount, subscription.currency, locale)
 
         val message = applicationContext.getString(
             R.string.notification_message,

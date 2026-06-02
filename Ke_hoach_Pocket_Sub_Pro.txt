@@ -1,0 +1,86 @@
+================================================================================
+      KẾ HOẠCH PHÁT TRIỂN ỨNG DỤNG "POCKET SUB" - PHIÊN BẢN RELEASE-READY
+================================================================================
+Tên dự án: Pocket Sub (Trợ lý quản lý tài chính và hóa đơn định kỳ)
+Mục tiêu: Đạt chuẩn Release-ready, xử lý đa nguồn dữ liệu (Thông báo, Ảnh, Email)
+Nền tảng: Flutter (Hỗ trợ Material 3 cho Android & Cupertino cho iOS)
+
+================================================================================
+PHẦN 1: TIÊU CHUẨN UI/UX (HỆ THỐNG THIẾT KẾ CỐT LÕI)
+================================================================================
+1. Chuẩn Hệ điều hành (OS Native Feel):
+   - Sử dụng `flutter_adaptive_scaffold` hoặc tự custom Widget để ứng dụng tự động 
+     hiển thị Material UI trên Android và Cupertino UI trên iOS.
+
+2. Tiêu chuẩn Kích thước & Khoảng cách (Touch Targets):
+   - Mọi nút bấm (Button, Icon Button) bắt buộc có kích thước cảm ứng tối thiểu 48x48 dp.
+   - Khoảng cách giữa các phần tử tương tác tối thiểu 8dp để tránh chạm nhầm.
+
+3. Vùng thao tác lý tưởng (Thumb Zone):
+   - Đẩy toàn bộ các action chính yếu (Thêm hóa đơn, Quét ảnh, Đồng bộ Email) xuống
+     nửa dưới màn hình (Bottom Navigation Bar, Bottom Sheet, Floating Action Button).
+   - Thanh tìm kiếm và tiêu đề ở trên cùng, chỉ dành cho tác vụ đọc và vuốt.
+
+4. Quy luật 3 lần chạm (The 3-Click Rule):
+   - Luồng 1 (Quét ảnh): Bấm Icon Camera -> Chọn ảnh -> AI tự điền -> Bấm Lưu (3 chạm).
+   - Luồng 2 (Email): Bấm Đồng bộ -> Xác nhận quyền -> App tự bóc tách và Lưu (3 chạm).
+   - Hạn chế tối đa việc điều hướng qua các trang lồng nhau (Nested Navigation).
+
+5. Tính nhất quán (Consistency):
+   - Định nghĩa toàn bộ màu sắc, typography trong `ThemeData`.
+   - Dùng 1 bộ Icon duy nhất (vd: Phosphor Icons hoặc Cupertino Icons).
+   - Thống nhất các trạng thái nút (Active, Disabled, Hover).
+
+6. Phản hồi hệ thống (Feedback):
+   - Sử dụng `HapticFeedback` của Flutter (rung nhẹ) cho mọi thao tác bấm nút, vuốt xóa.
+   - Hiệu ứng Shimmer Loading khi AI đang quét ảnh/đọc email, tuyệt đối không để màn hình tĩnh.
+   - Hiển thị Snackbar hoặc Toast có màu sắc tương ứng (Xanh: Thành công, Đỏ: Lỗi) kèm text.
+
+7. Đơn giản hóa (Don't Make Me Think):
+   - Zero-typing (Không gõ phím): Mọi input ưu tiên dạng chọn (Dropdown, DatePicker) hoặc 
+     để AI tự điền.
+   - Ngôn từ dứt khoát: "Xóa hóa đơn", "Lưu", "Quét ảnh", không dùng từ ngữ chuyên ngành.
+
+================================================================================
+PHẦN 2: THIẾT KẾ KIẾN TRÚC & TÍNH NĂNG ĐA NGUỒN (MULTI-SOURCE INGESTION)
+================================================================================
+1. Nguồn 1: Bẫy thông báo (Notification Listener)
+   - Tiếp tục dùng quyền `NotificationListenerService`.
+   - Phục vụ cho: Hóa đơn điện, nước, internet, phí chung cư bị trừ tự động qua App Ngân hàng/MoMo.
+
+2. Nguồn 2: Nhận diện qua Ảnh chụp màn hình (Screenshot OCR + AI)
+   - Tích hợp Gemini API (Vision) để phân tích ảnh chụp màn hình hóa đơn.
+   - Xử lý mượt mà: Người dùng share (chia sẻ) ảnh từ thư viện vào app Pocket Sub -> 
+     App gọi Gemini API trích xuất: Tên dịch vụ, Số tiền, Chu kỳ -> Điền sẵn vào form.
+
+3. Nguồn 3: Đọc và phân tích Email (Gmail API)
+   - Tích hợp `google_sign_in` và `googleapis`.
+   - Xin quyền `https://www.googleapis.com/auth/gmail.readonly`.
+   - Quét định kỳ hộp thư với các query như: "subject:receipt OR subject:invoice OR Netflix".
+   - Dùng Gemini API phân tích nội dung text của Email để bóc tách thông tin gia hạn.
+
+================================================================================
+PHẦN 3: LỘ TRÌNH THỰC THI CHUẨN RELEASE (4 TUẦN)
+================================================================================
+
+TUẦN 1: Xây dựng UX/UI Foundation & Database Structure
+- Thiết lập Flutter project, cấu hình ThemeData (Material/Cupertino).
+- Xây dựng hệ thống Component (Button, Card, BottomSheet) tuân thủ Touch Targets.
+- Khởi tạo Isar DB với Schema tối ưu (hỗ trợ lưu cả đường dẫn ảnh hóa đơn).
+
+TUẦN 2: Tích hợp 3 Nguồn Dữ Liệu (Core Logic)
+- Module 1: Code Notification Listener & Regex phân loại.
+- Module 2: Code UI Upload ảnh và gọi Gemini API xử lý OCR.
+- Module 3: Tích hợp Google Sign-in và lấy danh sách Email, truyền cho AI phân tích.
+
+TUẦN 3: Xử lý Feedback, Haptics & Local Notifications
+- Tích hợp `flutter_local_notifications` lập lịch nhắc nhở offline 100% chính xác.
+- Thêm `HapticFeedback` vào toàn bộ luồng.
+- Hoàn thiện UI Shimmer loading, Error handling (khi mất mạng không quét được AI).
+
+TUẦN 4: Testing, Tối ưu hóa & Chuẩn bị Release
+- Áp dụng các bài test UX (3-Click test).
+- Tối ưu hiệu năng: Đảm bảo app không giật lag khi danh sách hóa đơn dài (dùng ListView.builder).
+- Hoàn thiện Icon App, Splash Screen.
+- Tạo file Keystore (Android) & Provisioning Profile (iOS) để đóng gói file APK/AAB/IPA.
+================================================================================

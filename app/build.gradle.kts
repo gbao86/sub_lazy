@@ -13,8 +13,8 @@ android {
         applicationId = "com.gbao86.sub_lazy"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "0.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -65,6 +65,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.accompanist.permissions)
     implementation(libs.play.services.location)
+    implementation(libs.play.services.auth)
+    implementation(libs.play.services.mlkit.text.recognition)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)

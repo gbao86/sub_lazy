@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.2] - 2026-06-02
+
+### Added
+- **Offline ML Kit OCR Scanning**: Completely removed online Gemini API requirements and replaced it with on-device Google ML Kit Text Recognition. Screenshots are now parsed locally, offline, and privately.
+- **Bank/MoMo Notification Parsing**: Created a `BillNotificationListener` service to automatically parse banking and MoMo transaction alerts to pre-fill billing alerts.
+- **Gmail Ingestion & Import**: Implemented Gmail API sync to import payment confirmation emails. Users can review invoices in a multi-select import popup.
+- **Multi-Currency & Exchange Rates**:
+  - Database upgraded to Schema v2 with safe Room migration (`MIGRATION_1_2`) that adds the `currency` column while preserving user data.
+  - Added a currency selector dropdown (VND/USD) in the Add/Edit form utilizing Material 3 card controls.
+  - Automated currency pre-fill based on amount thresholds (>1000 VND, otherwise USD).
+- **Metadata OCR Auto-download**: Configured `AndroidManifest.xml` tags to instruct Google Play Services to pre-download the OCR module on app install.
+
+### Changed
+- **Unified Currency Aggregation**: Updated `SubscriptionViewModel` and chart components to convert all currencies into a unified base currency (VND) before summing, resolving total cost calculation errors.
+- **Active Locale Conversion**: Enabled dynamic locale-based currency conversion (e.g. converting `260,000₫` to `$10.24` when app is switched to English, and `$9.99` to `253.746₫` when switched to Vietnamese) based on an exchange rate of `1 USD = 25,400 VND`.
+
+### Fixed
+- **OCR Scan Orientation & Tolerance**: Rebuilt OCR price and keyword scanning algorithms to make them highly tolerant to horizontal layout variations and diacritical variations.
+- **Empty Scan Errors**: Configured fallback naming (`Hóa đơn mới`) to allow successful scanning and pre-filling even if a service logo/text isn't in our predefined service database.
+
 ## [0.0.1] - 2026-06-01
 
 ### Added

@@ -83,4 +83,40 @@
     <string name="delete_dialog_message">Are you sure you want to stop tracking %1$s? This action cannot be undone.</string>
     <string name="delete_dialog_confirm">Delete</string>
     <string name="delete_dialog_cancel">Cancel</string>
+
+    <!-- Detected Bills -->
+    <string name="notification_detected_channel_name">Detected Bills</string>
+    <string name="notification_detected_channel_desc">Alerts when a recurring payment notification is detected</string>
+    <string name="notification_detected_title">New Bill Detected!</string>
+    <string name="notification_detected_message">Found payment for %1$s of %2$s. Tap to track this subscription!</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_gemini_key">Gemini API Key</string>
+    <string name="settings_gemini_key_hint">Enter your Gemini API Key</string>
+    <string name="settings_notification_listener">Notification Listener Service</string>
+    <string name="settings_notification_listener_desc">Automatically capture banking &amp; payment notifications to track subscriptions.</string>
+    <string name="settings_gmail_sync">Gmail Synchronization</string>
+    <string name="settings_gmail_sync_desc">Link Gmail account to scan for service invoices.</string>
+    <string name="settings_gmail_linked">Linked to %1$s</string>
+    <string name="settings_gmail_not_linked">Not linked</string>
+    <string name="settings_gmail_btn_link">Link Account</string>
+    <string name="settings_gmail_btn_unlink">Unlink</string>
+    <string name="settings_btn_save">Save Settings</string>
+    
+    <!-- Action Sheet / FAB options -->
+    <string name="action_add_manually">Add Manually</string>
+    <string name="action_scan_screenshot">Scan Bill Screenshot</string>
+    <string name="action_sync_gmail">Sync from Gmail</string>
+    <string name="action_sheet_title">How would you like to add?</string>
+    
+    <!-- Gemini / OCR processing -->
+    <string name="ocr_processing">AI is analyzing invoice...</string>
+    <string name="ocr_success">Successfully parsed billing details!</string>
+    <string name="ocr_error">Failed to parse. Please check connection/API key.</string>
+    
+    <!-- Gmail Sync processing -->
+    <string name="gmail_sync_processing">Scanning Gmail receipts...</string>
+    <string name="gmail_sync_found">%1$d subscriptions found from Gmail!</string>
+    <string name="gmail_sync_none">No new receipt emails found.</string>
+    <string name="gmail_import_title">Import Subscriptions</string>
+    <string name="gmail_import_btn">Import Selected (%1$d)</string>
 </resources>

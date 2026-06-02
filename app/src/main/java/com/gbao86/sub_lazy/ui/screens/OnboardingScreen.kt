@@ -206,7 +206,7 @@ fun TemplateItem(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = currencyFormatter.format(template.amount),
+                text = CurrencyFormatter.format(template.amount, "VND", locale),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )

@@ -9,7 +9,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,36 +29,38 @@ import java.util.*
 import androidx.compose.ui.res.stringResource
 import com.gbao86.sub_lazy.R
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditSubscriptionScreen(
     subscriptionId: Long? = null,
+    prefillName: String? = null,
+    prefillAmount: Double? = null,
     viewModel: SubscriptionViewModel = viewModel(),
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val locale = context.resources.configuration.locales[0]
-    val currencySymbol = remember(locale) {
-        if (locale.language == "vi") "₫" else "$"
-    }
-
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var nextBillingDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var cycle by remember { mutableStateOf("Monthly") }
     var category by remember { mutableStateOf("Entertainment") }
     var colorHex by remember { mutableStateOf("#6366F1") }
-
+    var selectedCurrency by remember { mutableStateOf(if (locale.language == "vi") "VND" else "USD") }
+ 
     val categories = listOf("Entertainment", "Utilities", "Work", "Cloud", "Music", "Food", "Other")
     var expandedCategory by remember { mutableStateOf(false) }
-
+ 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = nextBillingDate)
     var showDatePicker by remember { mutableStateOf(false) }
-
+ 
     val isEditMode = subscriptionId != null && subscriptionId != -1L
-
-    LaunchedEffect(subscriptionId) {
+ 
+    LaunchedEffect(subscriptionId, prefillName, prefillAmount) {
         if (isEditMode) {
             val sub = viewModel.getSubscriptionById(subscriptionId!!)
             sub?.let {
@@ -66,6 +70,13 @@ fun AddEditSubscriptionScreen(
                 cycle = it.cycle
                 category = it.category
                 colorHex = it.colorHex
+                selectedCurrency = it.currency
+            }
+        } else {
+            prefillName?.let { name = it }
+            prefillAmount?.let { 
+                amount = it.toString()
+                selectedCurrency = if (it > 1000.0) "VND" else "USD"
             }
         }
     }
@@ -138,17 +149,68 @@ fun AddEditSubscriptionScreen(
             )
 
             // Amount
-            OutlinedTextField(
-                value = amount,
-                onValueChange = { amount = it },
-                label = { Text(stringResource(R.string.add_edit_price)) },
-                placeholder = { Text("0.0") },
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                prefix = { Text("$currencySymbol ", fontWeight = FontWeight.Bold) }
-            )
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text(stringResource(R.string.add_edit_price)) },
+                    placeholder = { Text("0.0") },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    prefix = { Text(if (selectedCurrency == "VND") "₫ " else "$ ", fontWeight = FontWeight.Bold) }
+                )
+
+                // Currency Selector Dropdown
+                var expandedCurrency by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.padding(top = 8.dp)) {
+                    OutlinedCard(
+                        onClick = { expandedCurrency = true },
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.height(56.dp).width(96.dp),
+                        colors = CardDefaults.outlinedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(selectedCurrency, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                            }
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = expandedCurrency,
+                        onDismissRequest = { expandedCurrency = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("VND (₫)") },
+                            onClick = {
+                                selectedCurrency = "VND"
+                                expandedCurrency = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("USD ($)") },
+                            onClick = {
+                                selectedCurrency = "USD"
+                                expandedCurrency = false
+                            }
+                        )
+                    }
+                }
+            }
 
             // Billing Date
             val dateFormatter = remember { java.text.DateFormat.getDateInstance(java.text.DateFormat.LONG) }
@@ -233,6 +295,7 @@ fun AddEditSubscriptionScreen(
             Button(
                 onClick = {
                     if (name.isNotBlank() && amount.isNotBlank()) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         val sub = Subscription(
                             id = if (isEditMode) subscriptionId!! else 0,
                             name = name,
@@ -240,7 +303,8 @@ fun AddEditSubscriptionScreen(
                             nextBillingDate = nextBillingDate,
                             cycle = cycle,
                             category = category,
-                            colorHex = colorHex
+                            colorHex = colorHex,
+                            currency = selectedCurrency
                         )
                         if (isEditMode) viewModel.update(sub) else viewModel.insert(sub)
                         onNavigateBack()

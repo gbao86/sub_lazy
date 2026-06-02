@@ -16,6 +16,12 @@ import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.PhotoCamera
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,12 +61,29 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.math.atan2
 import kotlin.math.min
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import com.gbao86.sub_lazy.data.api.GeminiService
+import com.gbao86.sub_lazy.data.api.GmailService
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.Scope
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.auth.GoogleAuthUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
+import android.content.ComponentName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     viewModel: SubscriptionViewModel = viewModel(),
-    onNavigateToAdd: () -> Unit,
+    onNavigateToAdd: (String?, Double?) -> Unit,
     onNavigateToList: () -> Unit
 ) {
     val context = LocalContext.current
@@ -68,10 +91,112 @@ fun DashboardScreen(
     val totalMonthlyCost by viewModel.totalMonthlyCost.collectAsStateWithLifecycle(initialValue = 0.0)
     val spendingByCategory by viewModel.spendingByCategory.collectAsStateWithLifecycle(initialValue = emptyList())
     val subscriptions by viewModel.allSubscriptions.collectAsStateWithLifecycle(initialValue = emptyList())
-    val currencyFormatter = remember(locale) { CurrencyFormatter.getFormatter(locale) }
+
 
     var selectedCategory by remember { mutableStateOf<CategorySpending?>(null) }
     var selectedUpcomingSub by remember { mutableStateOf<Subscription?>(null) }
+
+    // Haptics & Scope
+    val haptic = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // Gemini & Gmail API Services
+    val geminiService = remember { GeminiService(context) }
+    val gmailService = remember { GmailService(context) }
+
+    // API key and linked account
+    var geminiApiKey by remember {
+        mutableStateOf(
+            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                .getString("gemini_api_key", "") ?: ""
+        )
+    }
+    var linkedAccountEmail by remember {
+        mutableStateOf(
+            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                .getString("gmail_account", null)
+        )
+    }
+
+    // Google Sign-In options & client
+    val gso = remember {
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestScopes(Scope("https://www.googleapis.com/auth/gmail.readonly"))
+            .build()
+    }
+    val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
+
+    // Launcher for sign in
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val email = account?.email ?: ""
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    val token = GoogleAuthUtil.getToken(
+                        context,
+                        account?.account ?: return@launch,
+                        "oauth2:https://www.googleapis.com/auth/gmail.readonly"
+                    )
+                    context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                        .edit()
+                        .putString("gmail_account", email)
+                        .putString("gmail_access_token", token)
+                        .apply()
+                    linkedAccountEmail = email
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        } catch (e: ApiException) {
+            e.printStackTrace()
+            val errorMsg = "Lỗi Google Sign-In (Mã: ${e.statusCode}). Bạn đã cấu hình SHA-1 fingerprint trên Google Cloud Console chưa?"
+            android.widget.Toast.makeText(context, errorMsg, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Image Picker Launcher for screenshot OCR
+    var isAnalyzing by remember { mutableStateOf(false) }
+    var ocrStatusMessage by remember { mutableStateOf("") }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            isAnalyzing = true
+            ocrStatusMessage = context.getString(R.string.ocr_processing)
+            geminiService.analyzeImage(uri, object : GeminiService.GeminiCallback {
+                override fun onSuccess(result: GeminiService.ParsedSubscription) {
+                    isAnalyzing = false
+                    coroutineScope.launch(Dispatchers.Main) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onNavigateToAdd(result.name, result.amount)
+                    }
+                }
+
+                override fun onError(message: String) {
+                    isAnalyzing = false
+                    coroutineScope.launch(Dispatchers.Main) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+            })
+        }
+    }
+
+    // Gmail Ingestion state
+    var isSyncingGmail by remember { mutableStateOf(false) }
+    var gmailSubscriptionsToImport by remember { mutableStateOf<List<GeminiService.ParsedSubscription>>(emptyList()) }
+    var showGmailImportDialog by remember { mutableStateOf(false) }
+
+    // Dialog state controllers
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    var showAddBottomSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -81,6 +206,18 @@ fun DashboardScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {
+                    // Settings icon
+                    IconButton(onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showSettingsDialog = true
+                    }) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = stringResource(R.string.settings_title),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
                     var showLangMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { showLangMenu = true }) {
                         Icon(
@@ -117,7 +254,10 @@ fun DashboardScreen(
         },
         floatingActionButton = {
             LargeFloatingActionButton(
-                onClick = onNavigateToAdd,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    showAddBottomSheet = true
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(24.dp)
@@ -126,197 +266,549 @@ fun DashboardScreen(
             }
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(bottom = 100.dp, start = 24.dp, end = 24.dp, top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Summary Card (Premium Gradient)
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    shape = RoundedCornerShape(32.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Box(
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(bottom = 100.dp, start = 24.dp, end = 24.dp, top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Summary Card (Premium Gradient)
+                item {
+                    Card(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.secondary
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        shape = RoundedCornerShape(32.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    brush = Brush.linearGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.primary,
+                                            MaterialTheme.colorScheme.secondary
+                                        )
                                     )
                                 )
-                            )
-                            .padding(24.dp)
-                    ) {
-                        Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxHeight()) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.AutoMirrored.Rounded.TrendingUp, contentDescription = null, tint = Color.White.copy(alpha = 0.8f))
-                                Spacer(modifier = Modifier.width(8.dp))
+                                .padding(24.dp)
+                        ) {
+                            Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxHeight()) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.AutoMirrored.Rounded.TrendingUp, contentDescription = null, tint = Color.White.copy(alpha = 0.8f))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        stringResource(R.string.dashboard_monthly_spending),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = Color.White.copy(alpha = 0.8f)
+                                    )
+                                }
                                 Text(
-                                    stringResource(R.string.dashboard_monthly_spending),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = Color.White.copy(alpha = 0.8f)
+                                    text = CurrencyFormatter.format(totalMonthlyCost ?: 0.0, "VND", locale),
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White
                                 )
                             }
-                            Text(
-                                text = currencyFormatter.format(totalMonthlyCost ?: 0.0),
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color.White
+                        }
+                    }
+                }
+
+                // Quick Navigation Button
+                item {
+                    Button(
+                        onClick = onNavigateToList,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.FormatListBulleted, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            stringResource(R.string.dashboard_btn_manage),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                if (spendingByCategory.isEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(32.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .clip(RoundedCornerShape(24.dp))
+                                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Rounded.TrendingUp,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(36.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Text(
+                                    text = stringResource(R.string.dashboard_no_data),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Interactive Donut Chart & Breakdown
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(32.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    stringResource(R.string.dashboard_distribution),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.align(Alignment.Start)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    stringResource(R.string.chart_interactive_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                    modifier = Modifier.align(Alignment.Start)
+                                )
+                                Spacer(modifier = Modifier.height(32.dp))
+
+                                InteractiveDonutChart(
+                                    spending = spendingByCategory,
+                                    totalSpending = spendingByCategory.sumOf { it.totalAmount },
+                                    selectedCategory = selectedCategory,
+                                    onCategorySelected = { selectedCategory = it },
+                                    modifier = Modifier.size(220.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(32.dp))
+
+                                InteractiveCategoryLegend(
+                                    spending = spendingByCategory,
+                                    totalSpending = spendingByCategory.sumOf { it.totalAmount },
+                                    selectedCategory = selectedCategory,
+                                    onCategorySelected = { selectedCategory = it },
+                                    subscriptions = subscriptions
+                                )
+                            }
+                        }
+                    }
+
+                    // Billing Cycle Comparison
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(32.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            BillingCycleChart(
+                                subscriptions = subscriptions,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+
+                    // Upcoming Renewals Timeline
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(32.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            UpcomingRenewalsTimeline(
+                                subscriptions = subscriptions,
+                                selectedSub = selectedUpcomingSub,
+                                onSubSelected = { selectedUpcomingSub = it },
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
                 }
             }
 
-            // Quick Navigation Button
-            item {
-                Button(
-                    onClick = onNavigateToList,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                ) {
-                    Icon(Icons.AutoMirrored.Rounded.FormatListBulleted, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        stringResource(R.string.dashboard_btn_manage),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+            // Processing Loader Overlay
+            if (isAnalyzing || isSyncingGmail) {
+                val label = if (isAnalyzing) {
+                    stringResource(R.string.ocr_processing)
+                } else {
+                    stringResource(R.string.gmail_sync_processing)
                 }
-            }
-
-            if (spendingByCategory.isEmpty()) {
-                item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable(enabled = false) {},
+                    contentAlignment = Alignment.Center
+                ) {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(32.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.padding(32.dp)
                     ) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            modifier = Modifier.padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(RoundedCornerShape(24.dp))
-                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Rounded.TrendingUp,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(36.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(20.dp))
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                             Text(
-                                text = stringResource(R.string.dashboard_no_data),
+                                text = label,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                 textAlign = TextAlign.Center
                             )
                         }
                     }
                 }
-            } else {
-                // Interactive Donut Chart & Breakdown
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(32.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                stringResource(R.string.dashboard_distribution),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                modifier = Modifier.align(Alignment.Start)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                stringResource(R.string.chart_interactive_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                modifier = Modifier.align(Alignment.Start)
-                            )
-                            Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+    }
 
-                            InteractiveDonutChart(
-                                spending = spendingByCategory,
-                                totalSpending = spendingByCategory.sumOf { it.totalAmount },
-                                selectedCategory = selectedCategory,
-                                onCategorySelected = { selectedCategory = it },
-                                modifier = Modifier.size(220.dp)
-                            )
+    // Modal Add Options Bottom Sheet (Thumb Zone / OS Native feel)
+    if (showAddBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAddBottomSheet = false },
+            sheetState = rememberModalBottomSheetState()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.action_sheet_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
 
-                            Spacer(modifier = Modifier.height(32.dp))
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.action_add_manually), fontWeight = FontWeight.SemiBold) },
+                    leadingContent = { Icon(Icons.Rounded.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                    modifier = Modifier.clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showAddBottomSheet = false
+                        onNavigateToAdd(null, null)
+                    }
+                )
 
-                            InteractiveCategoryLegend(
-                                spending = spendingByCategory,
-                                totalSpending = spendingByCategory.sumOf { it.totalAmount },
-                                selectedCategory = selectedCategory,
-                                onCategorySelected = { selectedCategory = it },
-                                subscriptions = subscriptions
-                            )
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.action_scan_screenshot), fontWeight = FontWeight.SemiBold) },
+                    leadingContent = { Icon(Icons.Rounded.PhotoCamera, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                    modifier = Modifier.clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showAddBottomSheet = false
+                        imagePickerLauncher.launch("image/*")
+                    }
+                )
+
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.action_sync_gmail), fontWeight = FontWeight.SemiBold) },
+                    leadingContent = { Icon(Icons.Rounded.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                    modifier = Modifier.clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showAddBottomSheet = false
+                        val token = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                            .getString("gmail_access_token", "") ?: ""
+                        if (token.isBlank()) {
+                            android.widget.Toast.makeText(context, context.getString(R.string.settings_gmail_not_linked), android.widget.Toast.LENGTH_LONG).show()
+                            showSettingsDialog = true
+                        } else {
+                            isSyncingGmail = true
+                            gmailService.fetchEmails(token, object : GmailService.GmailCallback {
+                                override fun onSuccess(emails: List<String>) {
+                                    if (emails.isEmpty()) {
+                                        isSyncingGmail = false
+                                        coroutineScope.launch(Dispatchers.Main) {
+                                            android.widget.Toast.makeText(context, context.getString(R.string.gmail_sync_none), android.widget.Toast.LENGTH_LONG).show()
+                                        }
+                                    } else {
+                                        val combined = emails.mapIndexed { idx, body -> "Email #${idx + 1}:\n$body" }.joinToString("\n---\n")
+                                        geminiService.analyzeEmailsBatch(combined, object : GeminiService.GeminiBatchCallback {
+                                            override fun onSuccess(results: List<GeminiService.ParsedSubscription>) {
+                                                isSyncingGmail = false
+                                                coroutineScope.launch(Dispatchers.Main) {
+                                                    gmailSubscriptionsToImport = results
+                                                    showGmailImportDialog = true
+                                                }
+                                            }
+
+                                            override fun onError(message: String) {
+                                                isSyncingGmail = false
+                                                coroutineScope.launch(Dispatchers.Main) {
+                                                    android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        })
+                                    }
+                                }
+
+                                override fun onError(message: String) {
+                                    isSyncingGmail = false
+                                    coroutineScope.launch(Dispatchers.Main) {
+                                        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            })
                         }
                     }
-                }
+                )
+            }
+        }
+    }
 
-                // Billing Cycle Comparison
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(32.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        BillingCycleChart(
-                            subscriptions = subscriptions,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                // Upcoming Renewals Timeline
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(32.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        UpcomingRenewalsTimeline(
-                            subscriptions = subscriptions,
-                            selectedSub = selectedUpcomingSub,
-                            onSubSelected = { selectedUpcomingSub = it },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+    // Settings Dialog
+    fun isNotificationServiceEnabled(context: Context): Boolean {
+        val pkgName = context.packageName
+        val flat = android.provider.Settings.Secure.getString(
+            context.contentResolver,
+            "enabled_notification_listeners"
+        )
+        if (!flat.isNullOrEmpty()) {
+            val names = flat.split(":")
+            for (name in names) {
+                val cn = ComponentName.unflattenFromString(name)
+                if (cn != null && cn.packageName == pkgName) {
+                    return true
                 }
             }
         }
+        return false
+    }
+
+    var isNotificationListenerEnabled by remember {
+        mutableStateOf(isNotificationServiceEnabled(context))
+    }
+
+    LaunchedEffect(showSettingsDialog) {
+        if (showSettingsDialog) {
+            isNotificationListenerEnabled = isNotificationServiceEnabled(context)
+        }
+    }
+
+    if (showSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showSettingsDialog = false },
+            title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.settings_notification_listener), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text(
+                                    stringResource(R.string.settings_notification_listener_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+                            Switch(
+                                checked = isNotificationListenerEnabled,
+                                onCheckedChange = {
+                                    val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+                                    context.startActivity(intent)
+                                }
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.settings_gmail_sync), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            stringResource(R.string.settings_gmail_sync_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val accountName = linkedAccountEmail
+                            Text(
+                                text = if (accountName != null) {
+                                    stringResource(R.string.settings_gmail_linked, accountName)
+                                } else {
+                                    stringResource(R.string.settings_gmail_not_linked)
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (accountName != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            if (accountName != null) {
+                                Button(
+                                    onClick = {
+                                        googleSignInClient.signOut().addOnCompleteListener {
+                                            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                                                .edit()
+                                                .remove("gmail_account")
+                                                .remove("gmail_access_token")
+                                                .apply()
+                                            linkedAccountEmail = null
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                                ) {
+                                    Text(stringResource(R.string.settings_gmail_btn_unlink))
+                                }
+                            } else {
+                                Button(
+                                    onClick = {
+                                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                    }
+                                ) {
+                                    Text(stringResource(R.string.settings_gmail_btn_link))
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showSettingsDialog = false
+                    }
+                ) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
+    }
+
+    // Gmail Subscriptions Import Dialog
+    if (showGmailImportDialog) {
+        var selectedImportMap by remember {
+            mutableStateOf(gmailSubscriptionsToImport.associateWith { true })
+        }
+
+        AlertDialog(
+            onDismissRequest = { showGmailImportDialog = false },
+            title = { Text(stringResource(R.string.gmail_import_title), fontWeight = FontWeight.Bold) },
+            text = {
+                if (gmailSubscriptionsToImport.isEmpty()) {
+                    Text(stringResource(R.string.gmail_sync_none))
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)
+                    ) {
+                        items(gmailSubscriptionsToImport) { item ->
+                            val isChecked = selectedImportMap[item] ?: true
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedImportMap = selectedImportMap.toMutableMap().apply {
+                                            put(item, !isChecked)
+                                        }
+                                    }
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isChecked,
+                                    onCheckedChange = { checked ->
+                                        selectedImportMap = selectedImportMap.toMutableMap().apply {
+                                            put(item, checked)
+                                        }
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(item.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        "${CurrencyFormatter.format(item.amount, item.currency, locale)} (${if (item.cycle == "Monthly") stringResource(R.string.cycle_monthly).lowercase() else stringResource(R.string.cycle_yearly).lowercase()})",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                val selectedCount = selectedImportMap.filterValues { it }.size
+                Button(
+                    enabled = selectedCount > 0,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        val toImport = selectedImportMap.filterValues { it }.keys
+                        toImport.forEach { item ->
+                            val newSub = Subscription(
+                                name = item.name,
+                                amount = item.amount,
+                                nextBillingDate = item.nextBillingDate,
+                                cycle = item.cycle,
+                                category = item.category,
+                                currency = item.currency
+                            )
+                            viewModel.insert(newSub)
+                        }
+                        showGmailImportDialog = false
+                        android.widget.Toast.makeText(
+                            context,
+                            context.getString(R.string.ocr_success),
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                ) {
+                    Text(stringResource(R.string.gmail_import_btn, selectedCount))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGmailImportDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }
 
@@ -339,7 +831,7 @@ fun InteractiveDonutChart(
 
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
-    val currencyFormatter = remember(locale) { CurrencyFormatter.getFormatter(locale) }
+
 
     // Entry sweep growth animation
     val animateSweep = remember { Animatable(0f) }
@@ -463,7 +955,7 @@ fun InteractiveDonutChart(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = currencyFormatter.format(displayAmount),
+                text = CurrencyFormatter.format(displayAmount, "VND", locale),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary,
@@ -545,7 +1037,7 @@ fun InteractiveCategoryRow(
 ) {
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
-    val currencyFormatter = remember(locale) { CurrencyFormatter.getFormatter(locale) }
+
 
     val animateWidth = remember { Animatable(0f) }
     LaunchedEffect(percentage) {
@@ -598,7 +1090,7 @@ fun InteractiveCategoryRow(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = currencyFormatter.format(item.totalAmount),
+                        text = CurrencyFormatter.format(item.totalAmount, "VND", locale),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (isSelected) color else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
@@ -669,7 +1161,7 @@ fun InteractiveCategoryRow(
                                 )
                             }
                             Text(
-                                text = "${currencyFormatter.format(sub.amount)} / ${if (sub.cycle == "Monthly") stringResource(R.string.cycle_monthly).lowercase() else stringResource(R.string.cycle_yearly).lowercase()}",
+                                text = "${CurrencyFormatter.format(sub.amount, sub.currency, locale)} / ${if (sub.cycle == "Monthly") stringResource(R.string.cycle_monthly).lowercase() else stringResource(R.string.cycle_yearly).lowercase()}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -688,13 +1180,12 @@ fun BillingCycleChart(
 ) {
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
-    val currencyFormatter = remember(locale) { CurrencyFormatter.getFormatter(locale) }
 
     val monthlySubs = remember(subscriptions) { subscriptions.filter { it.cycle == "Monthly" } }
     val yearlySubs = remember(subscriptions) { subscriptions.filter { it.cycle == "Yearly" } }
 
-    val monthlyCost = monthlySubs.sumOf { it.amount }
-    val yearlyCost = yearlySubs.sumOf { it.amount }
+    val monthlyCost = monthlySubs.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") }
+    val yearlyCost = yearlySubs.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") }
 
     // Normalized monthly equivalent impact comparison
     val monthlyImpact = monthlyCost
@@ -740,7 +1231,7 @@ fun BillingCycleChart(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = currencyFormatter.format(monthlyCost),
+                    text = CurrencyFormatter.format(monthlyCost, "VND", locale),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -789,7 +1280,7 @@ fun BillingCycleChart(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = currencyFormatter.format(yearlyImpact) + " / " + stringResource(R.string.list_monthly_suffix).trim(),
+                    text = CurrencyFormatter.format(yearlyImpact, "VND", locale) + " / " + stringResource(R.string.list_monthly_suffix).trim(),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary
@@ -836,7 +1327,6 @@ fun UpcomingRenewalsTimeline(
 ) {
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
-    val currencyFormatter = remember(locale) { CurrencyFormatter.getFormatter(locale) }
 
     // Take top 6 upcoming renewals sorted chronologically
     val upcomingSubs = remember(subscriptions) {
@@ -953,7 +1443,7 @@ fun UpcomingRenewalsTimeline(
 
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = currencyFormatter.format(selectedSub.amount),
+                                text = CurrencyFormatter.format(selectedSub.amount, selectedSub.currency, locale),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = subColor
@@ -1094,7 +1584,7 @@ fun TimelineNode(
 @Composable
 fun DashboardPreview() {
     Sub_lazyTheme {
-        DashboardScreen(onNavigateToAdd = {}, onNavigateToList = {})
+        DashboardScreen(onNavigateToAdd = { _, _ -> }, onNavigateToList = {})
     }
 }
 

@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit
 import androidx.compose.ui.res.stringResource
 import com.gbao86.sub_lazy.R
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
@@ -41,6 +43,7 @@ fun SubscriptionListScreen(
     onNavigateToDetail: (Long) -> Unit,
     onNavigateBack: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val subscriptions by viewModel.allSubscriptions.collectAsStateWithLifecycle(initialValue = emptyList())
 
     Scaffold(
@@ -139,9 +142,11 @@ fun SwipeToDeleteItem(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
+    val haptic = LocalHapticFeedback.current
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = {
             if (it == SwipeToDismissBoxValue.EndToStart) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 showDialog = true
                 false // Return false to automatically snap the item back while the dialog is visible
             } else {
@@ -165,6 +170,7 @@ fun SwipeToDeleteItem(
             confirmButton = {
                 Button(
                     onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         showDialog = false
                         onDelete()
                     },
@@ -269,7 +275,7 @@ fun SubscriptionItem(
                     maxLines = 1
                 )
                 Text(
-                    text = "${currencyFormatter.format(monthlyEquivalent)}${stringResource(R.string.list_monthly_suffix)}",
+                    text = "${CurrencyFormatter.format(monthlyEquivalent, subscription.currency, locale)}${stringResource(R.string.list_monthly_suffix)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )

@@ -83,4 +83,40 @@
     <string name="delete_dialog_message">Bạn có chắc chắn muốn ngừng theo dõi %1$s không? Hành động này không thể hoàn tác.</string>
     <string name="delete_dialog_confirm">Xóa</string>
     <string name="delete_dialog_cancel">Hủy</string>
+
+    <!-- Detected Bills -->
+    <string name="notification_detected_channel_name">Hóa đơn phát hiện tự động</string>
+    <string name="notification_detected_channel_desc">Cảnh báo khi phát hiện thông báo thanh toán định kỳ</string>
+    <string name="notification_detected_title">Phát hiện hóa đơn mới!</string>
+    <string name="notification_detected_message">Tìm thấy giao dịch thanh toán %1$s trị giá %2$s. Chạm để theo dõi dịch vụ này!</string>
+    <string name="settings_title">Cài đặt</string>
+    <string name="settings_gemini_key">Mã Gemini API Key</string>
+    <string name="settings_gemini_key_hint">Nhập mã Gemini API Key của bạn</string>
+    <string name="settings_notification_listener">Dịch vụ bắt thông báo</string>
+    <string name="settings_notification_listener_desc">Tự động quét thông báo ngân hàng &amp; ví điện tử để theo dõi hóa đơn.</string>
+    <string name="settings_gmail_sync">Đồng bộ Gmail</string>
+    <string name="settings_gmail_sync_desc">Liên kết tài khoản Gmail để tìm hóa đơn dịch vụ.</string>
+    <string name="settings_gmail_linked">Đã liên kết với %1$s</string>
+    <string name="settings_gmail_not_linked">Chưa liên kết</string>
+    <string name="settings_gmail_btn_link">Liên kết tài khoản</string>
+    <string name="settings_gmail_btn_unlink">Hủy liên kết</string>
+    <string name="settings_btn_save">Lưu Cài đặt</string>
+    
+    <!-- Action Sheet / FAB options -->
+    <string name="action_add_manually">Thêm thủ công</string>
+    <string name="action_scan_screenshot">Quét ảnh hóa đơn</string>
+    <string name="action_sync_gmail">Đồng bộ từ Gmail</string>
+    <string name="action_sheet_title">Bạn muốn thêm bằng cách nào?</string>
+    
+    <!-- Gemini / OCR processing -->
+    <string name="ocr_processing">AI đang phân tích hóa đơn...</string>
+    <string name="ocr_success">Đã phân tích hóa đơn thành công!</string>
+    <string name="ocr_error">Phân tích thất bại. Vui lòng kiểm tra kết nối/API key.</string>
+    
+    <!-- Gmail Sync processing -->
+    <string name="gmail_sync_processing">Đang quét thư hóa đơn Gmail...</string>
+    <string name="gmail_sync_found">Tìm thấy %1$d hóa đơn từ Gmail!</string>
+    <string name="gmail_sync_none">Không tìm thấy thư hóa đơn mới nào.</string>
+    <string name="gmail_import_title">Nhập hóa đơn dịch vụ</string>
+    <string name="gmail_import_btn">Nhập dịch vụ đã chọn (%1$d)</string>
 </resources>

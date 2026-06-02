@@ -26,7 +26,22 @@ class MainActivity : AppCompatActivity() {
 
         val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         val isOnboardingCompleted = sharedPref.getBoolean("onboarding_completed", false)
-        val startDestination = if (isOnboardingCompleted) Screen.Dashboard.route else Screen.Onboarding.route
+        
+        val isPrefilled = intent.getBooleanExtra("is_prefilled", false)
+        val prefillName = intent.getStringExtra("prefill_name")
+        val prefillAmount = intent.getDoubleExtra("prefill_amount", -1.0)
+
+        val startDestination = if (isPrefilled) {
+            Screen.AddEditSubscription.createRoute(
+                id = null,
+                prefillName = prefillName,
+                prefillAmount = if (prefillAmount != -1.0) prefillAmount else null
+            )
+        } else if (isOnboardingCompleted) {
+            Screen.Dashboard.route
+        } else {
+            Screen.Onboarding.route
+        }
 
         setContent {
             Sub_lazyTheme {

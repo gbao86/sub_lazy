@@ -15,8 +15,23 @@ sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
     object Dashboard : Screen("dashboard")
     object SubscriptionList : Screen("subscription_list")
-    object AddEditSubscription : Screen("add_edit_subscription?id={id}") {
-        fun createRoute(id: Long? = null) = if (id != null) "add_edit_subscription?id=$id" else "add_edit_subscription"
+    object AddEditSubscription : Screen("add_edit_subscription?id={id}&prefill_name={prefill_name}&prefill_amount={prefill_amount}") {
+        fun createRoute(id: Long? = null, prefillName: String? = null, prefillAmount: Double? = null): String {
+            val builder = StringBuilder("add_edit_subscription")
+            var hasArgs = false
+            if (id != null) {
+                builder.append("?id=$id")
+                hasArgs = true
+            }
+            if (prefillName != null) {
+                builder.append(if (hasArgs) "&" else "?").append("prefill_name=$prefillName")
+                hasArgs = true
+            }
+            if (prefillAmount != null) {
+                builder.append(if (hasArgs) "&" else "?").append("prefill_amount=$prefillAmount")
+            }
+            return builder.toString()
+        }
     }
 }
 
@@ -41,8 +56,12 @@ fun NavGraph(navController: NavHostController, startDestination: String = Screen
         }
         composable(Screen.Dashboard.route) {
             DashboardScreen(
-                onNavigateToAdd = {
-                    navController.navigate(Screen.AddEditSubscription.createRoute())
+                onNavigateToAdd = { name, amount ->
+                    navController.navigate(Screen.AddEditSubscription.createRoute(
+                        id = null,
+                        prefillName = name,
+                        prefillAmount = amount
+                    ))
                 },
                 onNavigateToList = {
                     navController.navigate(Screen.SubscriptionList.route)
@@ -65,12 +84,25 @@ fun NavGraph(navController: NavHostController, startDestination: String = Screen
                 navArgument("id") {
                     type = NavType.LongType
                     defaultValue = -1L
+                },
+                navArgument("prefill_name") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("prefill_amount") {
+                    type = NavType.FloatType
+                    defaultValue = -1f
                 }
             )
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getLong("id")?.takeIf { it != -1L }
+            val prefillName = backStackEntry.arguments?.getString("prefill_name")
+            val prefillAmount = backStackEntry.arguments?.getFloat("prefill_amount")?.takeIf { it != -1f }?.toDouble()
             AddEditSubscriptionScreen(
                 subscriptionId = id,
+                prefillName = prefillName,
+                prefillAmount = prefillAmount,
                 onNavigateBack = {
                     navController.popBackStack()
                 }
