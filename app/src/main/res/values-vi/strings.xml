@@ -94,12 +94,12 @@
     <string name="settings_gemini_key_hint">Nhập mã Gemini API Key của bạn</string>
     <string name="settings_notification_listener">Dịch vụ bắt thông báo</string>
     <string name="settings_notification_listener_desc">Tự động quét thông báo ngân hàng &amp; ví điện tử để theo dõi hóa đơn.</string>
-    <string name="settings_gmail_sync">Đồng bộ Gmail</string>
-    <string name="settings_gmail_sync_desc">Liên kết tài khoản Gmail để tìm hóa đơn dịch vụ.</string>
-    <string name="settings_gmail_linked">Đã liên kết với %1$s</string>
-    <string name="settings_gmail_not_linked">Chưa liên kết</string>
-    <string name="settings_gmail_btn_link">Liên kết tài khoản</string>
-    <string name="settings_gmail_btn_unlink">Hủy liên kết</string>
+    <string name="settings_gmail_sync">Tài khoản Google</string>
+    <string name="settings_gmail_sync_desc">Liên kết tài khoản Google để quản lý thông tin người dùng.</string>
+    <string name="settings_gmail_linked">Đã đăng nhập: %1$s</string>
+    <string name="settings_gmail_not_linked">Chưa đăng nhập</string>
+    <string name="settings_gmail_btn_link">Đăng nhập</string>
+    <string name="settings_gmail_btn_unlink">Đăng xuất</string>
     <string name="settings_btn_save">Lưu Cài đặt</string>
     
     <!-- Action Sheet / FAB options -->

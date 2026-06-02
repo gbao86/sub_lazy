@@ -66,12 +66,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.gbao86.sub_lazy.data.api.GeminiService
-import com.gbao86.sub_lazy.data.api.GmailService
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.Scope
 import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.auth.GoogleAuthUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import android.content.Context
@@ -100,9 +97,8 @@ fun DashboardScreen(
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
 
-    // Gemini & Gmail API Services
+    // Local OCR Service
     val geminiService = remember { GeminiService(context) }
-    val gmailService = remember { GmailService(context) }
 
     // API key and linked account
     var geminiApiKey by remember {
@@ -122,7 +118,6 @@ fun DashboardScreen(
     val gso = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
-            .requestScopes(Scope("https://www.googleapis.com/auth/gmail.readonly"))
             .build()
     }
     val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
@@ -135,26 +130,17 @@ fun DashboardScreen(
         try {
             val account = task.getResult(ApiException::class.java)
             val email = account?.email ?: ""
-            coroutineScope.launch(Dispatchers.IO) {
-                try {
-                    val token = GoogleAuthUtil.getToken(
-                        context,
-                        account?.account ?: return@launch,
-                        "oauth2:https://www.googleapis.com/auth/gmail.readonly"
-                    )
-                    context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                        .edit()
-                        .putString("gmail_account", email)
-                        .putString("gmail_access_token", token)
-                        .apply()
-                    linkedAccountEmail = email
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
+            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .putString("gmail_account", email)
+                .apply()
+            linkedAccountEmail = email
+            
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            android.widget.Toast.makeText(context, "Đăng nhập thành công: $email", android.widget.Toast.LENGTH_SHORT).show()
         } catch (e: ApiException) {
             e.printStackTrace()
-            val errorMsg = "Lỗi Google Sign-In (Mã: ${e.statusCode}). Bạn đã cấu hình SHA-1 fingerprint trên Google Cloud Console chưa?"
+            val errorMsg = "Lỗi Google Sign-In (Mã: ${e.statusCode}). Vui lòng kiểm tra cấu hình dự án."
             android.widget.Toast.makeText(context, errorMsg, android.widget.Toast.LENGTH_LONG).show()
         }
     }
@@ -188,11 +174,6 @@ fun DashboardScreen(
             })
         }
     }
-
-    // Gmail Ingestion state
-    var isSyncingGmail by remember { mutableStateOf(false) }
-    var gmailSubscriptionsToImport by remember { mutableStateOf<List<GeminiService.ParsedSubscription>>(emptyList()) }
-    var showGmailImportDialog by remember { mutableStateOf(false) }
 
     // Dialog state controllers
     var showSettingsDialog by remember { mutableStateOf(false) }
@@ -460,12 +441,8 @@ fun DashboardScreen(
             }
 
             // Processing Loader Overlay
-            if (isAnalyzing || isSyncingGmail) {
-                val label = if (isAnalyzing) {
-                    stringResource(R.string.ocr_processing)
-                } else {
-                    stringResource(R.string.gmail_sync_processing)
-                }
+            if (isAnalyzing) {
+                val label = stringResource(R.string.ocr_processing)
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -533,58 +510,6 @@ fun DashboardScreen(
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         showAddBottomSheet = false
                         imagePickerLauncher.launch("image/*")
-                    }
-                )
-
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.action_sync_gmail), fontWeight = FontWeight.SemiBold) },
-                    leadingContent = { Icon(Icons.Rounded.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    modifier = Modifier.clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showAddBottomSheet = false
-                        val token = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                            .getString("gmail_access_token", "") ?: ""
-                        if (token.isBlank()) {
-                            android.widget.Toast.makeText(context, context.getString(R.string.settings_gmail_not_linked), android.widget.Toast.LENGTH_LONG).show()
-                            showSettingsDialog = true
-                        } else {
-                            isSyncingGmail = true
-                            gmailService.fetchEmails(token, object : GmailService.GmailCallback {
-                                override fun onSuccess(emails: List<String>) {
-                                    if (emails.isEmpty()) {
-                                        isSyncingGmail = false
-                                        coroutineScope.launch(Dispatchers.Main) {
-                                            android.widget.Toast.makeText(context, context.getString(R.string.gmail_sync_none), android.widget.Toast.LENGTH_LONG).show()
-                                        }
-                                    } else {
-                                        val combined = emails.mapIndexed { idx, body -> "Email #${idx + 1}:\n$body" }.joinToString("\n---\n")
-                                        geminiService.analyzeEmailsBatch(combined, object : GeminiService.GeminiBatchCallback {
-                                            override fun onSuccess(results: List<GeminiService.ParsedSubscription>) {
-                                                isSyncingGmail = false
-                                                coroutineScope.launch(Dispatchers.Main) {
-                                                    gmailSubscriptionsToImport = results
-                                                    showGmailImportDialog = true
-                                                }
-                                            }
-
-                                            override fun onError(message: String) {
-                                                isSyncingGmail = false
-                                                coroutineScope.launch(Dispatchers.Main) {
-                                                    android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
-                                                }
-                                            }
-                                        })
-                                    }
-                                }
-
-                                override fun onError(message: String) {
-                                    isSyncingGmail = false
-                                    coroutineScope.launch(Dispatchers.Main) {
-                                        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
-                                    }
-                                }
-                            })
-                        }
                     }
                 )
             }
@@ -722,94 +647,6 @@ fun DashboardScreen(
         )
     }
 
-    // Gmail Subscriptions Import Dialog
-    if (showGmailImportDialog) {
-        var selectedImportMap by remember {
-            mutableStateOf(gmailSubscriptionsToImport.associateWith { true })
-        }
-
-        AlertDialog(
-            onDismissRequest = { showGmailImportDialog = false },
-            title = { Text(stringResource(R.string.gmail_import_title), fontWeight = FontWeight.Bold) },
-            text = {
-                if (gmailSubscriptionsToImport.isEmpty()) {
-                    Text(stringResource(R.string.gmail_sync_none))
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)
-                    ) {
-                        items(gmailSubscriptionsToImport) { item ->
-                            val isChecked = selectedImportMap[item] ?: true
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        selectedImportMap = selectedImportMap.toMutableMap().apply {
-                                            put(item, !isChecked)
-                                        }
-                                    }
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Checkbox(
-                                    checked = isChecked,
-                                    onCheckedChange = { checked ->
-                                        selectedImportMap = selectedImportMap.toMutableMap().apply {
-                                            put(item, checked)
-                                        }
-                                    }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(item.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                    Text(
-                                        "${CurrencyFormatter.format(item.amount, item.currency, locale)} (${if (item.cycle == "Monthly") stringResource(R.string.cycle_monthly).lowercase() else stringResource(R.string.cycle_yearly).lowercase()})",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                val selectedCount = selectedImportMap.filterValues { it }.size
-                Button(
-                    enabled = selectedCount > 0,
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        val toImport = selectedImportMap.filterValues { it }.keys
-                        toImport.forEach { item ->
-                            val newSub = Subscription(
-                                name = item.name,
-                                amount = item.amount,
-                                nextBillingDate = item.nextBillingDate,
-                                cycle = item.cycle,
-                                category = item.category,
-                                currency = item.currency
-                            )
-                            viewModel.insert(newSub)
-                        }
-                        showGmailImportDialog = false
-                        android.widget.Toast.makeText(
-                            context,
-                            context.getString(R.string.ocr_success),
-                            android.widget.Toast.LENGTH_LONG
-                        ).show()
-                    }
-                ) {
-                    Text(stringResource(R.string.gmail_import_btn, selectedCount))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showGmailImportDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
 }
 
 @Composable

@@ -94,12 +94,12 @@
     <string name="settings_gemini_key_hint">Enter your Gemini API Key</string>
     <string name="settings_notification_listener">Notification Listener Service</string>
     <string name="settings_notification_listener_desc">Automatically capture banking &amp; payment notifications to track subscriptions.</string>
-    <string name="settings_gmail_sync">Gmail Synchronization</string>
-    <string name="settings_gmail_sync_desc">Link Gmail account to scan for service invoices.</string>
-    <string name="settings_gmail_linked">Linked to %1$s</string>
-    <string name="settings_gmail_not_linked">Not linked</string>
-    <string name="settings_gmail_btn_link">Link Account</string>
-    <string name="settings_gmail_btn_unlink">Unlink</string>
+    <string name="settings_gmail_sync">Google Account</string>
+    <string name="settings_gmail_sync_desc">Link Google account to manage user profile.</string>
+    <string name="settings_gmail_linked">Logged in: %1$s</string>
+    <string name="settings_gmail_not_linked">Not logged in</string>
+    <string name="settings_gmail_btn_link">Log in</string>
+    <string name="settings_gmail_btn_unlink">Sign out</string>
     <string name="settings_btn_save">Save Settings</string>
     
     <!-- Action Sheet / FAB options -->
