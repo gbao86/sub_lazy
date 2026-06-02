@@ -1454,6 +1454,11 @@ fun getCategoryDisplayName(category: String): String {
         "Cloud" -> R.string.category_cloud
         "Music" -> R.string.category_music
         "Food" -> R.string.category_food
+        "Finance" -> R.string.category_finance
+        "Anniversary" -> R.string.category_anniversary
+        "Family" -> R.string.category_family
+        "Trial" -> R.string.category_trial
+        "Notes" -> R.string.category_notes
         else -> R.string.category_other
     }
     return stringResource(resId)

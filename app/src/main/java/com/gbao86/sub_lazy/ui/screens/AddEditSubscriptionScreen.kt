@@ -53,7 +53,7 @@ fun AddEditSubscriptionScreen(
     var colorHex by remember { mutableStateOf("#6366F1") }
     var selectedCurrency by remember { mutableStateOf(if (locale.language == "vi") "VND" else "USD") }
  
-    val categories = listOf("Entertainment", "Utilities", "Work", "Cloud", "Music", "Food", "Other")
+    val categories = listOf("Entertainment", "Utilities", "Work", "Cloud", "Music", "Food", "Finance", "Anniversary", "Family", "Trial", "Notes", "Other")
     var expandedCategory by remember { mutableStateOf(false) }
  
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = nextBillingDate)
@@ -282,7 +282,7 @@ fun AddEditSubscriptionScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    listOf("Monthly", "Yearly").forEach { item ->
+                    listOf("Monthly", "Yearly", "One-time").forEach { item ->
                         val selected = cycle == item
                         FilterChip(
                             selected = selected,
@@ -358,6 +358,11 @@ fun getCategoryDisplayName(category: String): String {
         "Cloud" -> R.string.category_cloud
         "Music" -> R.string.category_music
         "Food" -> R.string.category_food
+        "Finance" -> R.string.category_finance
+        "Anniversary" -> R.string.category_anniversary
+        "Family" -> R.string.category_family
+        "Trial" -> R.string.category_trial
+        "Notes" -> R.string.category_notes
         else -> R.string.category_other
     }
     return stringResource(resId)
@@ -367,6 +372,7 @@ private fun getCycleDisplayNameRes(cycle: String): Int {
     return when (cycle) {
         "Monthly" -> R.string.cycle_monthly
         "Yearly" -> R.string.cycle_yearly
+        "One-time" -> R.string.cycle_one_time
         else -> R.string.cycle_monthly
     }
 }

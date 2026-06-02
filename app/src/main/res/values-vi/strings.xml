@@ -48,6 +48,7 @@
     <!-- Billing Cycles -->
     <string name="cycle_monthly">Hàng tháng</string>
     <string name="cycle_yearly">Hàng năm</string>
+    <string name="cycle_one_time">Một lần</string>
 
     <!-- Categories -->
     <string name="category_entertainment">Giải trí</string>
@@ -56,12 +57,25 @@
     <string name="category_cloud">Lưu trữ</string>
     <string name="category_music">Âm nhạc</string>
     <string name="category_food">Ăn uống</string>
+    <string name="category_finance">Tài chính &amp; Hóa đơn</string>
+    <string name="category_anniversary">Kỷ niệm</string>
+    <string name="category_family">Gia đình &amp; Con cái</string>
+    <string name="category_trial">Dùng thử &amp; Quảng cáo</string>
+    <string name="category_notes">Ghi chú &amp; Nhắc nhở</string>
     <string name="category_other">Khác</string>
 
     <!-- Notifications -->
     <string name="notification_channel_name">Cảnh báo thanh toán</string>
     <string name="notification_channel_desc">Thông báo về việc gia hạn dịch vụ sắp tới</string>
     <string name="notification_message">Cảnh báo thanh toán %1$s! Hóa đơn %2$s trị giá %3$s sẽ gia hạn sau 2 ngày. Hãy chuẩn bị đủ tiền nhé!</string>
+    <string name="notification_anniversary_title">Kỷ niệm đặc biệt ❤️</string>
+    <string name="notification_anniversary_message">Hôm nay là ngày kỷ niệm đặc biệt: %1$s! Đừng quên gửi lời chúc ngọt ngào nhé!</string>
+    <string name="notification_family_title">Nhắc nhở gia đình 🏠</string>
+    <string name="notification_family_message">Lịch nhắc gia đình: %1$s. Đừng quên nhé!</string>
+    <string name="notification_trial_title">Hủy dùng thử ⚠️</string>
+    <string name="notification_trial_message">Hãy hủy gói dùng thử của %1$s hôm nay để tránh bị tự động gia hạn cước phí %2$s!</string>
+    <string name="notification_notes_title">Ghi chú nhắc nhở 📝</string>
+    <string name="notification_notes_message">Nhắc nhở: %1$s</string>
 
     <!-- Additional Charts Label Strings -->
     <string name="chart_all_categories">Tất cả danh mục</string>

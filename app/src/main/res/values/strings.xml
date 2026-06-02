@@ -48,6 +48,7 @@
     <!-- Billing Cycles -->
     <string name="cycle_monthly">Monthly</string>
     <string name="cycle_yearly">Yearly</string>
+    <string name="cycle_one_time">One-time</string>
 
     <!-- Categories -->
     <string name="category_entertainment">Entertainment</string>
@@ -56,12 +57,25 @@
     <string name="category_cloud">Cloud</string>
     <string name="category_music">Music</string>
     <string name="category_food">Food</string>
+    <string name="category_finance">Finance &amp; Bills</string>
+    <string name="category_anniversary">Anniversary</string>
+    <string name="category_family">Family &amp; Kids</string>
+    <string name="category_trial">Trial/Promo</string>
+    <string name="category_notes">Notes &amp; Alerts</string>
     <string name="category_other">Other</string>
 
     <!-- Notifications -->
     <string name="notification_channel_name">Billing Alerts</string>
     <string name="notification_channel_desc">Notifications for upcoming subscription renewals</string>
     <string name="notification_message">Pay Alert for %1$s! Your %2$s bill of %3$s will renew in 2 days. Make sure you have enough funds!</string>
+    <string name="notification_anniversary_title">Special Anniversary ❤️</string>
+    <string name="notification_anniversary_message">Today is your special anniversary: %1$s! Don\'t forget to celebrate!</string>
+    <string name="notification_family_title">Family Reminder 🏠</string>
+    <string name="notification_family_message">Family alert: %1$s. Don\'t forget!</string>
+    <string name="notification_trial_title">Cancel Trial Alert ⚠️</string>
+    <string name="notification_trial_message">Remember to cancel your trial for %1$s today to avoid being charged %2$s!</string>
+    <string name="notification_notes_title">Reminder Note 📝</string>
+    <string name="notification_notes_message">Reminder: %1$s</string>
 
     <!-- Additional Charts Label Strings -->
     <string name="chart_all_categories">All Categories</string>

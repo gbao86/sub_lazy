@@ -27,17 +27,40 @@ class NotificationWorker(
         val locale = applicationContext.resources.configuration.locales[0]
         val amountFormatted = CurrencyFormatter.format(subscription.amount, subscription.currency, locale)
 
-        val message = applicationContext.getString(
-            R.string.notification_message,
-            subscription.name,
-            subscription.name,
-            amountFormatted
-        )
+        val (title, message) = when (subscription.category) {
+            "Anniversary" -> {
+                val t = applicationContext.getString(R.string.notification_anniversary_title)
+                val m = applicationContext.getString(R.string.notification_anniversary_message, subscription.name)
+                t to m
+            }
+            "Family" -> {
+                val t = applicationContext.getString(R.string.notification_family_title)
+                val m = applicationContext.getString(R.string.notification_family_message, subscription.name)
+                t to m
+            }
+            "Trial" -> {
+                val t = applicationContext.getString(R.string.notification_trial_title)
+                val m = applicationContext.getString(R.string.notification_trial_message, subscription.name, amountFormatted)
+                t to m
+            }
+            "Notes" -> {
+                val t = applicationContext.getString(R.string.notification_notes_title)
+                val m = applicationContext.getString(R.string.notification_notes_message, subscription.name)
+                t to m
+            }
+            else -> {
+                val t = subscription.name
+                val m = applicationContext.getString(
+                    R.string.notification_message,
+                    subscription.name,
+                    subscription.name,
+                    amountFormatted
+                )
+                t to m
+            }
+        }
 
-        sendNotification(
-            subscription.name,
-            message
-        )
+        sendNotification(title, message)
 
         return Result.success()
     }

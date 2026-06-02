@@ -11,8 +11,8 @@ class NotificationScheduler(private val context: Context) {
     fun scheduleNotification(subscription: Subscription) {
         val workManager = WorkManager.getInstance(context)
 
-        // Calculate delay: 2 days before renewal at 9:00 AM
-        val delay = calculateDelay(subscription.nextBillingDate)
+        // Calculate delay based on due date and category
+        val delay = calculateDelay(subscription.nextBillingDate, subscription.category)
         
         if (delay <= 0) return // Already past or too close
 
@@ -35,14 +35,22 @@ class NotificationScheduler(private val context: Context) {
         WorkManager.getInstance(context).cancelUniqueWork("sub_$subscriptionId")
     }
 
-    private fun calculateDelay(nextBillingDate: Long): Long {
+    private fun calculateDelay(nextBillingDate: Long, category: String): Long {
         val now = Calendar.getInstance()
         val target = Calendar.getInstance().apply {
             timeInMillis = nextBillingDate
-            add(Calendar.DAY_OF_YEAR, -2) // 2 days before
-            set(Calendar.HOUR_OF_DAY, 9)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
+            if (category in listOf("Anniversary", "Family", "Trial", "Notes")) {
+                // Alert exactly on the day of the event/deadline at 9:00 AM
+                set(Calendar.HOUR_OF_DAY, 9)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+            } else {
+                // Alert 2 days before for financial/subscription renewals at 9:00 AM
+                add(Calendar.DAY_OF_YEAR, -2)
+                set(Calendar.HOUR_OF_DAY, 9)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+            }
         }
 
         val delay = target.timeInMillis - now.timeInMillis

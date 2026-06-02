@@ -25,9 +25,9 @@ interface SubscriptionDao {
     @Delete
     suspend fun deleteSubscription(subscription: Subscription)
 
-    @Query("SELECT SUM(CASE WHEN cycle = 'Monthly' THEN amount ELSE amount / 12 END) FROM subscriptions")
+    @Query("SELECT SUM(CASE WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) FROM subscriptions")
     fun getTotalMonthlyCost(): Flow<Double?>
 
-    @Query("SELECT category, SUM(CASE WHEN cycle = 'Monthly' THEN amount ELSE amount / 12 END) as totalAmount FROM subscriptions GROUP BY category")
+    @Query("SELECT category, SUM(CASE WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) as totalAmount FROM subscriptions GROUP BY category")
     fun getSpendingByCategory(): Flow<List<CategorySpending>>
 }

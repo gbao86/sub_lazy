@@ -13,6 +13,11 @@ object CategoryUtils {
             "Cloud" -> Icons.Rounded.Cloud
             "Music" -> Icons.Rounded.MusicNote
             "Food" -> Icons.Rounded.Restaurant
+            "Finance" -> Icons.Rounded.AccountBalanceWallet
+            "Anniversary" -> Icons.Rounded.Favorite
+            "Family" -> Icons.Rounded.People
+            "Trial" -> Icons.Rounded.Timer
+            "Notes" -> Icons.Rounded.Description
             else -> Icons.Rounded.Category
         }
     }
