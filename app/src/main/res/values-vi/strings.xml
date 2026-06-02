@@ -46,9 +46,18 @@
     <string name="add_edit_btn_update">Cập nhật dịch vụ</string>
 
     <!-- Billing Cycles -->
+    <string name="cycle_weekly">Hàng tuần</string>
     <string name="cycle_monthly">Hàng tháng</string>
     <string name="cycle_yearly">Hàng năm</string>
     <string name="cycle_one_time">Một lần</string>
+
+    <!-- Auto-Delete Options -->
+    <string name="add_edit_auto_delete_title">Tự động xóa sau số lần thanh toán</string>
+    <string name="auto_delete_unlimited">Không giới hạn</string>
+    <string name="auto_delete_once">1 lần</string>
+    <string name="auto_delete_custom">n lần</string>
+    <string name="auto_delete_custom_hint">Số lần thanh toán</string>
+    <string name="list_remaining_times">Còn %1$d lần</string>
 
     <!-- Categories -->
     <string name="category_entertainment">Giải trí</string>
@@ -133,4 +142,12 @@
     <string name="gmail_sync_none">Không tìm thấy thư hóa đơn mới nào.</string>
     <string name="gmail_import_title">Nhập hóa đơn dịch vụ</string>
     <string name="gmail_import_btn">Nhập dịch vụ đã chọn (%1$d)</string>
+
+    <!-- Forecasting & Payment History -->
+    <string name="chart_forecasting_title">Dự báo dòng tiền chi tiêu</string>
+    <string name="chart_forecasting_peak_desc">Chi tiêu cao nhất vào %1$s: %2$s</string>
+    <string name="action_mark_paid">Đã thanh toán</string>
+    <string name="payment_history_title">Lịch sử thanh toán</string>
+    <string name="payment_history_empty">Chưa có lịch sử thanh toán</string>
+    <string name="payment_history_recorded">Đã trả %1$s ngày %2$s</string>
 </resources>

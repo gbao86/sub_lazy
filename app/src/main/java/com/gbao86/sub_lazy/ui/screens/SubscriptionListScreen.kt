@@ -242,7 +242,11 @@ fun SubscriptionItem(
     val daysLeft = DateUtils.getDaysLeft(subscription.nextBillingDate)
     
     // Calculate monthly equivalent for display
-    val monthlyEquivalent = if (subscription.cycle == "Yearly") subscription.amount / 12 else subscription.amount
+    val monthlyEquivalent = when (subscription.cycle) {
+        "Weekly" -> subscription.amount * 52.0 / 12.0
+        "Yearly" -> subscription.amount / 12.0
+        else -> subscription.amount
+    }
     
     Card(
         onClick = onClick,
@@ -292,6 +296,15 @@ fun SubscriptionItem(
                     softWrap = false,
                     maxLines = 1
                 )
+                if (subscription.remainingTimes != null && subscription.remainingTimes > 0) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.list_remaining_times, subscription.remainingTimes),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             Column(horizontalAlignment = Alignment.End) {

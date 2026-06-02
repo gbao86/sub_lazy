@@ -112,6 +112,13 @@ class GeminiService(private val context: Context) {
             unaccentedLowerText.contains("1 year") || 
             unaccentedLowerText.contains("1 nam")) {
             "Yearly"
+        } else if (unaccentedLowerText.contains("tuan") ||
+            unaccentedLowerText.contains("weekly") ||
+            unaccentedLowerText.contains("7 ngay") ||
+            unaccentedLowerText.contains("7 days") ||
+            unaccentedLowerText.contains("1 week") ||
+            unaccentedLowerText.contains("1 tuan")) {
+            "Weekly"
         } else {
             "Monthly"
         }
@@ -120,10 +127,10 @@ class GeminiService(private val context: Context) {
         val category = getCategoryForService(serviceName)
 
         // 5. Detect billing date
-        val defaultNextBilling = if (cycle == "Yearly") {
-            System.currentTimeMillis() + 86400000L * 365
-        } else {
-            System.currentTimeMillis() + 86400000L * 30
+        val defaultNextBilling = when (cycle) {
+            "Yearly" -> System.currentTimeMillis() + 86400000L * 365
+            "Weekly" -> System.currentTimeMillis() + 86400000L * 7
+            else -> System.currentTimeMillis() + 86400000L * 30
         }
         val billingDate = detectDate(unaccentedLowerText) ?: defaultNextBilling
 

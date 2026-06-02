@@ -37,9 +37,18 @@ interface SubscriptionDao {
     @Delete
     suspend fun deleteSubscription(subscription: Subscription)
 
-    @Query("SELECT SUM(CASE WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) FROM subscriptions")
+    @Query("SELECT SUM(CASE WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) FROM subscriptions")
     fun getTotalMonthlyCost(): Flow<Double?>
 
-    @Query("SELECT category, SUM(CASE WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) as totalAmount FROM subscriptions GROUP BY category")
+    @Query("SELECT category, SUM(CASE WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) as totalAmount FROM subscriptions GROUP BY category")
     fun getSpendingByCategory(): Flow<List<CategorySpending>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPaymentHistory(record: PaymentHistory): Long
+
+    @Query("SELECT * FROM payment_history ORDER BY paymentDate DESC")
+    fun getAllPaymentHistory(): Flow<List<PaymentHistory>>
+
+    @Query("SELECT * FROM payment_history WHERE subscriptionId = :subId ORDER BY paymentDate DESC")
+    fun getPaymentHistoryForSubscription(subId: Long): Flow<List<PaymentHistory>>
 }

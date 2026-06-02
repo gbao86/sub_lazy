@@ -64,6 +64,8 @@ fun AddEditSubscriptionScreen(
     var category by remember { mutableStateOf("Entertainment") }
     var colorHex by remember { mutableStateOf("#6366F1") }
     var selectedCurrency by remember { mutableStateOf(if (locale.language == "vi") "VND" else "USD") }
+    var autoDeleteMode by remember { mutableStateOf("unlimited") } // "unlimited", "once", "custom"
+    var customTimes by remember { mutableStateOf("") }
  
     val categories = listOf("Entertainment", "Utilities", "Work", "Cloud", "Music", "Food", "Finance", "Anniversary", "Family", "Trial", "Notes", "Other")
     var expandedCategory by remember { mutableStateOf(false) }
@@ -84,6 +86,18 @@ fun AddEditSubscriptionScreen(
                 category = it.category
                 colorHex = it.colorHex
                 selectedCurrency = it.currency
+                
+                val remTimes = it.remainingTimes
+                if (remTimes == null || remTimes <= 0) {
+                    autoDeleteMode = "unlimited"
+                    customTimes = ""
+                } else if (remTimes == 1) {
+                    autoDeleteMode = "once"
+                    customTimes = ""
+                } else {
+                    autoDeleteMode = "custom"
+                    customTimes = remTimes.toString()
+                }
             }
         } else {
             prefillName?.let { name = it }
@@ -290,28 +304,122 @@ fun AddEditSubscriptionScreen(
             // Cycle Selection
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.add_edit_billing_cycle), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    listOf("Monthly", "Yearly", "One-time").forEach { item ->
-                        val selected = cycle == item
-                        FilterChip(
-                            selected = selected,
-                            onClick = { cycle = item },
-                            label = { 
-                                Text(
-                                    stringResource(getCycleDisplayNameRes(item)), 
-                                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                ) 
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("Weekly", "Monthly").forEach { item ->
+                            val selected = cycle == item
+                            FilterChip(
+                                selected = selected,
+                                onClick = { cycle = item },
+                                label = { 
+                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            stringResource(getCycleDisplayNameRes(item)), 
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                        ) 
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
                             )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("Yearly", "One-time").forEach { item ->
+                            val selected = cycle == item
+                            FilterChip(
+                                selected = selected,
+                                onClick = { cycle = item },
+                                label = { 
+                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            stringResource(getCycleDisplayNameRes(item)), 
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                        ) 
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Auto-delete Options Section
+            if (cycle != "One-time") {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        stringResource(R.string.add_edit_auto_delete_title), 
+                        style = MaterialTheme.typography.titleSmall, 
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("unlimited", "once", "custom").forEach { mode ->
+                            val selected = autoDeleteMode == mode
+                            val labelRes = when (mode) {
+                                "unlimited" -> R.string.auto_delete_unlimited
+                                "once" -> R.string.auto_delete_once
+                                else -> R.string.auto_delete_custom
+                            }
+                            FilterChip(
+                                selected = selected,
+                                onClick = { autoDeleteMode = mode },
+                                label = { 
+                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            stringResource(labelRes), 
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 13.sp
+                                        ) 
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+                    
+                    if (autoDeleteMode == "custom") {
+                        OutlinedTextField(
+                            value = customTimes,
+                            onValueChange = { input ->
+                                if (input.all { it.isDigit() }) {
+                                    customTimes = input
+                                }
+                            },
+                            label = { Text(stringResource(R.string.auto_delete_custom_hint)) },
+                            placeholder = { Text("e.g. 5") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
                         )
                     }
                 }
@@ -323,6 +431,15 @@ fun AddEditSubscriptionScreen(
                 onClick = {
                     if (name.isNotBlank() && amount.isNotBlank()) {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        val remainingTimesVal = if (cycle == "One-time") {
+                            null
+                        } else {
+                            when (autoDeleteMode) {
+                                "once" -> 1
+                                "custom" -> customTimes.toIntOrNull()?.coerceAtLeast(1) ?: 1
+                                else -> null
+                            }
+                        }
                         val sub = Subscription(
                             id = if (isEditMode) subscriptionId!! else 0,
                             name = name,
@@ -331,7 +448,8 @@ fun AddEditSubscriptionScreen(
                             cycle = cycle,
                             category = category,
                             colorHex = colorHex,
-                            currency = selectedCurrency
+                            currency = selectedCurrency,
+                            remainingTimes = remainingTimesVal
                         )
                         if (isEditMode) viewModel.update(sub) else viewModel.insert(sub)
                         onNavigateBack()
@@ -382,6 +500,7 @@ fun getCategoryDisplayName(category: String): String {
 
 private fun getCycleDisplayNameRes(cycle: String): Int {
     return when (cycle) {
+        "Weekly" -> R.string.cycle_weekly
         "Monthly" -> R.string.cycle_monthly
         "Yearly" -> R.string.cycle_yearly
         "One-time" -> R.string.cycle_one_time

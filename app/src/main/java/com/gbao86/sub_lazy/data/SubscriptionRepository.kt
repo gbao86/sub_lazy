@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 class SubscriptionRepository(private val subscriptionDao: SubscriptionDao) {
     val allSubscriptions: Flow<List<Subscription>> = subscriptionDao.getAllSubscriptions()
     val totalMonthlyCost: Flow<Double?> = subscriptionDao.getTotalMonthlyCost()
+    val allPaymentHistory: Flow<List<PaymentHistory>> = subscriptionDao.getAllPaymentHistory()
 
     suspend fun insert(subscription: Subscription): Long {
         return subscriptionDao.insertSubscription(subscription)
@@ -32,5 +33,13 @@ class SubscriptionRepository(private val subscriptionDao: SubscriptionDao) {
 
     suspend fun getSubscriptionById(id: Long): Subscription? {
         return subscriptionDao.getSubscriptionById(id)
+    }
+
+    suspend fun insertPaymentHistory(record: PaymentHistory): Long {
+        return subscriptionDao.insertPaymentHistory(record)
+    }
+
+    fun getPaymentHistoryForSubscription(subId: Long): Flow<List<PaymentHistory>> {
+        return subscriptionDao.getPaymentHistoryForSubscription(subId)
     }
 }

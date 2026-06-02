@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.2] - 2026-06-02
 
 ### Added
+- **Cashflow & Subscription Runway Forecasting Chart**:
+  - Implemented a custom canvas-based curve path Line Chart with gradient fills displaying projected expenditure runway for the next 6 months.
+  - Added a peak-spending indicator displaying the month containing the highest forecasted spending total.
+- **Manual Payment Tracking (Mark as Paid) & History**:
+  - Created a database table `payment_history` (with schema migration `MIGRATION_3_4`) to track completed subscription payments.
+  - Added a "Mark as Paid" button inside the Dashboard's timeline selection card that logs payment info and advances the renewal date (or deletes the subscription if one-time/expired).
+  - Designed a "Payment History" feed displaying the last 5 payment transactions with check badges on the Dashboard.
+- **Weekly Billing Cycle Support**:
+  - Expanded subscription frequency options to include "Weekly" (alongside Monthly, Yearly, and One-time).
+  - Integrated weekly cycle calculation in total monthly spending and category breakdown (using `amount * 52.0 / 12.0`).
+  - Added a "Weekly" cost comparison column inside the Dashboard's Billing Cycle Chart.
+- **Auto-Delete Limit (1-time / N-times count)**:
+  - Added the ability to specify a maximum payment count (1 time, custom N times, or unlimited) to auto-delete subscriptions once they expire.
+  - Implemented startup checks and an auto-rollover mechanism inside `SubscriptionViewModel` which decrements remaining counts, moves billing dates forward, or deletes expired subscriptions automatically on launch.
+  - Designed a modern, elegant FilterChip selection UI for Auto-Deletion Limits in `AddEditSubscriptionScreen`.
+  - Added a remaining times counter/badge (e.g., "Còn 3 lần") below the subscription cost in `SubscriptionListScreen` and inside the Dashboard's upcoming timeline card.
+- **Offline ML Kit OCR Enhancements**:
+  - Enabled automatic detection of weekly cycles from screenshot text recognition (supporting keywords like "weekly", "tuan", "7 days", etc.).
 - **Offline ML Kit OCR Scanning**: Completely removed online Gemini API requirements and replaced it with on-device Google ML Kit Text Recognition. Screenshots are now parsed locally, offline, and privately.
 - **Bank/MoMo Notification Parsing**: Created a `BillNotificationListener` service to automatically parse banking and MoMo transaction alerts to pre-fill billing alerts.
 - **Google Sign-In Account Management**: Implemented simple Google account linkage inside Settings, allowing users to log in or out to view their profile email (no sensitive permissions required).
@@ -22,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Active Locale Conversion**: Enabled dynamic locale-based currency conversion (e.g. converting `260,000₫` to `$10.24` when app is switched to English, and `$9.99` to `253.746₫` when switched to Vietnamese) based on an exchange rate of `1 USD = 25,400 VND`.
 
 ### Fixed
+- **Donut Chart Segment Overlap**: Changed segment `StrokeCap` from `Round` to `Butt` and introduced a 2-degree gap between slices. This prevents rounded caps from overlapping and completely covering smaller spending category segments, resulting in a cleaner and more premium chart visualization.
 - **OCR Scan Orientation & Tolerance**: Rebuilt OCR price and keyword scanning algorithms to make them highly tolerant to horizontal layout variations and diacritical variations.
 - **Empty Scan Errors**: Configured fallback naming (`Hóa đơn mới`) to allow successful scanning and pre-filling even if a service logo/text isn't in our predefined service database.
 

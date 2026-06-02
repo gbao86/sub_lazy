@@ -46,9 +46,18 @@
     <string name="add_edit_btn_update">Update Service</string>
 
     <!-- Billing Cycles -->
+    <string name="cycle_weekly">Weekly</string>
     <string name="cycle_monthly">Monthly</string>
     <string name="cycle_yearly">Yearly</string>
     <string name="cycle_one_time">One-time</string>
+
+    <!-- Auto-Delete Options -->
+    <string name="add_edit_auto_delete_title">Auto-delete after payment count</string>
+    <string name="auto_delete_unlimited">No limit</string>
+    <string name="auto_delete_once">1 time</string>
+    <string name="auto_delete_custom">n times</string>
+    <string name="auto_delete_custom_hint">Number of times</string>
+    <string name="list_remaining_times">%1$d times left</string>
 
     <!-- Categories -->
     <string name="category_entertainment">Entertainment</string>
@@ -133,4 +142,12 @@
     <string name="gmail_sync_none">No new receipt emails found.</string>
     <string name="gmail_import_title">Import Subscriptions</string>
     <string name="gmail_import_btn">Import Selected (%1$d)</string>
+
+    <!-- Forecasting & Payment History -->
+    <string name="chart_forecasting_title">Cashflow Forecasting</string>
+    <string name="chart_forecasting_peak_desc">Peak spending in %1$s: %2$s</string>
+    <string name="action_mark_paid">Mark as Paid</string>
+    <string name="payment_history_title">Payment History</string>
+    <string name="payment_history_empty">No payments recorded yet</string>
+    <string name="payment_history_recorded">Paid %1$s on %2$s</string>
 </resources>

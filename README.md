@@ -29,10 +29,14 @@ Yeah, we've all been there.
   - **Dynamic Spending Card**: Visualizes your total monthly subscription costs in a premium gradient card.
   - **Interactive Donut Chart**: Touch-responsive category spending donut chart. Tapping segments explodes (offsets) the segment and updates center details.
   - **Expanded Legends**: Tapping a category legend item expands a list showing all subscriptions tracked under that category with smooth slide animations.
-  - **Billing Cycle Comparison**: Dynamic vertical bar charts comparing Monthly vs. Yearly spending impacts.
+  - **Billing Cycle Comparison**: Dynamic vertical bar charts comparing Weekly, Monthly, and Yearly spending impacts.
   - **Upcoming Renewals Timeline**: A scrollable horizontal timeline showing renewal dates. Urgently renewing items display a pulsing animated halo outer ring.
-- **Subscription List Screen**: Shows monthly equivalent costs, renewal schedules, and color-coded countdown indicators. Swift swipe-to-delete has a double-confirm dialog.
-- **Add / Edit Subscriptions**: Fully customizable forms. Includes pricing, renewal date picker, category dropdown, billing cycle, and a **currency toggle (VND/USD)** using Material 3 card controls.
+  - **Cashflow & Runway Forecasting**: A bespoke Canvas-drawn curve Line Chart projecting total subscription spending over the next 6 months, automatically highlighting and detailing the month with peak spending.
+  - **Payment History feed**: Displays the last 5 manually/automatically completed billing events in a list on the Dashboard.
+- **Manual Payment Tracking (Mark as Paid)**: Users can click "Mark as Paid" directly from the timeline card details. This records the payment in the database, advances the renewal date, decrements remaining limits, or deletes the subscription if one-time/expired.
+- **Subscription List Screen**: Shows monthly equivalent costs, renewal schedules, color-coded countdown indicators, and a **remaining count badge** (e.g. `Còn 3 lần`) for limited subscriptions. Swift swipe-to-delete has a double-confirm dialog.
+- **Add / Edit Subscriptions**: Fully customizable forms. Includes pricing, renewal date picker, category dropdown, billing cycle selection (**Weekly**, **Monthly**, **Yearly**, **One-time** in a 2x2 grid), and a **currency toggle (VND/USD)** using Material 3 card controls.
+- **Auto-Delete Limit (1-time / N-times count)**: Users can configure subscriptions to delete automatically after a set number of payments (1 time, custom N times, or unlimited). The app automatically rolls over renewal dates, decrements remaining cycles, or deletes expired subscriptions on startup.
 - **Dynamic Localization & Multi-Currency**:
   - Instantly switch the app language between **English** and **Vietnamese** dynamically.
   - **Real-Time Currency Conversions**: All amounts are dynamically formatted and converted based on the active language (VND displayed in Vietnamese, USD displayed in English) using a real-time exchange rate of `1 USD = 25,400 VND` to prevent raw numerical discrepancies.
