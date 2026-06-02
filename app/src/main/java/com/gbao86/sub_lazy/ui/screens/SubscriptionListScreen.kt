@@ -25,16 +25,15 @@ import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
 import java.util.*
-import java.util.concurrent.TimeUnit
 import androidx.compose.ui.res.stringResource
 import com.gbao86.sub_lazy.R
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
+import com.gbao86.sub_lazy.ui.DateUtils
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -228,8 +227,7 @@ fun SubscriptionItem(
 ) {
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
-    val currencyFormatter = remember(locale) { CurrencyFormatter.getFormatter(locale) }
-    val daysLeft = getDaysLeft(subscription.nextBillingDate)
+    val daysLeft = DateUtils.getDaysLeft(subscription.nextBillingDate)
     
     // Calculate monthly equivalent for display
     val monthlyEquivalent = if (subscription.cycle == "Yearly") subscription.amount / 12 else subscription.amount
@@ -272,12 +270,15 @@ fun SubscriptionItem(
                     text = subscription.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "${CurrencyFormatter.format(monthlyEquivalent, subscription.currency, locale)}${stringResource(R.string.list_monthly_suffix)}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    softWrap = false,
+                    maxLines = 1
                 )
             }
 
@@ -286,21 +287,20 @@ fun SubscriptionItem(
                     text = if (daysLeft <= 0) stringResource(R.string.list_days_left_today) else stringResource(R.string.list_days_left_plural, daysLeft),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (daysLeft <= 3) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.ExtraBold
+                    fontWeight = FontWeight.ExtraBold,
+                    softWrap = false,
+                    maxLines = 1
                 )
                 Text(
                     text = stringResource(R.string.list_days_left_suffix),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    softWrap = false,
+                    maxLines = 1
                 )
             }
         }
     }
-}
-
-fun getDaysLeft(nextBillingDate: Long): Long {
-    val diff = nextBillingDate - System.currentTimeMillis()
-    return if (diff < 0) 0 else TimeUnit.MILLISECONDS.toDays(diff)
 }
 
 @Preview(showBackground = true, device = "spec:width=411dp,height=891dp")

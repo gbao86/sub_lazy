@@ -14,22 +14,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Email
-import androidx.compose.material.icons.rounded.PhotoCamera
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -37,8 +28,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.Image
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,15 +42,14 @@ import com.gbao86.sub_lazy.data.CategorySpending
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.CategoryUtils
+import com.gbao86.sub_lazy.ui.DateUtils
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
 import java.util.*
-import java.util.concurrent.TimeUnit
-import kotlin.math.cos
-import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.math.atan2
-import kotlin.math.min
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -73,9 +61,6 @@ import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import android.content.Context
-import android.content.Intent
-import android.provider.Settings
-import android.content.ComponentName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,24 +75,13 @@ fun DashboardScreen(
     val spendingByCategory by viewModel.spendingByCategory.collectAsStateWithLifecycle(initialValue = emptyList())
     val subscriptions by viewModel.allSubscriptions.collectAsStateWithLifecycle(initialValue = emptyList())
 
-
     var selectedCategory by remember { mutableStateOf<CategorySpending?>(null) }
     var selectedUpcomingSub by remember { mutableStateOf<Subscription?>(null) }
 
-    // Haptics & Scope
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
-
-    // Local OCR Service
     val geminiService = remember { GeminiService(context) }
 
-    // API key and linked account
-    var geminiApiKey by remember {
-        mutableStateOf(
-            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                .getString("gemini_api_key", "") ?: ""
-        )
-    }
     var linkedAccountEmail by remember {
         mutableStateOf(
             context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
@@ -115,7 +89,6 @@ fun DashboardScreen(
         )
     }
 
-    // Google Sign-In options & client
     val gso = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
@@ -123,7 +96,6 @@ fun DashboardScreen(
     }
     val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
 
-    // Launcher for sign in
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -136,26 +108,18 @@ fun DashboardScreen(
                 .putString("gmail_account", email)
                 .apply()
             linkedAccountEmail = email
-            
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            android.widget.Toast.makeText(context, "Đăng nhập thành công: $email", android.widget.Toast.LENGTH_SHORT).show()
         } catch (e: ApiException) {
             e.printStackTrace()
-            val errorMsg = "Lỗi Google Sign-In (Mã: ${e.statusCode}). Vui lòng kiểm tra cấu hình dự án."
-            android.widget.Toast.makeText(context, errorMsg, android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
-    // Image Picker Launcher for screenshot OCR
     var isAnalyzing by remember { mutableStateOf(false) }
-    var ocrStatusMessage by remember { mutableStateOf("") }
-
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
             isAnalyzing = true
-            ocrStatusMessage = context.getString(R.string.ocr_processing)
             geminiService.analyzeImage(uri, object : GeminiService.GeminiCallback {
                 override fun onSuccess(result: GeminiService.ParsedSubscription) {
                     isAnalyzing = false
@@ -164,11 +128,9 @@ fun DashboardScreen(
                         onNavigateToAdd(result.name, result.amount)
                     }
                 }
-
                 override fun onError(message: String) {
                     isAnalyzing = false
                     coroutineScope.launch(Dispatchers.Main) {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
                     }
                 }
@@ -176,72 +138,39 @@ fun DashboardScreen(
         }
     }
 
-    // Dialog state controllers
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showAddBottomSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                ),
+                title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.ExtraBold) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 actions = {
-                    // Settings icon
-                    IconButton(onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showSettingsDialog = true
-                    }) {
-                        Icon(
-                            imageVector = Icons.Rounded.Settings,
-                            contentDescription = stringResource(R.string.settings_title),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                    IconButton(onClick = { showSettingsDialog = true }) {
+                        Icon(Icons.Rounded.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     }
-
                     var showLangMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { showLangMenu = true }) {
-                        Icon(
-                            imageVector = Icons.Rounded.Language,
-                            contentDescription = stringResource(R.string.dashboard_lang_select_title),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Icon(Icons.Rounded.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     }
-                    DropdownMenu(
-                        expanded = showLangMenu,
-                        onDismissRequest = { showLangMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("English", fontWeight = FontWeight.Medium) },
-                            onClick = {
-                                showLangMenu = false
-                                AppCompatDelegate.setApplicationLocales(
-                                    LocaleListCompat.forLanguageTags("en")
-                                )
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Tiếng Việt", fontWeight = FontWeight.Medium) },
-                            onClick = {
-                                showLangMenu = false
-                                AppCompatDelegate.setApplicationLocales(
-                                    LocaleListCompat.forLanguageTags("vi")
-                                )
-                            }
-                        )
+                    DropdownMenu(expanded = showLangMenu, onDismissRequest = { showLangMenu = false }) {
+                        DropdownMenuItem(text = { Text("English") }, onClick = {
+                            showLangMenu = false
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("en"))
+                        })
+                        DropdownMenuItem(text = { Text("Tiếng Việt") }, onClick = {
+                            showLangMenu = false
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("vi"))
+                        })
                     }
                 }
             )
         },
         floatingActionButton = {
             LargeFloatingActionButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    showAddBottomSheet = true
-                },
+                onClick = { showAddBottomSheet = true },
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(24.dp)
             ) {
                 Icon(Icons.Rounded.Add, contentDescription = "Add", modifier = Modifier.size(32.dp))
@@ -250,144 +179,50 @@ fun DashboardScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(bottom = 100.dp, start = 24.dp, end = 24.dp, top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // Summary Card (Premium Gradient)
                 item {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp),
-                        shape = RoundedCornerShape(32.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        modifier = Modifier.fillMaxWidth().height(180.dp),
+                        shape = RoundedCornerShape(32.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.primary,
-                                            MaterialTheme.colorScheme.secondary
-                                        )
-                                    )
-                                )
-                                .padding(24.dp)
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize().background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary))).padding(24.dp)) {
                             Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxHeight()) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.AutoMirrored.Rounded.TrendingUp, contentDescription = null, tint = Color.White.copy(alpha = 0.8f))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        stringResource(R.string.dashboard_monthly_spending),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = Color.White.copy(alpha = 0.8f)
-                                    )
+                                    Text(stringResource(R.string.dashboard_monthly_spending), style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.8f))
                                 }
                                 Text(
                                     text = CurrencyFormatter.format(totalMonthlyCost ?: 0.0, "VND", locale),
                                     style = MaterialTheme.typography.headlineLarge,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White
+                                    color = Color.White,
+                                    softWrap = false,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Visible
                                 )
                             }
                         }
                     }
                 }
 
-                // Quick Navigation Button
                 item {
-                    Button(
-                        onClick = onNavigateToList,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    ) {
+                    Button(onClick = onNavigateToList, modifier = Modifier.fillMaxWidth().height(64.dp), shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))) {
                         Icon(Icons.AutoMirrored.Rounded.FormatListBulleted, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            stringResource(R.string.dashboard_btn_manage),
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Text(stringResource(R.string.dashboard_btn_manage), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
 
-                if (spendingByCategory.isEmpty()) {
+                if (spendingByCategory.isNotEmpty()) {
                     item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(32.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(32.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(80.dp)
-                                        .clip(RoundedCornerShape(24.dp))
-                                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Rounded.TrendingUp,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(36.dp),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(20.dp))
-                                Text(
-                                    text = stringResource(R.string.dashboard_no_data),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    // Interactive Donut Chart & Breakdown
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(32.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    stringResource(R.string.dashboard_distribution),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    modifier = Modifier.align(Alignment.Start)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    stringResource(R.string.chart_interactive_hint),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                    modifier = Modifier.align(Alignment.Start)
-                                )
+                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp)) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(stringResource(R.string.dashboard_distribution), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Start))
                                 Spacer(modifier = Modifier.height(32.dp))
-
                                 InteractiveDonutChart(
                                     spending = spendingByCategory,
                                     totalSpending = spendingByCategory.sumOf { it.totalAmount },
@@ -395,9 +230,7 @@ fun DashboardScreen(
                                     onCategorySelected = { selectedCategory = it },
                                     modifier = Modifier.size(220.dp)
                                 )
-
                                 Spacer(modifier = Modifier.height(32.dp))
-
                                 InteractiveCategoryLegend(
                                     spending = spendingByCategory,
                                     totalSpending = spendingByCategory.sumOf { it.totalAmount },
@@ -409,27 +242,14 @@ fun DashboardScreen(
                         }
                     }
 
-                    // Billing Cycle Comparison
                     item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(32.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            BillingCycleChart(
-                                subscriptions = subscriptions,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp)) {
+                            BillingCycleChart(subscriptions = subscriptions, modifier = Modifier.fillMaxWidth())
                         }
                     }
 
-                    // Upcoming Renewals Timeline
                     item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(32.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
+                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp)) {
                             UpcomingRenewalsTimeline(
                                 subscriptions = subscriptions,
                                 selectedSub = selectedUpcomingSub,
@@ -438,111 +258,51 @@ fun DashboardScreen(
                             )
                         }
                     }
-                }
-            }
-
-            // Processing Loader Overlay
-            if (isAnalyzing) {
-                val label = stringResource(R.string.ocr_processing)
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .clickable(enabled = false) {},
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        modifier = Modifier.padding(32.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                } else {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(32.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
-                            )
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(80.dp).clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.AutoMirrored.Rounded.TrendingUp, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
+                                }
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Text(text = stringResource(R.string.dashboard_no_data), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+                            }
                         }
                     }
                 }
             }
-        }
-    }
 
-    // Modal Add Options Bottom Sheet (Thumb Zone / OS Native feel)
-    if (showAddBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showAddBottomSheet = false },
-            sheetState = rememberModalBottomSheetState()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-                    .navigationBarsPadding(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.action_sheet_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.action_add_manually), fontWeight = FontWeight.SemiBold) },
-                    leadingContent = { Icon(Icons.Rounded.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    modifier = Modifier.clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showAddBottomSheet = false
-                        onNavigateToAdd(null, null)
-                    }
-                )
-
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.action_scan_screenshot), fontWeight = FontWeight.SemiBold) },
-                    leadingContent = { Icon(Icons.Rounded.PhotoCamera, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    modifier = Modifier.clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showAddBottomSheet = false
-                        imagePickerLauncher.launch("image/*")
-                    }
-                )
-            }
-        }
-    }
-
-    // Settings Dialog
-    fun isNotificationServiceEnabled(context: Context): Boolean {
-        val pkgName = context.packageName
-        val flat = android.provider.Settings.Secure.getString(
-            context.contentResolver,
-            "enabled_notification_listeners"
-        )
-        if (!flat.isNullOrEmpty()) {
-            val names = flat.split(":")
-            for (name in names) {
-                val cn = ComponentName.unflattenFromString(name)
-                if (cn != null && cn.packageName == pkgName) {
-                    return true
+            if (isAnalyzing) {
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
-        return false
     }
 
-    var isNotificationListenerEnabled by remember {
-        mutableStateOf(isNotificationServiceEnabled(context))
-    }
-
-    LaunchedEffect(showSettingsDialog) {
-        if (showSettingsDialog) {
-            isNotificationListenerEnabled = isNotificationServiceEnabled(context)
+    if (showAddBottomSheet) {
+        ModalBottomSheet(onDismissRequest = { showAddBottomSheet = false }) {
+            Column(modifier = Modifier.fillMaxWidth().padding(24.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                ListItem(headlineContent = { Text(stringResource(R.string.action_add_manually)) }, leadingContent = { Icon(Icons.Rounded.Edit, null) }, modifier = Modifier.clickable {
+                    showAddBottomSheet = false
+                    onNavigateToAdd(null, null)
+                })
+                ListItem(headlineContent = { Text(stringResource(R.string.action_scan_screenshot)) }, leadingContent = { Icon(Icons.Rounded.PhotoCamera, null) }, modifier = Modifier.clickable {
+                    showAddBottomSheet = false
+                    imagePickerLauncher.launch("image/*")
+                })
+            }
         }
     }
 
@@ -551,103 +311,26 @@ fun DashboardScreen(
             onDismissRequest = { showSettingsDialog = false },
             title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.Bold) },
             text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(stringResource(R.string.settings_notification_listener), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text(
-                                    stringResource(R.string.settings_notification_listener_desc),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    val accountName = linkedAccountEmail
+                    Text(text = if (accountName != null) stringResource(R.string.settings_gmail_linked, accountName) else stringResource(R.string.settings_gmail_not_linked))
+                    Button(onClick = {
+                        if (accountName != null) {
+                            googleSignInClient.signOut().addOnCompleteListener {
+                                context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).edit().remove("gmail_account").apply()
+                                linkedAccountEmail = null
                             }
-                            Switch(
-                                checked = isNotificationListenerEnabled,
-                                onCheckedChange = {
-                                    val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
-                                    context.startActivity(intent)
-                                }
-                            )
+                        } else {
+                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
                         }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.settings_gmail_sync), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        Text(
-                            stringResource(R.string.settings_gmail_sync_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val accountName = linkedAccountEmail
-                            Text(
-                                text = if (accountName != null) {
-                                    stringResource(R.string.settings_gmail_linked, accountName)
-                                } else {
-                                    stringResource(R.string.settings_gmail_not_linked)
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (accountName != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            if (accountName != null) {
-                                Button(
-                                    onClick = {
-                                        googleSignInClient.signOut().addOnCompleteListener {
-                                            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                                                .edit()
-                                                .remove("gmail_account")
-                                                .remove("gmail_access_token")
-                                                .apply()
-                                            linkedAccountEmail = null
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                                ) {
-                                    Text(stringResource(R.string.settings_gmail_btn_unlink))
-                                }
-                            } else {
-                                Button(
-                                    onClick = {
-                                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                                    }
-                                ) {
-                                    Text(stringResource(R.string.settings_gmail_btn_link))
-                                }
-                            }
-                        }
+                    }) {
+                        Text(if (accountName != null) stringResource(R.string.settings_gmail_btn_unlink) else stringResource(R.string.settings_gmail_btn_link))
                     }
                 }
             },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showSettingsDialog = false
-                    }
-                ) {
-                    Text(stringResource(R.string.ok))
-                }
-            }
+            confirmButton = { TextButton(onClick = { showSettingsDialog = false }) { Text(stringResource(R.string.ok)) } }
         )
     }
-
 }
 
 @Composable
@@ -658,371 +341,147 @@ fun InteractiveDonutChart(
     onCategorySelected: (CategorySpending?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = listOf(
-        Color(0xFF6366F1), // Indigo
-        Color(0xFF06B6D4), // Cyan
-        Color(0xFFF43F5E), // Rose
-        Color(0xFFF59E0B), // Amber
-        Color(0xFF10B981), // Emerald
-        Color(0xFF8B5CF6)  // Violet
-    )
-
-    val context = LocalContext.current
-    val locale = context.resources.configuration.locales[0]
-
-
-    // Entry sweep growth animation
+    val colors = listOf(Color(0xFF6366F1), Color(0xFF06B6D4), Color(0xFFF43F5E), Color(0xFFF59E0B), Color(0xFF10B981), Color(0xFF8B5CF6))
+    val locale = LocalContext.current.resources.configuration.locales[0]
     val animateSweep = remember { Animatable(0f) }
     LaunchedEffect(spending) {
-        animateSweep.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing)
-        )
+        animateSweep.animateTo(1f, tween(1200, easing = FastOutSlowInEasing))
     }
 
     Box(contentAlignment = Alignment.Center, modifier = modifier) {
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(spending, totalSpending) {
-                    detectTapGestures { offset ->
-                        if (totalSpending <= 0) return@detectTapGestures
-                        val center = Offset(size.width / 2f, size.height / 2f)
-                        val dx = offset.x - center.x
-                        val dy = offset.y - center.y
-                        val dist = sqrt(dx * dx + dy * dy)
-                        val strokeWidthPx = 28.dp.toPx()
-                        val minDim = min(size.width, size.height).toFloat()
-                        val outerRadius = (minDim - strokeWidthPx) / 2
-                        val innerRadius = outerRadius - strokeWidthPx
-
-                        // Handle tap target region
-                        if (dist >= innerRadius - 20.dp.toPx() && dist <= outerRadius + 20.dp.toPx()) {
-                            val angleInRadians = atan2(dy.toDouble(), dx.toDouble())
-                            var angleInDegrees = Math.toDegrees(angleInRadians).toFloat()
-                            if (angleInDegrees < 0) {
-                                angleInDegrees += 360f
-                            }
-                            
-                            // Align relative to start angle -90f (12 o'clock)
-                            var relativeAngle = angleInDegrees - (-90f)
-                            if (relativeAngle < 0) {
-                                relativeAngle += 360f
-                            }
-                            
-                            var currentAngle = 0f
-                            var clickedItem: CategorySpending? = null
-                            for (index in spending.indices) {
-                                val item = spending[index]
-                                val sweepAngle = ((item.totalAmount / totalSpending) * 360f).toFloat()
-                                if (relativeAngle >= currentAngle && relativeAngle < currentAngle + sweepAngle) {
-                                    clickedItem = item
-                                    break
-                                }
-                                currentAngle += sweepAngle
-                            }
-                            
-                            if (clickedItem == selectedCategory) {
-                                onCategorySelected(null) // Unselect if tapped again
-                            } else {
-                                onCategorySelected(clickedItem)
-                            }
-                        } else {
-                            onCategorySelected(null) // Clicked center/outside resets
+        Canvas(modifier = Modifier.fillMaxSize().pointerInput(spending) {
+            detectTapGestures { offset ->
+                if (totalSpending <= 0.0) return@detectTapGestures
+                val center = Offset(size.width / 2f, size.height / 2f)
+                val dx = offset.x - center.x
+                val dy = offset.y - center.y
+                val dist = sqrt(dx * dx + dy * dy)
+                val strokeWidthPx = 28.dp.toPx()
+                if (dist >= (size.width/2 - strokeWidthPx*1.5) && dist <= size.width/2 + 10.dp.toPx()) {
+                    var angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 90f
+                    if (angle < 0) angle += 360f
+                    var currentAngle = 0f
+                    spending.forEach { item ->
+                        val sweep = ((item.totalAmount / totalSpending) * 360f).toFloat()
+                        if (angle >= currentAngle && angle < currentAngle + sweep) {
+                            onCategorySelected(if (selectedCategory?.category == item.category) null else item)
+                            return@detectTapGestures
                         }
+                        currentAngle += sweep
                     }
-                }
-        ) {
+                } else onCategorySelected(null)
+            }
+        }) {
             var startAngle = -90f
-            val strokeWidthPx = 28.dp.toPx()
-            
             spending.forEachIndexed { index, item ->
                 val sweepAngle = ((item.totalAmount / totalSpending) * 360f).toFloat() * animateSweep.value
                 val isSelected = selectedCategory?.category == item.category
-                
-                // Scale stroke width and opacity based on selection status
-                val targetStrokeWidth = if (isSelected) strokeWidthPx + 10.dp.toPx() else strokeWidthPx
-                val targetAlpha = if (selectedCategory == null || isSelected) 1f else 0.35f
-                val color = colors[index % colors.size].copy(alpha = targetAlpha)
-                
-                // Explode selected arc segment slightly outward
                 val middleAngle = startAngle + sweepAngle / 2f
                 val angleRad = Math.toRadians(middleAngle.toDouble())
                 val shiftAmt = if (isSelected) 8.dp.toPx() else 0f
-                val shiftX = (shiftAmt * cos(angleRad)).toFloat()
-                val shiftY = (shiftAmt * sin(angleRad)).toFloat()
-                
+                val shiftX = (shiftAmt * kotlin.math.cos(angleRad)).toFloat()
+                val shiftY = (shiftAmt * kotlin.math.sin(angleRad)).toFloat()
+
                 drawArc(
-                    color = color,
+                    color = colors[index % colors.size].copy(alpha = if (selectedCategory == null || isSelected) 1f else 0.3f),
                     startAngle = startAngle,
                     sweepAngle = sweepAngle,
                     useCenter = false,
                     topLeft = Offset(shiftX, shiftY),
-                    style = Stroke(width = targetStrokeWidth, cap = StrokeCap.Round)
+                    style = Stroke(width = if (isSelected) 38.dp.toPx() else 28.dp.toPx(), cap = StrokeCap.Round)
                 )
                 startAngle += sweepAngle
             }
         }
-
-        // Inside Center text info
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(36.dp)
-        ) {
-            if (selectedCategory != null) {
-                val index = spending.indexOfFirst { it.category == selectedCategory.category }
-                val color = if (index != -1) colors[index % colors.size] else MaterialTheme.colorScheme.primary
-                Icon(
-                    imageVector = CategoryUtils.getCategoryIcon(selectedCategory.category),
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-            val title = if (selectedCategory != null) {
-                getCategoryDisplayName(selectedCategory.category)
-            } else {
-                stringResource(R.string.chart_all_categories)
-            }
-            
-            val displayAmount = selectedCategory?.totalAmount ?: totalSpending
-            val percentageText = if (selectedCategory != null && totalSpending > 0) {
-                "${((selectedCategory.totalAmount / totalSpending) * 100).toInt()}%"
-            } else {
-                "100%"
-            }
-
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 40.dp)) {
             Text(
-                text = title,
+                text = if (selectedCategory != null) getCategoryDisplayName(selectedCategory!!.category) else stringResource(R.string.chart_all_categories),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = CurrencyFormatter.format(displayAmount, "VND", locale),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary,
+                overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = percentageText,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                fontWeight = FontWeight.Bold
+                text = CurrencyFormatter.format(selectedCategory?.totalAmount ?: totalSpending, "VND", locale),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                softWrap = false,
+                maxLines = 1,
+                textAlign = TextAlign.Center
             )
-            
-            if (selectedCategory != null) {
-                Spacer(modifier = Modifier.height(6.dp))
-                TextButton(
-                    onClick = { onCategorySelected(null) },
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
-                    modifier = Modifier.height(28.dp)
-                ) {
-                    Text(
-                        stringResource(R.string.chart_reset),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
         }
     }
 }
 
 @Composable
-fun InteractiveCategoryLegend(
-    spending: List<CategorySpending>,
-    totalSpending: Double,
-    selectedCategory: CategorySpending?,
-    onCategorySelected: (CategorySpending?) -> Unit,
-    subscriptions: List<Subscription>
-) {
-    val colors = listOf(
-        Color(0xFF6366F1), Color(0xFF06B6D4), Color(0xFFF43F5E),
-        Color(0xFFF59E0B), Color(0xFF10B981), Color(0xFF8B5CF6)
-    )
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
+fun InteractiveCategoryLegend(spending: List<CategorySpending>, totalSpending: Double, selectedCategory: CategorySpending?, onCategorySelected: (CategorySpending?) -> Unit, subscriptions: List<Subscription>) {
+    val colors = listOf(Color(0xFF6366F1), Color(0xFF06B6D4), Color(0xFFF43F5E), Color(0xFFF59E0B), Color(0xFF10B981), Color(0xFF8B5CF6))
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         spending.forEachIndexed { index, item ->
             val isSelected = selectedCategory?.category == item.category
-            val color = colors[index % colors.size]
-            val percentage = if (totalSpending > 0) (item.totalAmount / totalSpending).toFloat() else 0f
-            val categorySubs = remember(subscriptions, item.category) {
-                subscriptions.filter { it.category == item.category }
+            InteractiveCategoryRow(item, if (totalSpending > 0.0) (item.totalAmount / totalSpending).toFloat() else 0f, colors[index % colors.size], isSelected, subscriptions.filter { it.category == item.category }) {
+                onCategorySelected(if (isSelected) null else item)
             }
-
-            InteractiveCategoryRow(
-                item = item,
-                percentage = percentage,
-                color = color,
-                isSelected = isSelected,
-                categorySubs = categorySubs,
-                onClick = {
-                    if (isSelected) onCategorySelected(null) else onCategorySelected(item)
-                }
-            )
         }
     }
 }
 
 @Composable
-fun InteractiveCategoryRow(
-    item: CategorySpending,
-    percentage: Float,
-    color: Color,
-    isSelected: Boolean,
-    categorySubs: List<Subscription>,
-    onClick: () -> Unit
-) {
-    val context = LocalContext.current
-    val locale = context.resources.configuration.locales[0]
-
-
-    val animateWidth = remember { Animatable(0f) }
-    LaunchedEffect(percentage) {
-        animateWidth.animateTo(
-            targetValue = percentage,
-            animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing)
-        )
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) color.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        border = if (isSelected) BorderStroke(1.dp, color.copy(alpha = 0.25f)) else null,
-        onClick = onClick
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(color.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = CategoryUtils.getCategoryIcon(item.category),
-                            contentDescription = null,
-                            tint = color,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = getCategoryDisplayName(item.category),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isSelected) color else MaterialTheme.colorScheme.onSurface
-                    )
+fun InteractiveCategoryRow(item: CategorySpending, percentage: Float, color: Color, isSelected: Boolean, categorySubs: List<Subscription>, onClick: () -> Unit) {
+    val locale = LocalContext.current.resources.configuration.locales[0]
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = if (isSelected) color.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)), onClick = onClick) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                    Icon(imageVector = CategoryUtils.getCategoryIcon(item.category), contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
                 }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = getCategoryDisplayName(item.category),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "${(percentage * 100).toInt()}%",
+                        text = "${categorySubs.size} / ",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        softWrap = false,
+                        maxLines = 1
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = CurrencyFormatter.format(item.totalAmount, "VND", locale),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (isSelected) color else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        softWrap = false,
+                        maxLines = 1,
+                        textAlign = TextAlign.End
                     )
                 }
             }
-            
-            // Progress Bar (Horizontal Bar Chart)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction = animateWidth.value)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(color)
-                )
-            }
-
-            // Expanded detail section displaying subs under this category
-            AnimatedVisibility(
-                visible = isSelected,
-                enter = expandVertically(animationSpec = tween(300)) + fadeIn(),
-                exit = shrinkVertically(animationSpec = tween(300)) + fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    HorizontalDivider(color = color.copy(alpha = 0.15f), thickness = 0.8.dp)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    categorySubs.forEach { sub ->
-                        val subColor = Color(android.graphics.Color.parseColor(sub.colorHex))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(subColor.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = sub.name.take(1).uppercase(),
-                                        color = subColor,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 11.sp
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = sub.name,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Text(
-                                text = "${CurrencyFormatter.format(sub.amount, sub.currency, locale)} / ${if (sub.cycle == "Monthly") stringResource(R.string.cycle_monthly).lowercase() else stringResource(R.string.cycle_yearly).lowercase()}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
+            if (isSelected) {
+                categorySubs.forEach { sub ->
+                    Row(modifier = Modifier.fillMaxWidth().padding(start = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = sub.name,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = CurrencyFormatter.format(sub.amount, sub.currency, locale),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            softWrap = false,
+                            maxLines = 1,
+                            textAlign = TextAlign.End
+                        )
                     }
                 }
             }
@@ -1031,422 +490,79 @@ fun InteractiveCategoryRow(
 }
 
 @Composable
-fun BillingCycleChart(
-    subscriptions: List<Subscription>,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val locale = context.resources.configuration.locales[0]
+fun BillingCycleChart(subscriptions: List<Subscription>, modifier: Modifier = Modifier) {
+    val locale = LocalContext.current.resources.configuration.locales[0]
+    val monthlyCost = subscriptions.filter { it.cycle == "Monthly" }.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") }
+    val yearlyCost = subscriptions.filter { it.cycle == "Yearly" }.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") } / 12.0
+    val total = monthlyCost + yearlyCost
 
-    val monthlySubs = remember(subscriptions) { subscriptions.filter { it.cycle == "Monthly" } }
-    val yearlySubs = remember(subscriptions) { subscriptions.filter { it.cycle == "Yearly" } }
-
-    val monthlyCost = monthlySubs.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") }
-    val yearlyCost = yearlySubs.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") }
-
-    // Normalized monthly equivalent impact comparison
-    val monthlyImpact = monthlyCost
-    val yearlyImpact = yearlyCost / 12.0
-    val totalImpact = monthlyImpact + yearlyImpact
-
-    val monthlyPercentage = if (totalImpact > 0) (monthlyImpact / totalImpact).toFloat() else 0f
-    val yearlyPercentage = if (totalImpact > 0) (yearlyImpact / totalImpact).toFloat() else 0f
-
-    // Animated bar rise
-    val animateScale = remember { Animatable(0f) }
-    LaunchedEffect(subscriptions) {
-        animateScale.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing)
-        )
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = stringResource(R.string.chart_weekly_forecast),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.align(Alignment.Start)
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            // Monthly Bar
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = CurrencyFormatter.format(monthlyCost, "VND", locale),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                
-                // Animated height bar representation
-                val barHeight = (110.dp * monthlyPercentage * animateScale.value).coerceAtLeast(14.dp)
-                Box(
-                    modifier = Modifier
-                        .width(52.dp)
-                        .height(barHeight)
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                )
-                            )
-                        )
-                )
-
-                Text(
-                    text = stringResource(R.string.cycle_monthly),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = if (monthlySubs.size == 1) stringResource(R.string.chart_sub_count) else stringResource(R.string.chart_subs_count, monthlySubs.size),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-            }
-
-            // Middle Divider line
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(1.dp)
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-            )
-
-            // Yearly Bar
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = CurrencyFormatter.format(yearlyImpact, "VND", locale) + " / " + stringResource(R.string.list_monthly_suffix).trim(),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-                
-                // Animated height bar representation
-                val barHeight = (110.dp * yearlyPercentage * animateScale.value).coerceAtLeast(14.dp)
-                Box(
-                    modifier = Modifier
-                        .width(52.dp)
-                        .height(barHeight)
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.secondary,
-                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
-                                )
-                            )
-                        )
-                )
-
-                Text(
-                    text = stringResource(R.string.cycle_yearly),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = if (yearlySubs.size == 1) stringResource(R.string.chart_sub_count) else stringResource(R.string.chart_subs_count, yearlySubs.size),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-            }
+    Row(modifier = modifier.padding(24.dp).height(150.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceEvenly) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(CurrencyFormatter.format(monthlyCost, "VND", locale), style = MaterialTheme.typography.labelSmall, softWrap = false, maxLines = 1)
+            Box(modifier = Modifier.width(40.dp).height((100 * (if (total > 0.0) monthlyCost / total else 0.0)).dp.coerceAtLeast(4.dp)).clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)).background(MaterialTheme.colorScheme.primary))
+            Text(stringResource(R.string.cycle_monthly), style = MaterialTheme.typography.labelMedium)
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(CurrencyFormatter.format(yearlyCost, "VND", locale), style = MaterialTheme.typography.labelSmall, softWrap = false, maxLines = 1)
+            Box(modifier = Modifier.width(40.dp).height((100 * (if (total > 0.0) yearlyCost / total else 0.0)).dp.coerceAtLeast(4.dp)).clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)).background(MaterialTheme.colorScheme.secondary))
+            Text(stringResource(R.string.cycle_yearly), style = MaterialTheme.typography.labelMedium)
         }
     }
 }
 
 @Composable
-fun UpcomingRenewalsTimeline(
-    subscriptions: List<Subscription>,
-    selectedSub: Subscription?,
-    onSubSelected: (Subscription?) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val locale = context.resources.configuration.locales[0]
-
-    // Take top 6 upcoming renewals sorted chronologically
-    val upcomingSubs = remember(subscriptions) {
-        subscriptions.sortedBy { it.nextBillingDate }.take(6)
-    }
-
-    if (upcomingSubs.isEmpty()) {
-        return
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.chart_upcoming_timeline),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold
-        )
-
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.TopStart
-        ) {
-            // Background connecting line (drawn through circle centers 28dp from top)
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
-                thickness = 3.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 40.dp)
-                    .padding(top = 28.dp)
-            )
-
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(28.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                items(upcomingSubs) { sub ->
-                    TimelineNode(
-                        sub = sub,
-                        isSelected = selectedSub?.id == sub.id,
-                        onClick = {
-                            if (selectedSub?.id == sub.id) {
-                                onSubSelected(null)
-                            } else {
-                                onSubSelected(sub)
-                            }
-                        }
+fun UpcomingRenewalsTimeline(subscriptions: List<Subscription>, selectedSub: Subscription?, onSubSelected: (Subscription?) -> Unit, modifier: Modifier = Modifier) {
+    val locale = LocalContext.current.resources.configuration.locales[0]
+    val upcoming = subscriptions.sortedBy { it.nextBillingDate }.take(6)
+    Column(modifier = modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(stringResource(R.string.chart_upcoming_timeline), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            items(upcoming) { sub ->
+                val days = DateUtils.getDaysLeft(sub.nextBillingDate)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onSubSelected(if (selectedSub?.id == sub.id) null else sub) }) {
+                    Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(sub.colorHex))).border(if (selectedSub?.id == sub.id) 2.dp else 0.dp, MaterialTheme.colorScheme.onSurface, CircleShape), contentAlignment = Alignment.Center) {
+                        Text(sub.name.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    Text(sub.name, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(48.dp), textAlign = TextAlign.Center)
+                    Text("${days}d", style = MaterialTheme.typography.labelSmall, color = if (days <= 3L) MaterialTheme.colorScheme.error else Color.Unspecified)
+                }
+            }
+        }
+        if (selectedSub != null) {
+            val days = DateUtils.getDaysLeft(selectedSub.nextBillingDate)
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(selectedSub.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            text = CurrencyFormatter.format(selectedSub.amount, selectedSub.currency, locale),
+                            style = MaterialTheme.typography.bodySmall,
+                            softWrap = false,
+                            maxLines = 1
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "$days " + stringResource(R.string.list_days_left_suffix),
+                        fontWeight = FontWeight.Bold,
+                        color = if (days <= 3L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        softWrap = false,
+                        maxLines = 1
                     )
                 }
             }
         }
-
-        // Details of selected node
-        AnimatedVisibility(
-            visible = selectedSub != null,
-            enter = expandVertically(animationSpec = tween(300)) + fadeIn(),
-            exit = shrinkVertically(animationSpec = tween(300)) + fadeOut()
-        ) {
-            if (selectedSub != null) {
-                val daysLeft = getDaysLeft(selectedSub.nextBillingDate)
-                val subColor = Color(android.graphics.Color.parseColor(selectedSub.colorHex))
-                val formattedDate = remember(selectedSub.nextBillingDate, locale) {
-                    val sdf = java.text.SimpleDateFormat("dd/MM/yyyy", locale)
-                    sdf.format(Date(selectedSub.nextBillingDate))
-                }
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                    border = BorderStroke(1.dp, subColor.copy(alpha = 0.3f))
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(subColor.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = selectedSub.name.take(1).uppercase(),
-                                color = subColor,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 20.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = selectedSub.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = stringResource(R.string.add_edit_renewal_date) + ": " + formattedDate,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = CurrencyFormatter.format(selectedSub.amount, selectedSub.currency, locale),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = subColor
-                            )
-                            
-                            val countdownText = when {
-                                daysLeft == 0L -> stringResource(R.string.chart_due_today)
-                                daysLeft == 1L -> stringResource(R.string.chart_due_tomorrow)
-                                else -> stringResource(R.string.chart_days_left, daysLeft)
-                            }
-                            Text(
-                                text = countdownText,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (daysLeft <= 3L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
-@Composable
-fun TimelineNode(
-    sub: Subscription,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val subColor = Color(android.graphics.Color.parseColor(sub.colorHex))
-    val daysLeft = getDaysLeft(sub.nextBillingDate)
-
-    // Pulsing circle animation if billing is urgent (due in 3 days or less)
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseScale by if (daysLeft <= 3L) {
-        infiniteTransition.animateFloat(
-            initialValue = 1f,
-            targetValue = 1.35f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "pulseScale"
-        )
-    } else {
-        remember { mutableStateOf(1f) }
-    }
-    
-    val pulseAlpha by if (daysLeft <= 3L) {
-        infiniteTransition.animateFloat(
-            initialValue = 0.6f,
-            targetValue = 0f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "pulseAlpha"
-        )
-    } else {
-        remember { mutableStateOf(0f) }
-    }
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .width(60.dp)
-            .clickable(
-                onClick = onClick,
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                indication = null
-            )
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(56.dp)
-        ) {
-            // Pulse layer
-            if (daysLeft <= 3L) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .scale(pulseScale)
-                        .background(subColor.copy(alpha = pulseAlpha))
-                )
-            }
-
-            // Main node circle
-            val borderModifier = if (isSelected) {
-                Modifier.border(2.5.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
-            } else {
-                Modifier
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(subColor)
-                    .then(borderModifier),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = sub.name.take(1).uppercase(),
-                    color = Color.White,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 16.sp
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = sub.name,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-        )
-        val relativeText = when {
-            daysLeft == 0L -> stringResource(R.string.list_days_left_today)
-            daysLeft == 1L -> "Tomorrow"
-            else -> "${daysLeft}d"
-        }
-        Text(
-            text = relativeText,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (daysLeft <= 3L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Preview(showBackground = true, device = "spec:width=411dp,height=891dp")
+@Preview(showBackground = true)
 @Composable
 fun DashboardPreview() {
-    Sub_lazyTheme {
-        DashboardScreen(onNavigateToAdd = { _, _ -> }, onNavigateToList = {})
-    }
+    Sub_lazyTheme { DashboardScreen(onNavigateToAdd = { _, _ -> }, onNavigateToList = {}) }
 }
 
-private @Composable
-fun getCategoryDisplayName(category: String): String {
+@Composable
+private fun getCategoryDisplayName(category: String): String {
     val resId = when (category) {
         "Entertainment" -> R.string.category_entertainment
         "Utilities" -> R.string.category_utilities
