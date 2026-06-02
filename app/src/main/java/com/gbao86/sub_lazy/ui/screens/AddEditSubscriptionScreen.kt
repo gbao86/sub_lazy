@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
+import com.gbao86.sub_lazy.ui.CategoryUtils
 import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -238,6 +239,13 @@ fun AddEditSubscriptionScreen(
                     onValueChange = { },
                     readOnly = true,
                     label = { Text(stringResource(R.string.add_edit_category)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = CategoryUtils.getCategoryIcon(category),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategory) },
                     modifier = Modifier
                         .menuAnchor()
@@ -250,6 +258,13 @@ fun AddEditSubscriptionScreen(
                 ) {
                     categories.forEach { selectionOption ->
                         DropdownMenuItem(
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = CategoryUtils.getCategoryIcon(selectionOption),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
                             text = { Text(getCategoryDisplayName(selectionOption)) },
                             onClick = {
                                 category = selectionOption

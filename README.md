@@ -97,7 +97,6 @@ lazy_sub/
    ```bash
    ./gradlew.bat installDebug
    ```
-
 ---
 
 ## 🌍 Localization

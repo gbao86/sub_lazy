@@ -52,6 +52,7 @@ import com.gbao86.sub_lazy.R
 import com.gbao86.sub_lazy.data.CategorySpending
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
+import com.gbao86.sub_lazy.ui.CategoryUtils
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
 import java.util.*
@@ -768,6 +769,17 @@ fun InteractiveDonutChart(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(36.dp)
         ) {
+            if (selectedCategory != null) {
+                val index = spending.indexOfFirst { it.category == selectedCategory.category }
+                val color = if (index != -1) colors[index % colors.size] else MaterialTheme.colorScheme.primary
+                Icon(
+                    imageVector = CategoryUtils.getCategoryIcon(selectedCategory.category),
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
             val title = if (selectedCategory != null) {
                 getCategoryDisplayName(selectedCategory.category)
             } else {
@@ -907,11 +919,19 @@ fun InteractiveCategoryRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(color)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(color.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = CategoryUtils.getCategoryIcon(item.category),
+                            contentDescription = null,
+                            tint = color,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = getCategoryDisplayName(item.category),
                         style = MaterialTheme.typography.bodyMedium,
