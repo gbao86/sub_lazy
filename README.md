@@ -119,4 +119,4 @@ All notable changes and updates to this project are documented in the [CHANGELOG
 
 ## 📄 License
 
-This project is licensed under the **GNU General Public License Version 3 (GPLv3)**. See the [LICENSE](./LICENSE) file for details.
+This project is proprietary and confidential. All rights reserved by the author. See the [LICENSE](./LICENSE) file for details.
