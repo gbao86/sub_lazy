@@ -22,10 +22,9 @@ Yeah, we've all been there.
 ## ✨ Features
 
 - **Quick Setup / Onboarding**: Start instantly by selecting from popular pre-defined subscription templates (Netflix, Spotify, YouTube Premium, Net/Wifi, etc.).
-- **Multi-Source Bill Ingestion**:
+- **Smart Bill Ingestion**:
   - **Offline OCR Scanning**: Parse bill details (prices, billing cycles, renewal dates) locally and privately using **Google ML Kit Text Recognition** (no API key required).
   - **Notification Parsing**: Integrates a `BillNotificationListener` to capture SMS or banking app alerts (like MoMo, Vietcombank) and auto-prefill new subscriptions.
-  - **Gmail Synchronization**: Scan and download invoice receipts directly from Gmail using the OAuth client and import them via a checklist interface.
 - **Interactive Dashboard**:
   - **Dynamic Spending Card**: Visualizes your total monthly subscription costs in a premium gradient card.
   - **Interactive Donut Chart**: Touch-responsive category spending donut chart. Tapping segments explodes (offsets) the segment and updates center details.

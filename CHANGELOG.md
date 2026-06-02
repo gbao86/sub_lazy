@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Offline ML Kit OCR Scanning**: Completely removed online Gemini API requirements and replaced it with on-device Google ML Kit Text Recognition. Screenshots are now parsed locally, offline, and privately.
 - **Bank/MoMo Notification Parsing**: Created a `BillNotificationListener` service to automatically parse banking and MoMo transaction alerts to pre-fill billing alerts.
-- **Gmail Ingestion & Import**: Implemented Gmail API sync to import payment confirmation emails. Users can review invoices in a multi-select import popup.
+- **Google Sign-In Account Management**: Implemented simple Google account linkage inside Settings, allowing users to log in or out to view their profile email (no sensitive permissions required).
 - **Multi-Currency & Exchange Rates**:
   - Database upgraded to Schema v2 with safe Room migration (`MIGRATION_1_2`) that adds the `currency` column while preserving user data.
   - Added a currency selector dropdown (VND/USD) in the Add/Edit form utilizing Material 3 card controls.
