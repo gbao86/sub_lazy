@@ -1,6 +1,8 @@
 *.iml
 *.json
 *.txt
+.idea/
+.agent/
 .gradle
 /local.properties
 /.idea/caches
