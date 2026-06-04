@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/app_icon.png" width="160" alt="Sub Lazy App Icon"/>
+  <img src="assets/app_icon.webp" width="160" alt="Sub Lazy App Icon"/>
 </p>
 
 # Sub Lazy 📱
