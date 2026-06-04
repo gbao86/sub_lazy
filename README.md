@@ -97,6 +97,16 @@ lazy_sub/
 - **Java SE Development Kit (JDK) 17 or 21**
 - Android Device or Emulator running **API Level 26 (Android 8.0)** or higher
 
+### 🔑 Google Sign-In Setup (Optional for Local Development)
+Since Google Sign-In requires matching certificate fingerprints, to make it work locally:
+1. Generate the SHA-1 fingerprint of your local Android debug keystore by running:
+   ```bash
+   ./gradlew signingReport
+   ```
+2. Create a Google Cloud Platform (GCP) project and register your SHA-1 fingerprint.
+3. Create an **OAuth Web client ID** under *Credentials* in GCP.
+4. Replace the Web Client ID string in [DashboardScreen.kt](file:///D:/App/lazy_sub/app/src/main/java/com/gbao86/sub_lazy/ui/screens/DashboardScreen.kt) at the `.requestIdToken(...)` call with your new client ID.
+
 ### Installation & Run
 
 1. Clone or copy the project to your local directory.
