@@ -16,10 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Privacy & Security Focus**: Removed high-risk Google APIs/Gmail Read permissions to avoid costly CASA audits and secure absolute offline user privacy.
 - **Time-based Maintenance Logic**: Replaced complex odometer/kilometer-based logging with time-based calendar reminders (e.g., every 6 months) for vehicle maintenance.
+- **Google Sign-In Web Client ID**: Configured Google Sign-In options with the correct GCP Web Client ID and Gmail read scope, resolving integration developer errors.
+- **KTX Extension Migration**: Migrated from legacy `android.graphics.Color.parseColor` to the KTX extension function `String.toColorInt()` in `DashboardScreen.kt`, `OnboardingScreen.kt`, and `SubscriptionListScreen.kt`. Removed suppression annotations and unused imports where applicable.
+- **Removed Redundant API Version Checks**: Cleaned up the codebase by removing obsolete `Build.VERSION.SDK_INT >= Build.VERSION_CODES.O` checks since the application's `minSdk` is configured at 26 (Android Oreo). Removed the unused `android.os.Build` imports.
 
 ### Fixed
 - **Onboarding Renewal Dates**: Fixed initial billing date projections during onboarding templates to respect target cycles (using `Calendar` offsets) rather than hardcoding a generic 30-day offset.
 - **Notification Rollover Logic**: Aligned background notification service rollover calculations with the newly added billing cycles.
+- **Code Health & Lint Warnings**:
+  - Converted local delegate-based Compose states (`showAddBottomSheet`, `showSettingsDialog`, `showTemplatesDialog` in `DashboardScreen.kt`) to direct property accesses using `.value` to eliminate linter false-positives regarding unread assignments.
+  - Removed unused parameters (`percentage` in `InteractiveCategoryRow`, `totalSpending` in `InteractiveCategoryLegend`, and unused lambda argument `isGranted` in `MainActivity.kt`) and properties (`secondaryColor` in `CashflowForecastingChart`).
+  - Cleaned up redundant package qualifiers from `BorderStroke`, `Paint`, `Typeface`, and `Toast`.
+  - Removed the unused helper function `getFormatter` in `CurrencyFormatter.kt`.
 
 ## [0.0.2] - 2026-06-02
 

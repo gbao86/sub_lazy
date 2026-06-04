@@ -22,6 +22,7 @@ import com.gbao86.sub_lazy.ui.screens.AddEditSubscriptionScreen
 import com.gbao86.sub_lazy.ui.screens.DashboardScreen
 import com.gbao86.sub_lazy.ui.screens.OnboardingScreen
 import com.gbao86.sub_lazy.ui.screens.SubscriptionListScreen
+import androidx.core.content.edit
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
@@ -72,7 +73,7 @@ fun NavGraph(navController: NavHostController, startDestination: String = Screen
             OnboardingScreen(
                 onFinishOnboarding = {
                     val sharedPref = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
-                    sharedPref.edit().putBoolean("onboarding_completed", true).apply()
+                    sharedPref.edit { putBoolean("onboarding_completed", true) }
 
                     navController.navigate(Screen.Dashboard.route) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }

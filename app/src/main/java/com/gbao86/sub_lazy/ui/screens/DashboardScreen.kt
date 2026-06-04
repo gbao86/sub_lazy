@@ -10,17 +10,23 @@ Commercial exploitation, sale, or distribution of this software or any derivativ
 is strictly prohibited without the express written permission of the author.
 */
 
+@file:Suppress("DEPRECATION")
+
 package com.gbao86.sub_lazy.ui.screens
 
+import android.widget.Toast
+import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.content.edit
+import androidx.core.graphics.toColorInt
 import com.gbao86.sub_lazy.data.PaymentHistory
 import java.text.SimpleDateFormat
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import kotlinx.coroutines.delay
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -62,15 +68,11 @@ import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.CategoryUtils
 import com.gbao86.sub_lazy.ui.DateUtils
 import com.gbao86.sub_lazy.ui.VietQRGenerator
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
 import java.util.*
 import kotlin.math.sqrt
 import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -79,6 +81,7 @@ import com.gbao86.sub_lazy.data.api.GeminiService
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import android.content.Context
@@ -103,7 +106,6 @@ fun DashboardScreen(
         subscriptions = subscriptions,
         paymentHistory = paymentHistory,
         onMarkAsPaid = { viewModel.markAsPaid(it) },
-        onInsertSubscription = { viewModel.insert(it) },
         onNavigateToAdd = onNavigateToAdd,
         onNavigateToList = onNavigateToList
     )
@@ -117,7 +119,6 @@ fun DashboardContent(
     subscriptions: List<Subscription>,
     paymentHistory: List<PaymentHistory>,
     onMarkAsPaid: (Subscription) -> Unit,
-    onInsertSubscription: (Subscription) -> Unit,
     onNavigateToAdd: (String?, Double?, String?, String?, String?, String?, String?, String?) -> Unit,
     onNavigateToList: () -> Unit
 ) {
@@ -141,6 +142,8 @@ fun DashboardContent(
     val gso = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
+            .requestIdToken("64362252049-i3htibobp5vetql6h451ov3a7nbo6lii.apps.googleusercontent.com")
+            .requestScopes(Scope("https://www.googleapis.com/auth/gmail.readonly"))
             .build()
     }
     val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
@@ -152,10 +155,9 @@ fun DashboardContent(
         try {
             val account = task.getResult(ApiException::class.java)
             val email = account?.email ?: ""
-            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                .edit()
-                .putString("gmail_account", email)
-                .apply()
+            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).edit {
+                putString("gmail_account", email)
+            }
             linkedAccountEmail = email
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         } catch (e: ApiException) {
@@ -164,7 +166,7 @@ fun DashboardContent(
     }
 
     var isAnalyzing by remember { mutableStateOf(false) }
-    var showTemplatesDialog by remember { mutableStateOf(false) }
+    val showTemplatesDialog = remember { mutableStateOf(false) }
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -181,15 +183,15 @@ fun DashboardContent(
                 override fun onError(message: String) {
                     isAnalyzing = false
                     coroutineScope.launch(Dispatchers.Main) {
-                        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                     }
                 }
             })
         }
     }
 
-    var showSettingsDialog by remember { mutableStateOf(false) }
-    var showAddBottomSheet by remember { mutableStateOf(false) }
+    val showSettingsDialog = remember { mutableStateOf(false) }
+    val showAddBottomSheet = remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -205,7 +207,7 @@ fun DashboardContent(
                     containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {
-                    IconButton(onClick = { showSettingsDialog = true }) {
+                    IconButton(onClick = { showSettingsDialog.value = true }) {
                         Icon(Icons.Rounded.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     var showLangMenu by remember { mutableStateOf(false) }
@@ -229,7 +231,7 @@ fun DashboardContent(
             ExtendedFloatingActionButton(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    showAddBottomSheet = true
+                    showAddBottomSheet.value = true
                 },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -343,7 +345,7 @@ fun DashboardContent(
                         onClick = onNavigateToList,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(18.dp),
-                        border = androidx.compose.foundation.BorderStroke(
+                        border = BorderStroke(
                             1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                         ),
                         colors = ButtonDefaults.outlinedButtonColors()
@@ -417,7 +419,6 @@ fun DashboardContent(
                                 Spacer(modifier = Modifier.height(28.dp))
                                 InteractiveCategoryLegend(
                                     spending = spendingByCategory,
-                                    totalSpending = spendingByCategory.sumOf { it.totalAmount },
                                     selectedCategory = selectedCategory,
                                     onCategorySelected = { selectedCategory = it },
                                     subscriptions = subscriptions
@@ -543,29 +544,29 @@ fun DashboardContent(
         }
     }
 
-    if (showAddBottomSheet) {
-        ModalBottomSheet(onDismissRequest = { showAddBottomSheet = false }) {
+    if (showAddBottomSheet.value) {
+        ModalBottomSheet(onDismissRequest = { showAddBottomSheet.value = false }) {
             Column(modifier = Modifier.fillMaxWidth().padding(24.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 ListItem(headlineContent = { Text(stringResource(R.string.action_add_manually)) }, leadingContent = { Icon(Icons.Rounded.Edit, null) }, modifier = Modifier.clickable {
-                    showAddBottomSheet = false
+                    showAddBottomSheet.value = false
                     onNavigateToAdd(null, null, null, null, null, null, null, null)
                 })
                 ListItem(headlineContent = { Text(stringResource(R.string.action_scan_screenshot)) }, leadingContent = { Icon(Icons.Rounded.PhotoCamera, null) }, modifier = Modifier.clickable {
-                    showAddBottomSheet = false
+                    showAddBottomSheet.value = false
                     imagePickerLauncher.launch("image/*")
                 })
                 ListItem(headlineContent = { Text("Thêm từ mẫu định kỳ") }, leadingContent = { Icon(Icons.Rounded.Bookmarks, null) }, modifier = Modifier.clickable {
-                    showAddBottomSheet = false
-                    showTemplatesDialog = true
+                    showAddBottomSheet.value = false
+                    showTemplatesDialog.value = true
                 })
             }
         }
     }
 
-    if (showTemplatesDialog) {
-        var selectedTab by remember { mutableStateOf(0) } // 0: Digital, 1: Lifestyle
+    if (showTemplatesDialog.value) {
+        var selectedTab by remember { mutableIntStateOf(0) } // 0: Digital, 1: Lifestyle
         AlertDialog(
-            onDismissRequest = { showTemplatesDialog = false },
+            onDismissRequest = { showTemplatesDialog.value = false },
             title = { Text("Chọn mẫu định kỳ", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
@@ -591,7 +592,7 @@ fun DashboardContent(
                         items(templates) { template ->
                             Card(
                                 modifier = Modifier.fillMaxWidth().clickable {
-                                    showTemplatesDialog = false
+                                    showTemplatesDialog.value = false
                                     onNavigateToAdd(
                                         template.name,
                                         template.amount,
@@ -610,13 +611,13 @@ fun DashboardContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Box(
-                                        modifier = Modifier.size(36.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(template.colorHex)).copy(alpha = 0.2f)),
+                                        modifier = Modifier.size(36.dp).clip(CircleShape).background(Color(template.colorHex.toColorInt()).copy(alpha = 0.2f)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = if (selectedTab == 0) Icons.Rounded.Devices else Icons.Rounded.DirectionsCar,
                                             contentDescription = null,
-                                            tint = Color(android.graphics.Color.parseColor(template.colorHex)),
+                                            tint = Color(template.colorHex.toColorInt()),
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -637,16 +638,16 @@ fun DashboardContent(
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(onClick = { showTemplatesDialog = false }) {
+                TextButton(onClick = { showTemplatesDialog.value = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
         )
     }
 
-    if (showSettingsDialog) {
+    if (showSettingsDialog.value) {
         AlertDialog(
-            onDismissRequest = { showSettingsDialog = false },
+            onDismissRequest = { showSettingsDialog.value = false },
             title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -655,7 +656,9 @@ fun DashboardContent(
                     Button(onClick = {
                         if (accountName != null) {
                             googleSignInClient.signOut().addOnCompleteListener {
-                                context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).edit().remove("gmail_account").apply()
+                                context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).edit {
+                                    remove("gmail_account")
+                                }
                                 linkedAccountEmail = null
                             }
                         } else {
@@ -666,7 +669,7 @@ fun DashboardContent(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { showSettingsDialog = false }) { Text(stringResource(R.string.ok)) } }
+            confirmButton = { TextButton(onClick = { showSettingsDialog.value = false }) { Text(stringResource(R.string.ok)) } }
         )
     }
 
@@ -739,7 +742,7 @@ fun InteractiveDonutChart(
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 40.dp)) {
             Text(
-                text = if (selectedCategory != null) getCategoryDisplayName(selectedCategory!!.category) else stringResource(R.string.chart_all_categories),
+                text = if (selectedCategory != null) getCategoryDisplayName(selectedCategory.category) else stringResource(R.string.chart_all_categories),
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -758,12 +761,12 @@ fun InteractiveDonutChart(
 }
 
 @Composable
-fun InteractiveCategoryLegend(spending: List<CategorySpending>, totalSpending: Double, selectedCategory: CategorySpending?, onCategorySelected: (CategorySpending?) -> Unit, subscriptions: List<Subscription>) {
+fun InteractiveCategoryLegend(spending: List<CategorySpending>, selectedCategory: CategorySpending?, onCategorySelected: (CategorySpending?) -> Unit, subscriptions: List<Subscription>) {
     val colors = listOf(Color(0xFF6366F1), Color(0xFF06B6D4), Color(0xFFF43F5E), Color(0xFFF59E0B), Color(0xFF10B981), Color(0xFF8B5CF6))
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         spending.forEachIndexed { index, item ->
             val isSelected = selectedCategory?.category == item.category
-            InteractiveCategoryRow(item, if (totalSpending > 0.0) (item.totalAmount / totalSpending).toFloat() else 0f, colors[index % colors.size], isSelected, subscriptions.filter { it.category == item.category }) {
+            InteractiveCategoryRow(item, colors[index % colors.size], isSelected, subscriptions.filter { it.category == item.category }) {
                 onCategorySelected(if (isSelected) null else item)
             }
         }
@@ -771,7 +774,7 @@ fun InteractiveCategoryLegend(spending: List<CategorySpending>, totalSpending: D
 }
 
 @Composable
-fun InteractiveCategoryRow(item: CategorySpending, percentage: Float, color: Color, isSelected: Boolean, categorySubs: List<Subscription>, onClick: () -> Unit) {
+fun InteractiveCategoryRow(item: CategorySpending, color: Color, isSelected: Boolean, categorySubs: List<Subscription>, onClick: () -> Unit) {
     val locale = LocalContext.current.resources.configuration.locales[0]
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = if (isSelected) color.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)), onClick = onClick) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -960,8 +963,8 @@ fun UpcomingRenewalsTimeline(
                 val days = DateUtils.getDaysLeft(sub.nextBillingDate)
                 val isSelected = selectedSub?.id == sub.id
                 val subColor = remember(sub.colorHex) {
-                    try { Color(android.graphics.Color.parseColor(sub.colorHex)) }
-                    catch (e: Exception) { Color(0xFF6366F1) }
+                    try { Color(sub.colorHex.toColorInt()) }
+                    catch (_: Exception) { Color(0xFF6366F1) }
                 }
                 val urgencyColor = when {
                     days <= 0  -> Color(0xFFF43F5E)
@@ -1098,7 +1101,7 @@ fun UpcomingRenewalsTimeline(
                                     onClick = { showQrDialog = true },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(14.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
                                 ) {
                                     Icon(Icons.Rounded.QrCode, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.secondary)
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -1228,7 +1231,6 @@ fun DashboardPreview() {
                 PaymentHistory(id = 1, subscriptionId = 1, subscriptionName = "Netflix", amount = 260000.0, currency = "VND", paymentDate = System.currentTimeMillis() - 86400000, cycle = "Monthly")
             ),
             onMarkAsPaid = {},
-            onInsertSubscription = {},
             onNavigateToAdd = { _, _, _, _, _, _, _, _ -> },
             onNavigateToList = {}
         )
@@ -1291,7 +1293,7 @@ fun getForecastingData(subscriptions: List<Subscription>): List<MonthlyForecast>
         Triple(monthLabel, startCal.timeInMillis, endCal.timeInMillis)
     }
     
-    val monthlyAmounts = DoubleArray(6) { 0.0 }
+    val monthlyAmounts = DoubleArray(6)
     
     subscriptions.forEach { sub ->
         var currentBillingDate = sub.nextBillingDate
@@ -1312,7 +1314,7 @@ fun getForecastingData(subscriptions: List<Subscription>): List<MonthlyForecast>
                 if (isFirst) {
                     isFirst = false
                 } else {
-                    limit = limit - 1
+                    limit -= 1
                 }
                 if (limit <= 0) break
             }
@@ -1358,7 +1360,6 @@ fun CashflowForecastingChart(subscriptions: List<Subscription>, modifier: Modifi
     val displayMaxVal = if (maxVal == 0.0) 100000.0 else maxVal * 1.15
     
     val primaryColor = MaterialTheme.colorScheme.primary
-    val secondaryColor = MaterialTheme.colorScheme.secondary
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val highlightColor = MaterialTheme.colorScheme.error
@@ -1453,17 +1454,17 @@ fun CashflowForecastingChart(subscriptions: List<Subscription>, modifier: Modifi
                 )
             }
             
-            val textPaint = android.graphics.Paint().apply {
+            val textPaint = Paint().apply {
                 color = textColor.toArgb()
                 textSize = 9.dp.toPx()
-                textAlign = android.graphics.Paint.Align.CENTER
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                textAlign = Paint.Align.CENTER
+                typeface = Typeface.DEFAULT_BOLD
             }
             
-            val amountPaint = android.graphics.Paint().apply {
+            val amountPaint = Paint().apply {
                 color = primaryColor.toArgb()
                 textSize = 8.dp.toPx()
-                textAlign = android.graphics.Paint.Align.CENTER
+                textAlign = Paint.Align.CENTER
             }
             
             points.forEachIndexed { index, point ->
@@ -1496,9 +1497,9 @@ fun CashflowForecastingChart(subscriptions: List<Subscription>, modifier: Modifi
                     }
                     
                     val paintToUse = if (isMax) {
-                        android.graphics.Paint(amountPaint).apply {
+                        Paint(amountPaint).apply {
                             color = highlightColor.toArgb()
-                            typeface = android.graphics.Typeface.DEFAULT_BOLD
+                            typeface = Typeface.DEFAULT_BOLD
                         }
                     } else {
                         amountPaint

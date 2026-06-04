@@ -12,38 +12,76 @@ is strictly prohibited without the express written permission of the author.
 
 package com.gbao86.sub_lazy.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.gbao86.sub_lazy.data.Subscription
-import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
-import com.gbao86.sub_lazy.ui.CategoryUtils
-import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
-import java.text.SimpleDateFormat
-import java.util.*
-import androidx.compose.ui.res.stringResource
 import com.gbao86.sub_lazy.R
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import com.gbao86.sub_lazy.data.Subscription
+import com.gbao86.sub_lazy.ui.CategoryUtils
+import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
+import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,7 +127,7 @@ fun AddEditSubscriptionScreen(
  
     LaunchedEffect(subscriptionId, prefillName, prefillAmount, prefillCycle, prefillCategory, prefillColorHex, prefillBankName, prefillBankAccount, prefillBankAccountHolder) {
         if (isEditMode) {
-            val sub = viewModel.getSubscriptionById(subscriptionId!!)
+            val sub = viewModel.getSubscriptionById(subscriptionId)
             sub?.let {
                 name = it.name
                 amount = it.amount.toString()
@@ -143,19 +181,18 @@ fun AddEditSubscriptionScreen(
 
     if (showDatePicker) {
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
                         nextBillingDate = it
                     }
-                    showDatePicker = false
                 }) {
                     Text(stringResource(R.string.ok))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
+                TextButton(onClick = { }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -285,7 +322,7 @@ fun AddEditSubscriptionScreen(
                 shape = RoundedCornerShape(16.dp),
                 readOnly = true,
                 trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
+                    IconButton(onClick = { }) {
                         Icon(Icons.Default.CalendarToday, contentDescription = stringResource(R.string.add_edit_select_date), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
@@ -611,7 +648,7 @@ fun AddEditSubscriptionScreen(
                         }
 
                         val sub = Subscription(
-                            id = if (isEditMode) subscriptionId!! else 0,
+                            id = if (isEditMode) subscriptionId else 0,
                             name = name,
                             amount = amount.toDoubleOrNull() ?: 0.0,
                             nextBillingDate = finalNextBillingDate,
@@ -663,8 +700,8 @@ fun AddEditPreview() {
     }
 }
 
-private @Composable
-fun getCategoryDisplayName(category: String): String {
+@Composable
+private fun getCategoryDisplayName(category: String): String {
     val resId = when (category) {
         "Entertainment" -> R.string.category_entertainment
         "Utilities" -> R.string.category_utilities

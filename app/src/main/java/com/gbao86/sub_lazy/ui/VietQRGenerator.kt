@@ -48,7 +48,7 @@ object VietQRGenerator {
             input.contains("vietin") || input.contains("vtb") -> "vietinbank"
             input.contains("bidv") -> "bidv"
             input.contains("agribank") || input.contains("agri") -> "agribank"
-            input.contains("mbbank") || input.equals("mb") || input.contains("quandoi") -> "mb"
+            input.contains("mbbank") || input == "mb" || input.contains("quandoi") -> "mb"
             input.contains("sacom") || input.contains("stb") -> "sacombank"
             input.contains("acb") || input.contains("achau") -> "acb"
             input.contains("vpbank") || input.contains("vp") -> "vpbank"

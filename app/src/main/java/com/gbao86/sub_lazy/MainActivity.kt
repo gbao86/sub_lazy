@@ -25,7 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import android.content.Context
 import androidx.navigation.compose.rememberNavController
 import com.gbao86.sub_lazy.ui.navigation.NavGraph
 import com.gbao86.sub_lazy.ui.navigation.Screen
@@ -36,7 +35,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val sharedPref = getSharedPreferences("app_prefs", MODE_PRIVATE)
         val isOnboardingCompleted = sharedPref.getBoolean("onboarding_completed", false)
         
         val isPrefilled = intent.getBooleanExtra("is_prefilled", false)
@@ -59,7 +58,7 @@ class MainActivity : AppCompatActivity() {
             Sub_lazyTheme {
                 val permissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission()
-                ) { isGranted ->
+                ) { _ ->
                     // Handle permission result if needed
                 }
 

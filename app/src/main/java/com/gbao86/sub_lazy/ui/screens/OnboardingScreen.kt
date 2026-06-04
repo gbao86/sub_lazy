@@ -50,6 +50,7 @@ import com.gbao86.sub_lazy.data.SubscriptionTemplates
 import androidx.compose.ui.res.stringResource
 import com.gbao86.sub_lazy.R
 import kotlinx.coroutines.delay
+import androidx.core.graphics.toColorInt
 
 val popularTemplates = SubscriptionTemplates.digitalTemplates.take(5)
 
@@ -344,8 +345,8 @@ fun TemplateItem(
     val locale = context.resources.configuration.locales[0]
 
     val accentColor = remember(template.colorHex) {
-        try { Color(android.graphics.Color.parseColor(template.colorHex)) }
-        catch (e: Exception) { Color(0xFF6366F1) }
+        try { Color(template.colorHex.toColorInt()) }
+        catch (_: Exception) { Color(0xFF6366F1) }
     }
 
     val cardBackground = animateColorAsState(

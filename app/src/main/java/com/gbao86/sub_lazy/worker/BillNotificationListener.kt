@@ -15,9 +15,7 @@ package com.gbao86.sub_lazy.worker
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
@@ -26,11 +24,10 @@ import com.gbao86.sub_lazy.R
 import com.gbao86.sub_lazy.data.AppDatabase
 import com.gbao86.sub_lazy.data.PaymentHistory
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
-import com.gbao86.sub_lazy.worker.NotificationScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Locale
 import java.util.regex.Pattern
@@ -204,20 +201,18 @@ class BillNotificationListener : NotificationListenerService() {
 
     private fun showDetectedNotification(serviceName: String, amount: Double) {
         val channelId = "detected_bills"
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelName = getString(R.string.notification_detected_channel_name)
-            val channelDesc = getString(R.string.notification_detected_channel_desc)
-            val channel = NotificationChannel(
-                channelId,
-                channelName,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = channelDesc
-            }
-            notificationManager.createNotificationChannel(channel)
+        val channelName = getString(R.string.notification_detected_channel_name)
+        val channelDesc = getString(R.string.notification_detected_channel_desc)
+        val channel = NotificationChannel(
+            channelId,
+            channelName,
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = channelDesc
         }
+        notificationManager.createNotificationChannel(channel)
 
         // Format amount
         val locale = resources.configuration.locales[0]
@@ -268,7 +263,7 @@ class BillNotificationListener : NotificationListenerService() {
 
     private fun showAutoPaidNotification(serviceName: String, amount: Double, currency: String) {
         val channelId = "detected_bills"
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         val locale = resources.configuration.locales[0]
         val amountFormatted = CurrencyFormatter.format(amount, currency, locale)

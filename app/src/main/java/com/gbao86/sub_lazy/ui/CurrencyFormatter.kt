@@ -18,14 +18,6 @@ import java.util.Locale
 object CurrencyFormatter {
     private const val USD_TO_VND = 25400.0
 
-    fun getFormatter(locale: Locale): NumberFormat {
-        return if (locale.language == "vi") {
-            NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
-        } else {
-            NumberFormat.getCurrencyInstance(Locale.US)
-        }
-    }
-
     fun convert(amount: Double, fromCurrency: String, toCurrency: String): Double {
         if (fromCurrency.equals(toCurrency, ignoreCase = true)) return amount
         return if (fromCurrency.equals("USD", ignoreCase = true) && toCurrency.equals("VND", ignoreCase = true)) {

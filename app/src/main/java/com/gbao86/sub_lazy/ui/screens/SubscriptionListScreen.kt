@@ -18,9 +18,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -30,7 +28,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -44,7 +41,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
-import java.util.*
 import androidx.compose.ui.res.stringResource
 import com.gbao86.sub_lazy.R
 import androidx.compose.ui.platform.LocalContext
@@ -53,6 +49,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.DateUtils
 import kotlinx.coroutines.delay
+import androidx.core.graphics.toColorInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -124,14 +121,7 @@ fun SubscriptionListScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(40.dp)
                 ) {
-                    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-                    val pulseScale by infiniteTransition.animateFloat(
-                        initialValue = 0.92f, targetValue = 1.08f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(1600, easing = FastOutSlowInEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ), label = "pulse_scale"
-                    )
+                    rememberInfiniteTransition(label = "pulse")
                     Box(
                         modifier = Modifier
                             .size(112.dp)
@@ -232,7 +222,7 @@ fun SwipeToDeleteItem(
 
     if (showDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
+            onDismissRequest = { },
             shape = RoundedCornerShape(28.dp),
             containerColor = MaterialTheme.colorScheme.surface,
             title = {
@@ -247,7 +237,6 @@ fun SwipeToDeleteItem(
                 Button(
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showDialog = false
                         onDelete()
                     },
                     shape = RoundedCornerShape(16.dp),
@@ -260,7 +249,7 @@ fun SwipeToDeleteItem(
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = { showDialog = false },
+                    onClick = { },
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(stringResource(R.string.delete_dialog_cancel))
@@ -272,7 +261,6 @@ fun SwipeToDeleteItem(
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
-            val progress = dismissState.progress
             val color by animateColorAsState(
                 when (dismissState.targetValue) {
                     SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
@@ -321,8 +309,8 @@ fun SubscriptionItem(
     val locale = context.resources.configuration.locales[0]
     val daysLeft = DateUtils.getDaysLeft(subscription.nextBillingDate)
     val accentColor = remember(subscription.colorHex) {
-        try { Color(android.graphics.Color.parseColor(subscription.colorHex)) }
-        catch (e: Exception) { Color(0xFF6366F1) }
+        try { Color(subscription.colorHex.toColorInt()) }
+        catch (_: Exception) { Color(0xFF6366F1) }
     }
 
     // Monthly equivalent calculation
