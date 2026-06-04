@@ -4,9 +4,9 @@ Copyright (C) 2026 Trịnh Gia Bảo (gbao86) <tiktokthu10@gmail.com>. All Right
 This file is part of Sub Lazy - A premium, modern subscription tracker and manager for Android.
 
 This source code is licensed under the Non-Commercial License terms.
-You are permitted to use, copy, and modify this software for personal, educational, 
-and non-commercial purposes. 
-Commercial exploitation, sale, or distribution of this software or any derivative works 
+You are permitted to use, copy, and modify this software for personal, educational,
+and non-commercial purposes.
+Commercial exploitation, sale, or distribution of this software or any derivative works
 is strictly prohibited without the express written permission of the author.
 */
 
@@ -27,11 +27,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.time.Year
 
 class SubscriptionViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: SubscriptionRepository
     private val notificationScheduler = NotificationScheduler(application)
-    
+
     val allSubscriptions: Flow<List<Subscription>>
     val totalMonthlyCost: Flow<Double?>
     val spendingByCategory: Flow<List<CategorySpending>>
@@ -42,7 +43,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         repository = SubscriptionRepository(dao)
         allSubscriptions = repository.allSubscriptions
         allPaymentHistory = repository.allPaymentHistory
-        
+
         // Rollover or delete past subscriptions on startup
         viewModelScope.launch {
             try {
@@ -56,39 +57,38 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         // Calculate total monthly cost in VND (Base Currency) reactively
         totalMonthlyCost = allSubscriptions.map { list ->
             if (list.isEmpty()) return@map 0.0
-            list.sumOf { sub ->
-                val monthlyAmount = when (sub.cycle) {
-                    "Daily" -> sub.amount * 365.0 / 12.0
-                    "Weekly" -> sub.amount * 52.0 / 12.0
-                    "Monthly" -> sub.amount
-                    "Every 3 Months" -> sub.amount / 3.0
-                    "Every 6 Months" -> sub.amount / 6.0
-                    "Yearly" -> sub.amount / 12.0
-                    else -> 0.0
-                }
-                CurrencyFormatter.convert(monthlyAmount, sub.currency, "VND")
-            }
+            list.sumOf { sub -> calculateMonthlyAmountInVnd(sub) }
         }
-        
+
         // Calculate category spending in VND (Base Currency) reactively
         spendingByCategory = allSubscriptions.map { list ->
             list.groupBy { it.category }
                 .map { (category, subs) ->
-                    val totalAmountInVnd = subs.sumOf { sub ->
-                        val monthlyAmount = when (sub.cycle) {
-                            "Daily" -> sub.amount * 365.0 / 12.0
-                            "Weekly" -> sub.amount * 52.0 / 12.0
-                            "Monthly" -> sub.amount
-                            "Every 3 Months" -> sub.amount / 3.0
-                            "Every 6 Months" -> sub.amount / 6.0
-                            "Yearly" -> sub.amount / 12.0
-                            else -> 0.0
-                        }
-                        CurrencyFormatter.convert(monthlyAmount, sub.currency, "VND")
-                    }
+                    val totalAmountInVnd = subs.sumOf { sub -> calculateMonthlyAmountInVnd(sub) }
                     CategorySpending(category, totalAmountInVnd)
                 }
         }
+    }
+
+    /**
+     * Helper function to calculate monthly amount in VND, accounting for leap years
+     */
+    private fun calculateMonthlyAmountInVnd(sub: Subscription): Double {
+        val billingYear = Calendar.getInstance()
+            .apply { timeInMillis = sub.nextBillingDate }
+            .get(Calendar.YEAR)
+        val daysInYear = if (Year.isLeap(billingYear.toLong())) 366.0 else 365.0
+
+        val monthlyAmount = when (sub.cycle) {
+            "Daily" -> sub.amount * daysInYear / 12.0
+            "Weekly" -> sub.amount * 52.0 / 12.0
+            "Monthly" -> sub.amount
+            "Every 3 Months" -> sub.amount / 3.0
+            "Every 6 Months" -> sub.amount / 6.0
+            "Yearly" -> sub.amount / 12.0
+            else -> 0.0
+        }
+        return CurrencyFormatter.convert(monthlyAmount, sub.currency, "VND")
     }
 
     private fun checkAndRolloverSubscriptions(list: List<Subscription>) = viewModelScope.launch {
@@ -102,7 +102,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                         shouldDelete = true
                         break
                     }
-                    
+
                     val limit = currentSub.remainingTimes
                     if (limit != null && limit > 0) {
                         val newLimit = limit - 1
@@ -112,7 +112,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                         }
                         currentSub = currentSub.copy(remainingTimes = newLimit)
                     }
-                    
+
                     val nextDate = getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
                     if (nextDate <= currentSub.nextBillingDate) {
                         // Prevent infinite loop if cycle is invalid or unrecognized
@@ -121,7 +121,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                     }
                     currentSub = currentSub.copy(nextBillingDate = nextDate)
                 }
-                
+
                 if (shouldDelete) {
                     repository.delete(sub)
                     notificationScheduler.cancelNotification(sub.id)
@@ -183,7 +183,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         } else {
             var shouldDelete = false
             var currentSub = subscription
-            
+
             val limit = currentSub.remainingTimes
             if (limit != null && limit > 0) {
                 val newLimit = limit - 1
@@ -193,7 +193,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                     currentSub = currentSub.copy(remainingTimes = newLimit)
                 }
             }
-            
+
             if (shouldDelete) {
                 repository.delete(subscription)
                 notificationScheduler.cancelNotification(subscription.id)
