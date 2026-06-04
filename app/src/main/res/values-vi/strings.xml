@@ -46,8 +46,11 @@
     <string name="add_edit_btn_update">Cập nhật dịch vụ</string>
 
     <!-- Billing Cycles -->
+    <string name="cycle_daily">Hàng ngày</string>
     <string name="cycle_weekly">Hàng tuần</string>
     <string name="cycle_monthly">Hàng tháng</string>
+    <string name="cycle_3_months">Mỗi 3 tháng</string>
+    <string name="cycle_6_months">Mỗi 6 tháng</string>
     <string name="cycle_yearly">Hàng năm</string>
     <string name="cycle_one_time">Một lần</string>
 
@@ -85,6 +88,17 @@
     <string name="notification_trial_message">Hãy hủy gói dùng thử của %1$s hôm nay để tránh bị tự động gia hạn cước phí %2$s!</string>
     <string name="notification_notes_title">Ghi chú nhắc nhở 📝</string>
     <string name="notification_notes_message">Nhắc nhở: %1$s</string>
+    <string name="notification_km_title">Bảo dưỡng phương tiện 🏍️</string>
+    <string name="notification_km_message">Dịch vụ %1$s sắp đến kỳ bảo dưỡng! Ước tính xe của bạn đã đi được khoảng %2$s km. Hãy kiểm tra hoặc thay dầu nhé!</string>
+
+    <string name="odo_update_title">Cập nhật số ODO</string>
+    <string name="odo_current_label">Số ODO hiện tại (km)</string>
+    <string name="odo_update_btn">Lưu ODO</string>
+    <string name="odo_estimated">ODO ước tính</string>
+    <string name="odo_target">Mốc bảo dưỡng</string>
+    <string name="odo_remaining_km">Còn %1$s km nữa</string>
+    <string name="odo_exceeded_km">Vượt quá %1$s km</string>
+    <string name="action_mark_maintenance_done">Đã bảo dưỡng</string>
 
     <!-- Additional Charts Label Strings -->
     <string name="chart_all_categories">Tất cả danh mục</string>
@@ -98,6 +112,7 @@
     <string name="chart_day_left">còn 1 ngày</string>
     <string name="chart_interactive_hint">Chạm phân đoạn hoặc danh mục để xem chi tiết</string>
     <string name="chart_cycle_distribution">Chi tiêu Hàng tháng / Hàng năm</string>
+    <string name="chart_billing_cycle_title">Phân tích chu kỳ thanh toán</string>
     <string name="chart_subs_count">%1$d dịch vụ</string>
     <string name="chart_sub_count">1 dịch vụ</string>
 

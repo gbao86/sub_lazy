@@ -20,6 +20,7 @@ import com.gbao86.sub_lazy.data.PaymentHistory
 import java.text.SimpleDateFormat
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -60,6 +61,9 @@ import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.CategoryUtils
 import com.gbao86.sub_lazy.ui.DateUtils
+import com.gbao86.sub_lazy.ui.VietQRGenerator
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
 import java.util.*
@@ -78,20 +82,47 @@ import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import android.content.Context
+import coil.compose.AsyncImage
+import com.gbao86.sub_lazy.data.SubscriptionTemplates
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     viewModel: SubscriptionViewModel = viewModel(),
-    onNavigateToAdd: (String?, Double?) -> Unit,
+    onNavigateToAdd: (String?, Double?, String?, String?, String?, String?, String?, String?) -> Unit,
     onNavigateToList: () -> Unit
 ) {
-    val context = LocalContext.current
-    val locale = context.resources.configuration.locales[0]
     val totalMonthlyCost by viewModel.totalMonthlyCost.collectAsStateWithLifecycle(initialValue = 0.0)
     val spendingByCategory by viewModel.spendingByCategory.collectAsStateWithLifecycle(initialValue = emptyList())
     val subscriptions by viewModel.allSubscriptions.collectAsStateWithLifecycle(initialValue = emptyList())
     val paymentHistory by viewModel.allPaymentHistory.collectAsStateWithLifecycle(initialValue = emptyList())
+
+    DashboardContent(
+        totalMonthlyCost = totalMonthlyCost,
+        spendingByCategory = spendingByCategory,
+        subscriptions = subscriptions,
+        paymentHistory = paymentHistory,
+        onMarkAsPaid = { viewModel.markAsPaid(it) },
+        onInsertSubscription = { viewModel.insert(it) },
+        onNavigateToAdd = onNavigateToAdd,
+        onNavigateToList = onNavigateToList
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DashboardContent(
+    totalMonthlyCost: Double?,
+    spendingByCategory: List<CategorySpending>,
+    subscriptions: List<Subscription>,
+    paymentHistory: List<PaymentHistory>,
+    onMarkAsPaid: (Subscription) -> Unit,
+    onInsertSubscription: (Subscription) -> Unit,
+    onNavigateToAdd: (String?, Double?, String?, String?, String?, String?, String?, String?) -> Unit,
+    onNavigateToList: () -> Unit
+) {
+    val context = LocalContext.current
+    val locale = context.resources.configuration.locales[0]
 
     var selectedCategory by remember { mutableStateOf<CategorySpending?>(null) }
     var selectedUpcomingSub by remember { mutableStateOf<Subscription?>(null) }
@@ -133,6 +164,7 @@ fun DashboardScreen(
     }
 
     var isAnalyzing by remember { mutableStateOf(false) }
+    var showTemplatesDialog by remember { mutableStateOf(false) }
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -143,7 +175,7 @@ fun DashboardScreen(
                     isAnalyzing = false
                     coroutineScope.launch(Dispatchers.Main) {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onNavigateToAdd(result.name, result.amount)
+                        onNavigateToAdd(result.name, result.amount, result.cycle, result.category, null, null, null, null)
                     }
                 }
                 override fun onError(message: String) {
@@ -162,15 +194,23 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.ExtraBold) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                title = {
+                    Text(
+                        stringResource(R.string.app_name),
+                        fontWeight = FontWeight.ExtraBold,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                ),
                 actions = {
                     IconButton(onClick = { showSettingsDialog = true }) {
-                        Icon(Icons.Rounded.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Rounded.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     var showLangMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { showLangMenu = true }) {
-                        Icon(Icons.Rounded.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Rounded.Language, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     DropdownMenu(expanded = showLangMenu, onDismissRequest = { showLangMenu = false }) {
                         DropdownMenuItem(text = { Text("English") }, onClick = {
@@ -186,61 +226,187 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            LargeFloatingActionButton(
-                onClick = { showAddBottomSheet = true },
+            ExtendedFloatingActionButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    showAddBottomSheet = true
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(24.dp)
-            ) {
-                Icon(Icons.Rounded.Add, contentDescription = "Add", modifier = Modifier.size(32.dp))
-            }
-        }
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = RoundedCornerShape(20.dp),
+                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                text = { Text("Thêm", fontWeight = FontWeight.SemiBold) }
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(bottom = 100.dp, start = 24.dp, end = 24.dp, top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                contentPadding = PaddingValues(bottom = 100.dp, start = 20.dp, end = 20.dp, top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                // ── Hero Spending Card ───────────────────────────────────────
                 item {
                     Card(
-                        modifier = Modifier.fillMaxWidth().height(180.dp),
-                        shape = RoundedCornerShape(32.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(32.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
-                        Box(modifier = Modifier.fillMaxSize().background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary))).padding(24.dp)) {
-                            Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxHeight()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(
+                                            MaterialTheme.colorScheme.primary,
+                                            MaterialTheme.colorScheme.primary.copy(red = 0.5f),
+                                            MaterialTheme.colorScheme.secondary
+                                        )
+                                    )
+                                )
+                                .padding(horizontal = 28.dp, vertical = 28.dp)
+                        ) {
+                            // Decorative blur circles
+                            Box(
+                                modifier = Modifier
+                                    .size(120.dp)
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 20.dp, y = (-20).dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.06f))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .align(Alignment.BottomStart)
+                                    .offset(x = (-16).dp, y = 16.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.04f))
+                            )
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.AutoMirrored.Rounded.TrendingUp, contentDescription = null, tint = Color.White.copy(alpha = 0.8f))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(R.string.dashboard_monthly_spending), style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.8f))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(Color.White.copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.AutoMirrored.Rounded.TrendingUp,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        stringResource(R.string.dashboard_monthly_spending),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = Color.White.copy(alpha = 0.85f),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
                                 }
                                 Text(
                                     text = CurrencyFormatter.format(totalMonthlyCost ?: 0.0, "VND", locale),
-                                    style = MaterialTheme.typography.headlineLarge,
+                                    style = MaterialTheme.typography.displaySmall,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color.White,
                                     softWrap = false,
                                     maxLines = 1,
                                     overflow = TextOverflow.Visible
                                 )
+                                // Sub count badge
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = Color.White.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = "${subscriptions.size} dịch vụ đang theo dõi",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color.White.copy(alpha = 0.9f),
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
+                // ── Manage Subscriptions Button ──────────────────────────────
                 item {
-                    Button(onClick = onNavigateToList, modifier = Modifier.fillMaxWidth().height(64.dp), shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))) {
-                        Icon(Icons.AutoMirrored.Rounded.FormatListBulleted, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(stringResource(R.string.dashboard_btn_manage), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    OutlinedButton(
+                        onClick = onNavigateToList,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors()
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.FormatListBulleted,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            stringResource(R.string.dashboard_btn_manage),
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(
+                            Icons.Rounded.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
 
                 if (spendingByCategory.isNotEmpty()) {
+                    // ── Donut Chart Card ─────────────────────────────────────
                     item {
-                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp)) {
-                            Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(stringResource(R.string.dashboard_distribution), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, modifier = Modifier.align(Alignment.Start))
-                                Spacer(modifier = Modifier.height(32.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(28.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        stringResource(R.string.dashboard_distribution),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                    ) {
+                                        Text(
+                                            text = "${spendingByCategory.size} danh mục",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(28.dp))
                                 InteractiveDonutChart(
                                     spending = spendingByCategory,
                                     totalSpending = spendingByCategory.sumOf { it.totalAmount },
@@ -248,7 +414,7 @@ fun DashboardScreen(
                                     onCategorySelected = { selectedCategory = it },
                                     modifier = Modifier.size(220.dp)
                                 )
-                                Spacer(modifier = Modifier.height(32.dp))
+                                Spacer(modifier = Modifier.height(28.dp))
                                 InteractiveCategoryLegend(
                                     spending = spendingByCategory,
                                     totalSpending = spendingByCategory.sumOf { it.totalAmount },
@@ -260,55 +426,110 @@ fun DashboardScreen(
                         }
                     }
 
+                    // ── Billing Cycle Chart Card ─────────────────────────────
                     item {
-                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp)) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(28.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
                             BillingCycleChart(subscriptions = subscriptions, modifier = Modifier.fillMaxWidth())
                         }
                     }
 
+                    // ── Cashflow Forecast Card ───────────────────────────────
                     item {
-                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp)) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(28.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
                             CashflowForecastingChart(subscriptions = subscriptions, modifier = Modifier.fillMaxWidth())
                         }
                     }
 
+                    // ── Upcoming Renewals Card ───────────────────────────────
                     item {
-                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp)) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(28.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
                             UpcomingRenewalsTimeline(
                                 subscriptions = subscriptions,
-                                selectedSub = selectedUpcomingSub,
+                                selectedSub = subscriptions.find { it.id == selectedUpcomingSub?.id },
                                 onSubSelected = { selectedUpcomingSub = it },
-                                onMarkAsPaid = { viewModel.markAsPaid(it) },
+                                onMarkAsPaid = onMarkAsPaid,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
                 } else {
+                    // ── Empty State ──────────────────────────────────────────
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(32.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
                             Column(
-                                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                modifier = Modifier.fillMaxWidth().padding(40.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
+                                val infiniteTransition = rememberInfiniteTransition(label = "dashboard_pulse")
+                                val pulsAlpha by infiniteTransition.animateFloat(
+                                    initialValue = 0.3f, targetValue = 0.7f,
+                                    animationSpec = infiniteRepeatable(
+                                        tween(1400, easing = FastOutSlowInEasing),
+                                        RepeatMode.Reverse
+                                    ), label = "pulse_alpha"
+                                )
                                 Box(
-                                    modifier = Modifier.size(80.dp).clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                                    modifier = Modifier
+                                        .size(88.dp)
+                                        .clip(RoundedCornerShape(28.dp))
+                                        .background(
+                                            Brush.radialGradient(
+                                                listOf(
+                                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = pulsAlpha),
+                                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                                                )
+                                            )
+                                        ),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.AutoMirrored.Rounded.TrendingUp, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Icon(
+                                        Icons.AutoMirrored.Rounded.TrendingUp,
+                                        null,
+                                        modifier = Modifier.size(40.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                                 Spacer(modifier = Modifier.height(20.dp))
-                                Text(text = stringResource(R.string.dashboard_no_data), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+                                Text(
+                                    text = stringResource(R.string.dashboard_no_data),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
                             }
                         }
                     }
                 }
 
+                // ── Payment History Card ─────────────────────────────────────
                 item {
-                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp)) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(28.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
                         PaymentHistorySection(paymentHistory = paymentHistory, modifier = Modifier.fillMaxWidth())
                     }
                 }
@@ -327,14 +548,100 @@ fun DashboardScreen(
             Column(modifier = Modifier.fillMaxWidth().padding(24.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 ListItem(headlineContent = { Text(stringResource(R.string.action_add_manually)) }, leadingContent = { Icon(Icons.Rounded.Edit, null) }, modifier = Modifier.clickable {
                     showAddBottomSheet = false
-                    onNavigateToAdd(null, null)
+                    onNavigateToAdd(null, null, null, null, null, null, null, null)
                 })
                 ListItem(headlineContent = { Text(stringResource(R.string.action_scan_screenshot)) }, leadingContent = { Icon(Icons.Rounded.PhotoCamera, null) }, modifier = Modifier.clickable {
                     showAddBottomSheet = false
                     imagePickerLauncher.launch("image/*")
                 })
+                ListItem(headlineContent = { Text("Thêm từ mẫu định kỳ") }, leadingContent = { Icon(Icons.Rounded.Bookmarks, null) }, modifier = Modifier.clickable {
+                    showAddBottomSheet = false
+                    showTemplatesDialog = true
+                })
             }
         }
+    }
+
+    if (showTemplatesDialog) {
+        var selectedTab by remember { mutableStateOf(0) } // 0: Digital, 1: Lifestyle
+        AlertDialog(
+            onDismissRequest = { showTemplatesDialog = false },
+            title = { Text("Chọn mẫu định kỳ", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
+                    TabRow(selectedTabIndex = selectedTab) {
+                        Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
+                            Text("Dịch vụ số", modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
+                        }
+                        Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
+                            Text("Đời sống", modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    
+                    val templates = if (selectedTab == 0) {
+                        SubscriptionTemplates.digitalTemplates
+                    } else {
+                        SubscriptionTemplates.lifestyleTemplates
+                    }
+
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)
+                    ) {
+                        items(templates) { template ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    showTemplatesDialog = false
+                                    onNavigateToAdd(
+                                        template.name,
+                                        template.amount,
+                                        template.cycle,
+                                        template.category,
+                                        template.colorHex,
+                                        template.bankName,
+                                        template.bankAccount,
+                                        template.bankAccountHolder
+                                    )
+                                },
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier.size(36.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(template.colorHex)).copy(alpha = 0.2f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = if (selectedTab == 0) Icons.Rounded.Devices else Icons.Rounded.DirectionsCar,
+                                            contentDescription = null,
+                                            tint = Color(android.graphics.Color.parseColor(template.colorHex)),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(template.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(
+                                            text = CurrencyFormatter.format(template.amount, "VND", locale),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showTemplatesDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 
     if (showSettingsDialog) {
@@ -362,6 +669,7 @@ fun DashboardScreen(
             confirmButton = { TextButton(onClick = { showSettingsDialog = false }) { Text(stringResource(R.string.ok)) } }
         )
     }
+
 }
 
 @Composable
@@ -528,26 +836,104 @@ fun InteractiveCategoryRow(item: CategorySpending, percentage: Float, color: Col
 @Composable
 fun BillingCycleChart(subscriptions: List<Subscription>, modifier: Modifier = Modifier) {
     val locale = LocalContext.current.resources.configuration.locales[0]
-    val weeklyCost = subscriptions.filter { it.cycle == "Weekly" }.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") } * 52.0 / 12.0
-    val monthlyCost = subscriptions.filter { it.cycle == "Monthly" }.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") }
+    val weeklyCost = subscriptions.filter { it.cycle == "Weekly" }.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") } * 52.0 / 12.0 +
+            subscriptions.filter { it.cycle == "Daily" }.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") } * 365.0 / 12.0
+    val monthlyCost = subscriptions.filter { it.cycle == "Monthly" }.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") } +
+            subscriptions.filter { it.cycle == "Every 3 Months" }.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") } / 3.0 +
+            subscriptions.filter { it.cycle == "Every 6 Months" }.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") } / 6.0
     val yearlyCost = subscriptions.filter { it.cycle == "Yearly" }.sumOf { CurrencyFormatter.convert(it.amount, it.currency, "VND") } / 12.0
     val total = weeklyCost + monthlyCost + yearlyCost
 
-    Row(modifier = modifier.padding(24.dp).height(150.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceEvenly) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(CurrencyFormatter.format(weeklyCost, "VND", locale), style = MaterialTheme.typography.labelSmall, softWrap = false, maxLines = 1)
-            Box(modifier = Modifier.width(40.dp).height((100 * (if (total > 0.0) weeklyCost / total else 0.0)).dp.coerceAtLeast(4.dp)).clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)).background(MaterialTheme.colorScheme.tertiary))
-            Text(stringResource(R.string.cycle_weekly), style = MaterialTheme.typography.labelMedium)
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(CurrencyFormatter.format(monthlyCost, "VND", locale), style = MaterialTheme.typography.labelSmall, softWrap = false, maxLines = 1)
-            Box(modifier = Modifier.width(40.dp).height((100 * (if (total > 0.0) monthlyCost / total else 0.0)).dp.coerceAtLeast(4.dp)).clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)).background(MaterialTheme.colorScheme.primary))
-            Text(stringResource(R.string.cycle_monthly), style = MaterialTheme.typography.labelMedium)
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(CurrencyFormatter.format(yearlyCost, "VND", locale), style = MaterialTheme.typography.labelSmall, softWrap = false, maxLines = 1)
-            Box(modifier = Modifier.width(40.dp).height((100 * (if (total > 0.0) yearlyCost / total else 0.0)).dp.coerceAtLeast(4.dp)).clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)).background(MaterialTheme.colorScheme.secondary))
-            Text(stringResource(R.string.cycle_yearly), style = MaterialTheme.typography.labelMedium)
+    Column(modifier = modifier.padding(24.dp)) {
+        Text(
+            stringResource(R.string.chart_billing_cycle_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().height(160.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            // Weekly/Daily bar
+            val weeklyAnim = remember { Animatable(0f) }
+            val monthlyAnim = remember { Animatable(0f) }
+            val yearlyAnim = remember { Animatable(0f) }
+            LaunchedEffect(weeklyCost, monthlyCost, yearlyCost) {
+                weeklyAnim.animateTo(if (total > 0.0) (weeklyCost / total).toFloat() else 0f, tween(900, easing = FastOutSlowInEasing))
+                monthlyAnim.animateTo(if (total > 0.0) (monthlyCost / total).toFloat() else 0f, tween(900, 100, FastOutSlowInEasing))
+                yearlyAnim.animateTo(if (total > 0.0) (yearlyCost / total).toFloat() else 0f, tween(900, 200, FastOutSlowInEasing))
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    CurrencyFormatter.format(weeklyCost, "VND", locale),
+                    style = MaterialTheme.typography.labelSmall,
+                    softWrap = false, maxLines = 1,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .width(44.dp)
+                        .height((120 * weeklyAnim.value).dp.coerceAtLeast(6.dp))
+                        .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f))
+                            )
+                        )
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(stringResource(R.string.cycle_weekly), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    CurrencyFormatter.format(monthlyCost, "VND", locale),
+                    style = MaterialTheme.typography.labelSmall,
+                    softWrap = false, maxLines = 1,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .width(44.dp)
+                        .height((120 * monthlyAnim.value).dp.coerceAtLeast(6.dp))
+                        .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                            )
+                        )
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(stringResource(R.string.cycle_monthly), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    CurrencyFormatter.format(yearlyCost, "VND", locale),
+                    style = MaterialTheme.typography.labelSmall,
+                    softWrap = false, maxLines = 1,
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .width(44.dp)
+                        .height((120 * yearlyAnim.value).dp.coerceAtLeast(6.dp))
+                        .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
+                            )
+                        )
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(stringResource(R.string.cycle_yearly), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)
+            }
         }
     }
 }
@@ -562,25 +948,90 @@ fun UpcomingRenewalsTimeline(
 ) {
     val locale = LocalContext.current.resources.configuration.locales[0]
     val upcoming = subscriptions.sortedBy { it.nextBillingDate }.take(6)
+    var showQrDialog by remember { mutableStateOf(false) }
+
     Column(modifier = modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(stringResource(R.string.chart_upcoming_timeline), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp)
+        ) {
             items(upcoming) { sub ->
                 val days = DateUtils.getDaysLeft(sub.nextBillingDate)
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onSubSelected(if (selectedSub?.id == sub.id) null else sub) }) {
-                    Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(sub.colorHex))).border(if (selectedSub?.id == sub.id) 2.dp else 0.dp, MaterialTheme.colorScheme.onSurface, CircleShape), contentAlignment = Alignment.Center) {
-                        Text(sub.name.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
+                val isSelected = selectedSub?.id == sub.id
+                val subColor = remember(sub.colorHex) {
+                    try { Color(android.graphics.Color.parseColor(sub.colorHex)) }
+                    catch (e: Exception) { Color(0xFF6366F1) }
+                }
+                val urgencyColor = when {
+                    days <= 0  -> Color(0xFFF43F5E)
+                    days <= 3  -> Color(0xFFF43F5E)
+                    days <= 7  -> Color(0xFFF59E0B)
+                    else       -> subColor
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .width(64.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            if (isSelected) subColor.copy(alpha = 0.1f)
+                            else Color.Transparent
+                        )
+                        .clickable { onSubSelected(if (isSelected) null else sub) }
+                        .padding(vertical = 8.dp, horizontal = 4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(subColor.copy(alpha = if (isSelected) 1f else 0.8f))
+                            .then(
+                                if (isSelected) Modifier.border(2.5.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
+                                else Modifier
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            sub.name.take(1).uppercase(),
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp
+                        )
                     }
-                    Text(sub.name, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(48.dp), textAlign = TextAlign.Center)
-                    Text("${days}d", style = MaterialTheme.typography.labelSmall, color = if (days <= 3L) MaterialTheme.colorScheme.error else Color.Unspecified)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        sub.name,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = urgencyColor.copy(alpha = 0.12f)
+                    ) {
+                        Text(
+                            text = if (days <= 0) "Hôm nay" else "${days}d",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = urgencyColor,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                        )
+                    }
                 }
             }
         }
         if (selectedSub != null) {
             val days = DateUtils.getDaysLeft(selectedSub.nextBillingDate)
             val cycleText = when (selectedSub.cycle) {
+                "Daily" -> stringResource(R.string.cycle_daily)
                 "Weekly" -> stringResource(R.string.cycle_weekly)
                 "Monthly" -> stringResource(R.string.cycle_monthly)
+                "Every 3 Months" -> stringResource(R.string.cycle_3_months)
+                "Every 6 Months" -> stringResource(R.string.cycle_6_months)
                 "Yearly" -> stringResource(R.string.cycle_yearly)
                 "One-time" -> stringResource(R.string.cycle_one_time)
                 else -> selectedSub.cycle
@@ -590,47 +1041,167 @@ fun UpcomingRenewalsTimeline(
             } else {
                 ""
             }
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(selectedSub.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(
-                                text = "${CurrencyFormatter.format(selectedSub.amount, selectedSub.currency, locale)} ($cycleText$remainingText)",
-                                style = MaterialTheme.typography.bodySmall,
-                                softWrap = false,
-                                maxLines = 1
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(tween(200)) + expandVertically(tween(300, easing = FastOutSlowInEasing))
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    selectedSub.name,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "${CurrencyFormatter.format(selectedSub.amount, selectedSub.currency, locale)} · $cycleText$remainingText",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    softWrap = false,
+                                    maxLines = 1
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = (if (days <= 3L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary).copy(alpha = 0.12f)
+                            ) {
+                                Text(
+                                    text = if (days >= 0L) "$days " + stringResource(R.string.list_days_left_suffix)
+                                           else stringResource(R.string.list_days_left_today),
+                                    fontWeight = FontWeight.ExtraBold,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (days <= 3L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        if (selectedSub.bankAccount != null && selectedSub.bankName != null) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedButton(
+                                    onClick = { showQrDialog = true },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(14.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
+                                ) {
+                                    Icon(Icons.Rounded.QrCode, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.secondary)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("VietQR", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.secondary)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        onMarkAsPaid(selectedSub)
+                                        onSubSelected(null)
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Icon(Icons.Rounded.Check, null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(stringResource(R.string.action_mark_paid), fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        } else {
+                            Button(
+                                onClick = {
+                                    onMarkAsPaid(selectedSub)
+                                    onSubSelected(null)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Icon(Icons.Rounded.Check, null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.action_mark_paid), fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        if (showQrDialog && selectedSub.bankAccount != null && selectedSub.bankName != null) {
+                            val qrUrl = VietQRGenerator.generateQrUrl(
+                                bankName = selectedSub.bankName,
+                                accountNumber = selectedSub.bankAccount,
+                                amount = selectedSub.amount,
+                                description = "Thanh toan ${selectedSub.name}",
+                                accountHolder = selectedSub.bankAccountHolder
+                            )
+                            AlertDialog(
+                                onDismissRequest = { showQrDialog = false },
+                                shape = RoundedCornerShape(28.dp),
+                                title = { Text("Quét mã VietQR", fontWeight = FontWeight.Bold) },
+                                text = {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(12.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                Text(
+                                                    "${selectedSub.bankName.uppercase()} · ${selectedSub.bankAccount}",
+                                                    fontWeight = FontWeight.Bold,
+                                                    style = MaterialTheme.typography.bodyMedium
+                                                )
+                                                selectedSub.bankAccountHolder?.let {
+                                                    Text(
+                                                        it.uppercase(),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        AsyncImage(
+                                            model = qrUrl,
+                                            contentDescription = "VietQR Code",
+                                            modifier = Modifier
+                                                .size(200.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color.White)
+                                                .padding(8.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            "Dùng app Ngân hàng quét QR để thanh toán nhanh",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            textAlign = TextAlign.Center,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                confirmButton = {
+                                    Button(
+                                        onClick = { showQrDialog = false },
+                                        shape = RoundedCornerShape(14.dp)
+                                    ) { Text("Đóng") }
+                                }
                             )
                         }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "$days " + stringResource(R.string.list_days_left_suffix),
-                            fontWeight = FontWeight.Bold,
-                            color = if (days <= 3L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                            softWrap = false,
-                            maxLines = 1
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = {
-                            onMarkAsPaid(selectedSub)
-                            onSubSelected(null)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.action_mark_paid), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -641,7 +1212,27 @@ fun UpcomingRenewalsTimeline(
 @Preview(showBackground = true)
 @Composable
 fun DashboardPreview() {
-    Sub_lazyTheme { DashboardScreen(onNavigateToAdd = { _, _ -> }, onNavigateToList = {}) }
+    Sub_lazyTheme {
+        DashboardContent(
+            totalMonthlyCost = 1250000.0,
+            spendingByCategory = listOf(
+                CategorySpending("Entertainment", 500000.0),
+                CategorySpending("Work", 300000.0),
+                CategorySpending("Utilities", 450000.0)
+            ),
+            subscriptions = listOf(
+                Subscription(id = 1, name = "Netflix", amount = 260000.0, cycle = "Monthly", category = "Entertainment", nextBillingDate = System.currentTimeMillis() + 86400000 * 2, colorHex = "#6366F1"),
+                Subscription(id = 2, name = "Spotify", amount = 59000.0, cycle = "Monthly", category = "Music", nextBillingDate = System.currentTimeMillis() + 86400000 * 5, colorHex = "#06B6D4")
+            ),
+            paymentHistory = listOf(
+                PaymentHistory(id = 1, subscriptionId = 1, subscriptionName = "Netflix", amount = 260000.0, currency = "VND", paymentDate = System.currentTimeMillis() - 86400000, cycle = "Monthly")
+            ),
+            onMarkAsPaid = {},
+            onInsertSubscription = {},
+            onNavigateToAdd = { _, _, _, _, _, _, _, _ -> },
+            onNavigateToList = {}
+        )
+    }
 }
 
 @Composable
@@ -747,8 +1338,11 @@ fun getForecastingData(subscriptions: List<Subscription>): List<MonthlyForecast>
 private fun getNextBillingDateProjection(currentDate: Long, cycle: String): Long {
     val cal = Calendar.getInstance().apply { timeInMillis = currentDate }
     when (cycle) {
+        "Daily" -> cal.add(Calendar.DAY_OF_YEAR, 1)
         "Weekly" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
         "Monthly" -> cal.add(Calendar.MONTH, 1)
+        "Every 3 Months" -> cal.add(Calendar.MONTH, 3)
+        "Every 6 Months" -> cal.add(Calendar.MONTH, 6)
         "Yearly" -> cal.add(Calendar.YEAR, 1)
         else -> cal.add(Calendar.MONTH, 1)
     }
@@ -928,12 +1522,32 @@ fun PaymentHistorySection(paymentHistory: List<PaymentHistory>, modifier: Modifi
     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", locale) }
     
     Column(modifier = modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(
-            text = stringResource(R.string.payment_history_title),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.payment_history_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            if (paymentHistory.isNotEmpty()) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+                ) {
+                    Text(
+                        text = "${paymentHistory.take(5).size} giao dịch",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
         if (paymentHistory.isEmpty()) {
             Text(
                 text = stringResource(R.string.payment_history_empty),
@@ -943,54 +1557,59 @@ fun PaymentHistorySection(paymentHistory: List<PaymentHistory>, modifier: Modifi
             )
         } else {
             val displayedHistory = paymentHistory.take(5)
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 displayedHistory.forEach { record ->
                     val dateStr = dateFormat.format(Date(record.paymentDate))
                     val amountStr = CurrencyFormatter.format(record.amount, record.currency, locale)
-                    
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                            .padding(16.dp),
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(MaterialTheme.colorScheme.secondaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.CheckCircle,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
-                        
-                        Spacer(modifier = Modifier.width(16.dp))
-                        
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = record.subscriptionName,
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = dateStr,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
                         Text(
-                            text = "+$amountStr",
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = "-$amountStr",
+                            style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = Color(0xFF10B981) // emerald green for paid
                         )
                     }
                 }

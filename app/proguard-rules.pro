@@ -19,3 +19,9 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Giữ lại các data class dùng để parse kết quả từ Gmail API và Room Database
+-keep class com.gbao86.sub_lazy.data.** { *; }
+
+# Cấu hình annotations cho serialization (Gson/Moshi/Retrofit)
+-keepattributes Signature, *Annotation*, EnclosingMethod, InnerClasses

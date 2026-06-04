@@ -14,55 +14,85 @@ package com.gbao86.sub_lazy.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Premium Dark Mode Palette
-val DeepNavy = Color(0xFF0F172A)
-val Indigo = Color(0xFF6366F1)
-val Cyan = Color(0xFF06B6D4)
-val Slate300 = Color(0xFFCBD5E1)
-val Slate700 = Color(0xFF334155)
-val White = Color(0xFFFFFFFF)
+// ── Premium 2026 Palette ──────────────────────────────────────────────────────
 
-// Material 3 Dark Colors
-val DarkPrimary = Indigo
-val DarkOnPrimary = Color.White
-val DarkPrimaryContainer = Color(0xFF312E81)
-val DarkOnPrimaryContainer = Color(0xFFE0E7FF)
+// Brand core
+val VioletCore    = Color(0xFF7C3AED) // Electric Violet – primary action
+val IndigoAccent  = Color(0xFF6366F1) // Indigo – secondary accent
+val CyanAurora    = Color(0xFF22D3EE) // Aurora Cyan – highlights
+val RoseAlert     = Color(0xFFF43F5E) // Rose – destructive / alert
+val EmeraldGreen  = Color(0xFF10B981) // Emerald – success
 
-val DarkSecondary = Cyan
-val DarkOnSecondary = Color.Black
-val DarkSecondaryContainer = Color(0xFF164E63)
-val DarkOnSecondaryContainer = Color(0xFFCFFAFE)
+// Dark mode surfaces (Deep Space)
+val Obsidian      = Color(0xFF080E1C) // True black-ish background
+val DeepSlate     = Color(0xFF0F172A) // Main background
+val SlateSurface  = Color(0xFF1A2540) // Card surfaces
+val SlateElevated = Color(0xFF243050) // Elevated cards / dialogs
+val SlateBorder   = Color(0xFF2E3D5C) // Subtle borders
+val SlateText     = Color(0xFFCDD5F0) // Body text
+val SlateSubtext  = Color(0xFF8899CC) // Secondary text
 
-val DarkTertiary = Color(0xFFF43F5E) // Rose for emphasis/alerts
-val DarkOnTertiary = Color.White
+// Light mode surfaces (Clean Cloud)
+val CloudWhite    = Color(0xFFF0F4FF) // Page background
+val CloudSurface  = Color(0xFFFFFFFF) // Card background
+val CloudElevated = Color(0xFFEAEFF8) // Slightly sunken
+val CloudBorder   = Color(0xFFD0D9F0) // Hairlines
+val CloudText     = Color(0xFF0D1730) // High-contrast text
+val CloudSubtext  = Color(0xFF4A5680) // Secondary text
 
-val DarkBackground = DeepNavy
-val DarkOnBackground = Slate300
-val DarkSurface = Color(0xFF1E293B)
-val DarkOnSurface = Slate300
-val DarkSurfaceVariant = Slate700
-val DarkOnSurfaceVariant = Slate300
-val DarkOutline = Color(0xFF475569)
+// Gradient stops used in hero cards
+val GradientStart = Color(0xFF7C3AED)
+val GradientMid   = Color(0xFF6366F1)
+val GradientEnd   = Color(0xFF06B6D4)
 
-// Material 3 Light Colors
-val LightPrimary = Indigo
-val LightOnPrimary = Color.White
-val LightPrimaryContainer = Color(0xFFE0E7FF)
-val LightOnPrimaryContainer = Color(0xFF312E81)
+// ── Dark Color Scheme ────────────────────────────────────────────────────────
 
-val LightSecondary = Color(0xFF0284C7)
-val LightOnSecondary = Color.White
-val LightSecondaryContainer = Color(0xFFE0F2FE)
-val LightOnSecondaryContainer = Color(0xFF0369A1)
+val DarkPrimary             = VioletCore
+val DarkOnPrimary           = Color.White
+val DarkPrimaryContainer    = Color(0xFF3B1F7A) // Deep violet container
+val DarkOnPrimaryContainer  = Color(0xFFE6D6FF)
 
-val LightTertiary = Color(0xFFE11D48)
-val LightOnTertiary = Color.White
+val DarkSecondary           = CyanAurora
+val DarkOnSecondary         = Color(0xFF001F26)
+val DarkSecondaryContainer  = Color(0xFF00374A)
+val DarkOnSecondaryContainer= Color(0xFFB2F0FF)
 
-val LightBackground = Color(0xFFF8FAFC)
-val LightOnBackground = Color(0xFF0F172A)
-val LightSurface = Color.White
-val LightOnSurface = Color(0xFF0F172A)
-val LightSurfaceVariant = Color(0xFFF1F5F9)
-val LightOnSurfaceVariant = Color(0xFF475569)
-val LightOutline = Color(0xFFCBD5E1)
+val DarkTertiary            = RoseAlert
+val DarkOnTertiary          = Color.White
+val DarkTertiaryContainer   = Color(0xFF5C0E1D)
+val DarkOnTertiaryContainer = Color(0xFFFFDADE)
 
+val DarkBackground          = DeepSlate
+val DarkOnBackground        = SlateText
+val DarkSurface             = SlateSurface
+val DarkOnSurface           = SlateText
+val DarkSurfaceVariant      = SlateElevated
+val DarkOnSurfaceVariant    = SlateSubtext
+val DarkOutline             = SlateBorder
+val DarkOutlineVariant      = Color(0xFF1E2D4A)
+
+// ── Light Color Scheme ───────────────────────────────────────────────────────
+
+val LightPrimary             = VioletCore
+val LightOnPrimary           = Color.White
+val LightPrimaryContainer    = Color(0xFFEDE9FF)
+val LightOnPrimaryContainer  = Color(0xFF3B1F7A)
+
+val LightSecondary           = Color(0xFF0891B2)
+val LightOnSecondary         = Color.White
+val LightSecondaryContainer  = Color(0xFFCFF8FF)
+val LightOnSecondaryContainer= Color(0xFF00374A)
+
+val LightTertiary            = Color(0xFFE11D48)
+val LightOnTertiary          = Color.White
+val LightTertiaryContainer   = Color(0xFFFFE4E9)
+val LightOnTertiaryContainer = Color(0xFF5C0E1D)
+
+val LightBackground          = CloudWhite
+val LightOnBackground        = CloudText
+val LightSurface             = CloudSurface
+val LightOnSurface           = CloudText
+val LightSurfaceVariant      = CloudElevated
+val LightOnSurfaceVariant    = CloudSubtext
+val LightOutline             = CloudBorder
+val LightOutlineVariant      = Color(0xFFE8EEF8)

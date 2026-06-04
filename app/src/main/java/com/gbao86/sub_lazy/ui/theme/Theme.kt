@@ -28,48 +28,54 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val PremiumDarkColorScheme = darkColorScheme(
-    primary = DarkPrimary,
-    onPrimary = DarkOnPrimary,
-    primaryContainer = DarkPrimaryContainer,
-    onPrimaryContainer = DarkOnPrimaryContainer,
-    secondary = DarkSecondary,
-    onSecondary = DarkOnSecondary,
-    secondaryContainer = DarkSecondaryContainer,
-    onSecondaryContainer = DarkOnSecondaryContainer,
-    tertiary = DarkTertiary,
-    onTertiary = DarkOnTertiary,
-    background = DarkBackground,
-    onBackground = DarkOnBackground,
-    surface = DarkSurface,
-    onSurface = DarkOnSurface,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkOnSurfaceVariant,
-    outline = DarkOutline
+    primary                = DarkPrimary,
+    onPrimary              = DarkOnPrimary,
+    primaryContainer       = DarkPrimaryContainer,
+    onPrimaryContainer     = DarkOnPrimaryContainer,
+    secondary              = DarkSecondary,
+    onSecondary            = DarkOnSecondary,
+    secondaryContainer     = DarkSecondaryContainer,
+    onSecondaryContainer   = DarkOnSecondaryContainer,
+    tertiary               = DarkTertiary,
+    onTertiary             = DarkOnTertiary,
+    tertiaryContainer      = DarkTertiaryContainer,
+    onTertiaryContainer    = DarkOnTertiaryContainer,
+    background             = DarkBackground,
+    onBackground           = DarkOnBackground,
+    surface                = DarkSurface,
+    onSurface              = DarkOnSurface,
+    surfaceVariant         = DarkSurfaceVariant,
+    onSurfaceVariant       = DarkOnSurfaceVariant,
+    outline                = DarkOutline,
+    outlineVariant         = DarkOutlineVariant
 )
 
 private val PremiumLightColorScheme = lightColorScheme(
-    primary = LightPrimary,
-    onPrimary = LightOnPrimary,
-    primaryContainer = LightPrimaryContainer,
-    onPrimaryContainer = LightOnPrimaryContainer,
-    secondary = LightSecondary,
-    onSecondary = LightOnSecondary,
-    secondaryContainer = LightSecondaryContainer,
-    onSecondaryContainer = LightOnSecondaryContainer,
-    tertiary = LightTertiary,
-    onTertiary = LightOnTertiary,
-    background = LightBackground,
-    onBackground = LightOnBackground,
-    surface = LightSurface,
-    onSurface = LightOnSurface,
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = LightOnSurfaceVariant,
-    outline = LightOutline
+    primary                = LightPrimary,
+    onPrimary              = LightOnPrimary,
+    primaryContainer       = LightPrimaryContainer,
+    onPrimaryContainer     = LightOnPrimaryContainer,
+    secondary              = LightSecondary,
+    onSecondary            = LightOnSecondary,
+    secondaryContainer     = LightSecondaryContainer,
+    onSecondaryContainer   = LightOnSecondaryContainer,
+    tertiary               = LightTertiary,
+    onTertiary             = LightOnTertiary,
+    tertiaryContainer      = LightTertiaryContainer,
+    onTertiaryContainer    = LightOnTertiaryContainer,
+    background             = LightBackground,
+    onBackground           = LightOnBackground,
+    surface                = LightSurface,
+    onSurface              = LightOnSurface,
+    surfaceVariant         = LightSurfaceVariant,
+    onSurfaceVariant       = LightOnSurfaceVariant,
+    outline                = LightOutline,
+    outlineVariant         = LightOutlineVariant
 )
 
 @Composable
 fun Sub_lazyTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(), // Auto-adapt to system light/dark theme settings
+    darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -79,9 +85,9 @@ fun Sub_lazyTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         darkTheme -> PremiumDarkColorScheme
-        else -> PremiumLightColorScheme // Fallback to custom light mode palette
+        else      -> PremiumLightColorScheme
     }
-    
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -94,7 +100,7 @@ fun Sub_lazyTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        typography  = Typography,
+        content     = content
     )
 }

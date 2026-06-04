@@ -51,6 +51,12 @@ fun AddEditSubscriptionScreen(
     subscriptionId: Long? = null,
     prefillName: String? = null,
     prefillAmount: Double? = null,
+    prefillCycle: String? = null,
+    prefillCategory: String? = null,
+    prefillColorHex: String? = null,
+    prefillBankName: String? = null,
+    prefillBankAccount: String? = null,
+    prefillBankAccountHolder: String? = null,
     viewModel: SubscriptionViewModel = viewModel(),
     onNavigateBack: () -> Unit
 ) {
@@ -66,6 +72,12 @@ fun AddEditSubscriptionScreen(
     var selectedCurrency by remember { mutableStateOf(if (locale.language == "vi") "VND" else "USD") }
     var autoDeleteMode by remember { mutableStateOf("unlimited") } // "unlimited", "once", "custom"
     var customTimes by remember { mutableStateOf("") }
+
+    // Bank transfer details for VietQR states
+    var hasBankInfo by remember { mutableStateOf(false) }
+    var bankAccount by remember { mutableStateOf("") }
+    var bankName by remember { mutableStateOf("") }
+    var bankAccountHolder by remember { mutableStateOf("") }
  
     val categories = listOf("Entertainment", "Utilities", "Work", "Cloud", "Music", "Food", "Finance", "Anniversary", "Family", "Trial", "Notes", "Other")
     var expandedCategory by remember { mutableStateOf(false) }
@@ -75,7 +87,7 @@ fun AddEditSubscriptionScreen(
  
     val isEditMode = subscriptionId != null && subscriptionId != -1L
  
-    LaunchedEffect(subscriptionId, prefillName, prefillAmount) {
+    LaunchedEffect(subscriptionId, prefillName, prefillAmount, prefillCycle, prefillCategory, prefillColorHex, prefillBankName, prefillBankAccount, prefillBankAccountHolder) {
         if (isEditMode) {
             val sub = viewModel.getSubscriptionById(subscriptionId!!)
             sub?.let {
@@ -98,6 +110,11 @@ fun AddEditSubscriptionScreen(
                     autoDeleteMode = "custom"
                     customTimes = remTimes.toString()
                 }
+
+                hasBankInfo = it.bankAccount != null
+                bankAccount = it.bankAccount ?: ""
+                bankName = it.bankName ?: ""
+                bankAccountHolder = it.bankAccountHolder ?: ""
             }
         } else {
             prefillName?.let { name = it }
@@ -105,6 +122,22 @@ fun AddEditSubscriptionScreen(
                 amount = it.toString()
                 selectedCurrency = if (it > 1000.0) "VND" else "USD"
             }
+            prefillCycle?.let { cycle = it }
+            prefillCategory?.let { category = it }
+            prefillColorHex?.let { colorHex = it }
+            if (prefillBankAccount != null || prefillBankName != null) {
+                hasBankInfo = true
+                bankAccount = prefillBankAccount ?: ""
+                bankName = prefillBankName ?: ""
+                bankAccountHolder = prefillBankAccountHolder ?: ""
+            }
+        }
+    }
+
+    LaunchedEffect(name) {
+        if (!isEditMode && (name.contains("thay dầu", ignoreCase = true) || name.contains("xe máy", ignoreCase = true) || name.contains("nhớt", ignoreCase = true))) {
+            cycle = "Every 6 Months"
+            category = "Utilities"
         }
     }
 
@@ -134,12 +167,12 @@ fun AddEditSubscriptionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
-                        if (isEditMode) stringResource(R.string.edit_title) else stringResource(R.string.add_title), 
+                        if (isEditMode) stringResource(R.string.edit_title) else stringResource(R.string.add_title),
                         fontWeight = FontWeight.ExtraBold,
                         style = MaterialTheme.typography.titleLarge
-                    ) 
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -150,7 +183,8 @@ fun AddEditSubscriptionScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
@@ -171,7 +205,9 @@ fun AddEditSubscriptionScreen(
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    cursorColor = MaterialTheme.colorScheme.primary
                 )
             )
 
@@ -310,7 +346,7 @@ fun AddEditSubscriptionScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf("Weekly", "Monthly").forEach { item ->
+                        listOf("Daily", "Weekly").forEach { item ->
                             val selected = cycle == item
                             FilterChip(
                                 selected = selected,
@@ -337,7 +373,7 @@ fun AddEditSubscriptionScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf("Yearly", "One-time").forEach { item ->
+                        listOf("Monthly", "Every 3 Months").forEach { item ->
                             val selected = cycle == item
                             FilterChip(
                                 selected = selected,
@@ -359,6 +395,61 @@ fun AddEditSubscriptionScreen(
                                 )
                             )
                         }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("Every 6 Months", "Yearly").forEach { item ->
+                            val selected = cycle == item
+                            FilterChip(
+                                selected = selected,
+                                onClick = { cycle = item },
+                                label = { 
+                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            stringResource(getCycleDisplayNameRes(item)), 
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                        ) 
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("One-time").forEach { item ->
+                            val selected = cycle == item
+                            FilterChip(
+                                selected = selected,
+                                onClick = { cycle = item },
+                                label = { 
+                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            stringResource(getCycleDisplayNameRes(item)), 
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                        ) 
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -425,12 +516,90 @@ fun AddEditSubscriptionScreen(
                 }
             }
 
+
+            // VietQR bank info switch and fields
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Thông tin chuyển khoản VietQR", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("Cấu hình tài khoản ngân hàng để tạo mã QR thanh toán nhanh", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Switch(checked = hasBankInfo, onCheckedChange = { hasBankInfo = it })
+                    }
+
+                    if (hasBankInfo) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        OutlinedTextField(
+                            value = bankName,
+                            onValueChange = { bankName = it },
+                            label = { Text("Tên ngân hàng (Ví dụ: VCB, TCB, MB)") },
+                            placeholder = { Text("e.g. MB") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                            )
+                        )
+
+                        OutlinedTextField(
+                            value = bankAccount,
+                            onValueChange = { bankAccount = it },
+                            label = { Text("Số tài khoản nhận tiền") },
+                            placeholder = { Text("Nhập số tài khoản") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                            )
+                        )
+
+                        OutlinedTextField(
+                            value = bankAccountHolder,
+                            onValueChange = { bankAccountHolder = it },
+                            label = { Text("Tên chủ tài khoản") },
+                            placeholder = { Text("Ví dụ: NGUYEN VAN A") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                            )
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.weight(1f))
 
             Button(
                 onClick = {
                     if (name.isNotBlank() && amount.isNotBlank()) {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        
+                        val finalNextBillingDate = nextBillingDate
+
                         val remainingTimesVal = if (cycle == "One-time") {
                             null
                         } else {
@@ -440,16 +609,27 @@ fun AddEditSubscriptionScreen(
                                 else -> null
                             }
                         }
+
                         val sub = Subscription(
                             id = if (isEditMode) subscriptionId!! else 0,
                             name = name,
                             amount = amount.toDoubleOrNull() ?: 0.0,
-                            nextBillingDate = nextBillingDate,
+                            nextBillingDate = finalNextBillingDate,
                             cycle = cycle,
                             category = category,
                             colorHex = colorHex,
                             currency = selectedCurrency,
-                            remainingTimes = remainingTimesVal
+                            remainingTimes = remainingTimesVal,
+                            
+                            isKmBased = false,
+                            lastOdometer = null,
+                            targetIntervalKm = null,
+                            dailyAverageKm = null,
+                            lastOdometerUpdateDate = null,
+                            
+                            bankAccount = if (hasBankInfo) bankAccount else null,
+                            bankName = if (hasBankInfo) bankName else null,
+                            bankAccountHolder = if (hasBankInfo) bankAccountHolder else null
                         )
                         if (isEditMode) viewModel.update(sub) else viewModel.insert(sub)
                         onNavigateBack()
@@ -457,13 +637,17 @@ fun AddEditSubscriptionScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp),
+                    .height(60.dp),
                 shape = RoundedCornerShape(20.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                enabled = name.isNotBlank() && amount.isNotBlank()
             ) {
                 Text(
-                    if (isEditMode) stringResource(R.string.add_edit_btn_update) else stringResource(R.string.add_edit_btn_track), 
-                    fontSize = 18.sp, 
+                    if (isEditMode) stringResource(R.string.add_edit_btn_update) else stringResource(R.string.add_edit_btn_track),
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
@@ -500,8 +684,11 @@ fun getCategoryDisplayName(category: String): String {
 
 private fun getCycleDisplayNameRes(cycle: String): Int {
     return when (cycle) {
+        "Daily" -> R.string.cycle_daily
         "Weekly" -> R.string.cycle_weekly
         "Monthly" -> R.string.cycle_monthly
+        "Every 3 Months" -> R.string.cycle_3_months
+        "Every 6 Months" -> R.string.cycle_6_months
         "Yearly" -> R.string.cycle_yearly
         "One-time" -> R.string.cycle_one_time
         else -> R.string.cycle_monthly

@@ -27,5 +27,17 @@ data class Subscription(
     val colorHex: String = "#6366F1", // Default Indigo
     val iconName: String? = null,
     val currency: String = "VND",
-    val remainingTimes: Int? = null
+    val remainingTimes: Int? = null,
+
+    // Km-based tracking
+    val isKmBased: Boolean = false,
+    val lastOdometer: Double? = null,
+    val targetIntervalKm: Double? = null,
+    val dailyAverageKm: Double? = null,
+    val lastOdometerUpdateDate: Long? = null,
+
+    // Bank transfer details for VietQR
+    val bankAccount: String? = null,
+    val bankName: String? = null,
+    val bankAccountHolder: String? = null
 )

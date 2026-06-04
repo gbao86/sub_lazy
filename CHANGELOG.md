@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.3] - 2026-06-04
+
+### Added
+- **Lifestyle Subscription Templates**: Expanded presets to include offline everyday activities (e.g., Motorbike Oil Change, Pet Deworming, Water Filter Replacement) with default frequencies.
+- **VietQR Code Generator**: Integrated standard VietQR payment generator (`VietQRGenerator`) utilizing Napas format. Added a VietQR quick-scan action button and popup for subscriptions with bank transfer information.
+- **Full Form Pre-filling**: Extended the navigation graph and `AddEditSubscriptionScreen` to pass and pre-fill all template details (name, cost, cycle, category, custom color, bank details) seamlessly from the template picker.
+- **Flexible Billing Cycles**: Introduced support for `Daily`, `Every 3 Months`, and `Every 6 Months` frequencies, fully integrated into SQL aggregations (`getTotalMonthlyCost`, `getSpendingByCategory`) and calendar renewal rollouts.
+
+### Changed
+- **Privacy & Security Focus**: Removed high-risk Google APIs/Gmail Read permissions to avoid costly CASA audits and secure absolute offline user privacy.
+- **Time-based Maintenance Logic**: Replaced complex odometer/kilometer-based logging with time-based calendar reminders (e.g., every 6 months) for vehicle maintenance.
+
+### Fixed
+- **Onboarding Renewal Dates**: Fixed initial billing date projections during onboarding templates to respect target cycles (using `Calendar` offsets) rather than hardcoding a generic 30-day offset.
+- **Notification Rollover Logic**: Aligned background notification service rollover calculations with the newly added billing cycles.
+
 ## [0.0.2] - 2026-06-02
 
 ### Added

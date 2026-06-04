@@ -23,7 +23,15 @@ import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import com.gbao86.sub_lazy.MainActivity
 import com.gbao86.sub_lazy.R
+import com.gbao86.sub_lazy.data.AppDatabase
+import com.gbao86.sub_lazy.data.PaymentHistory
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
+import com.gbao86.sub_lazy.worker.NotificationScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import java.util.Calendar
 import java.util.Locale
 import java.util.regex.Pattern
 
@@ -59,8 +67,71 @@ class BillNotificationListener : NotificationListenerService() {
         val amount = detectAmount(combinedText) ?: 0.0
         if (amount <= 0.0) return
 
-        // Show a local notification to alert user and pre-fill Add Screen
-        showDetectedNotification(serviceName, amount)
+        // Check if subscription exists in local Room DB to auto-mark as paid
+        val db = AppDatabase.getDatabase(applicationContext)
+        val dao = db.subscriptionDao()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val subs = dao.getAllSubscriptions().first()
+                val matchedSub = subs.find { it.name.equals(serviceName, ignoreCase = true) }
+
+                if (matchedSub != null) {
+                    // Record payment history
+                    val record = PaymentHistory(
+                        subscriptionId = matchedSub.id,
+                        subscriptionName = matchedSub.name,
+                        amount = amount,
+                        currency = matchedSub.currency,
+                        paymentDate = System.currentTimeMillis(),
+                        cycle = matchedSub.cycle
+                    )
+                    dao.insertPaymentHistory(record)
+
+                    // Rollover renewal date
+                    if (matchedSub.cycle == "One-time") {
+                        dao.deleteSubscription(matchedSub)
+                        NotificationScheduler(applicationContext).cancelNotification(matchedSub.id)
+                    } else {
+                        var currentSub = matchedSub
+                        var shouldDelete = false
+
+                        val limit = currentSub.remainingTimes
+                        if (limit != null && limit > 0) {
+                            val newLimit = limit - 1
+                            if (newLimit <= 0) {
+                                shouldDelete = true
+                            } else {
+                                currentSub = currentSub.copy(remainingTimes = newLimit)
+                            }
+                        }
+
+                        if (shouldDelete) {
+                            dao.deleteSubscription(matchedSub)
+                            NotificationScheduler(applicationContext).cancelNotification(matchedSub.id)
+                        } else {
+                            val nextDate = getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
+                            val finalNextDate = if (nextDate <= currentSub.nextBillingDate) {
+                                val cal = Calendar.getInstance().apply { timeInMillis = currentSub.nextBillingDate }
+                                cal.add(Calendar.MONTH, 1)
+                                cal.timeInMillis
+                            } else {
+                                nextDate
+                            }
+                            currentSub = currentSub.copy(nextBillingDate = finalNextDate)
+                            dao.updateSubscription(currentSub)
+                            NotificationScheduler(applicationContext).scheduleNotification(currentSub)
+                        }
+                    }
+                    showAutoPaidNotification(matchedSub.name, amount, matchedSub.currency)
+                } else {
+                    // Pre-fill screen if it's a new subscription
+                    showDetectedNotification(serviceName, amount)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     private fun detectService(text: String): String? {
@@ -180,5 +251,51 @@ class BillNotificationListener : NotificationListenerService() {
             .build()
 
         notificationManager.notify(200, notification)
+    }
+
+    private fun getNextBillingDate(currentDate: Long, cycle: String): Long {
+        val cal = Calendar.getInstance().apply { timeInMillis = currentDate }
+        when (cycle) {
+            "Daily" -> cal.add(Calendar.DAY_OF_YEAR, 1)
+            "Weekly" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
+            "Monthly" -> cal.add(Calendar.MONTH, 1)
+            "Every 3 Months" -> cal.add(Calendar.MONTH, 3)
+            "Every 6 Months" -> cal.add(Calendar.MONTH, 6)
+            "Yearly" -> cal.add(Calendar.YEAR, 1)
+        }
+        return cal.timeInMillis
+    }
+
+    private fun showAutoPaidNotification(serviceName: String, amount: Double, currency: String) {
+        val channelId = "detected_bills"
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val locale = resources.configuration.locales[0]
+        val amountFormatted = CurrencyFormatter.format(amount, currency, locale)
+
+        val message = "Đã tự động xác nhận thanh toán hóa đơn $serviceName ($amountFormatted). Chúc bạn lười vui vẻ! 🐱"
+
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            1,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("Tự động thanh toán thành công!")
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .build()
+
+        notificationManager.notify(201, notification)
     }
 }

@@ -58,8 +58,11 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
             if (list.isEmpty()) return@map 0.0
             list.sumOf { sub ->
                 val monthlyAmount = when (sub.cycle) {
+                    "Daily" -> sub.amount * 365.0 / 12.0
                     "Weekly" -> sub.amount * 52.0 / 12.0
                     "Monthly" -> sub.amount
+                    "Every 3 Months" -> sub.amount / 3.0
+                    "Every 6 Months" -> sub.amount / 6.0
                     "Yearly" -> sub.amount / 12.0
                     else -> 0.0
                 }
@@ -73,8 +76,11 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                 .map { (category, subs) ->
                     val totalAmountInVnd = subs.sumOf { sub ->
                         val monthlyAmount = when (sub.cycle) {
+                            "Daily" -> sub.amount * 365.0 / 12.0
                             "Weekly" -> sub.amount * 52.0 / 12.0
                             "Monthly" -> sub.amount
+                            "Every 3 Months" -> sub.amount / 3.0
+                            "Every 6 Months" -> sub.amount / 6.0
                             "Yearly" -> sub.amount / 12.0
                             else -> 0.0
                         }
@@ -130,8 +136,11 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
     private fun getNextBillingDate(currentDate: Long, cycle: String): Long {
         val cal = Calendar.getInstance().apply { timeInMillis = currentDate }
         when (cycle) {
+            "Daily" -> cal.add(Calendar.DAY_OF_YEAR, 1)
             "Weekly" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
             "Monthly" -> cal.add(Calendar.MONTH, 1)
+            "Every 3 Months" -> cal.add(Calendar.MONTH, 3)
+            "Every 6 Months" -> cal.add(Calendar.MONTH, 6)
             "Yearly" -> cal.add(Calendar.YEAR, 1)
         }
         return cal.timeInMillis

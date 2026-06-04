@@ -17,7 +17,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Subscription::class, PaymentHistory::class], version = 4, exportSchema = false)
+@Database(entities = [Subscription::class, PaymentHistory::class], version = 5, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun subscriptionDao(): SubscriptionDao
 
@@ -28,7 +28,6 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE subscriptions ADD COLUMN currency TEXT NOT NULL DEFAULT 'VND'")
-                // Heuristic to update existing amounts: if amount <= 1000, it's likely USD
                 db.execSQL("UPDATE subscriptions SET currency = 'USD' WHERE amount <= 1000")
             }
         }
@@ -55,6 +54,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN isKmBased INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN lastOdometer REAL DEFAULT NULL")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN targetIntervalKm REAL DEFAULT NULL")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN dailyAverageKm REAL DEFAULT NULL")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN lastOdometerUpdateDate INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN bankAccount TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN bankName TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN bankAccountHolder TEXT DEFAULT NULL")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -62,7 +74,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "subscription_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
                 INSTANCE = instance
                 instance

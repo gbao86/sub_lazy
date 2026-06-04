@@ -46,8 +46,11 @@
     <string name="add_edit_btn_update">Update Service</string>
 
     <!-- Billing Cycles -->
+    <string name="cycle_daily">Daily</string>
     <string name="cycle_weekly">Weekly</string>
     <string name="cycle_monthly">Monthly</string>
+    <string name="cycle_3_months">Every 3 Months</string>
+    <string name="cycle_6_months">Every 6 Months</string>
     <string name="cycle_yearly">Yearly</string>
     <string name="cycle_one_time">One-time</string>
 
@@ -85,6 +88,17 @@
     <string name="notification_trial_message">Remember to cancel your trial for %1$s today to avoid being charged %2$s!</string>
     <string name="notification_notes_title">Reminder Note 📝</string>
     <string name="notification_notes_message">Reminder: %1$s</string>
+    <string name="notification_km_title">Vehicle Maintenance 🏍️</string>
+    <string name="notification_km_message">Service %1$s is due for maintenance! Your vehicle is estimated to have traveled around %2$s km. Please check or change the oil!</string>
+
+    <string name="odo_update_title">Update Odometer</string>
+    <string name="odo_current_label">Current Odometer (km)</string>
+    <string name="odo_update_btn">Save ODO</string>
+    <string name="odo_estimated">Estimated ODO</string>
+    <string name="odo_target">Maintenance Marker</string>
+    <string name="odo_remaining_km">%1$s km remaining</string>
+    <string name="odo_exceeded_km">Exceeded by %1$s km</string>
+    <string name="action_mark_maintenance_done">Maintenance Done</string>
 
     <!-- Additional Charts Label Strings -->
     <string name="chart_all_categories">All Categories</string>
@@ -98,6 +112,7 @@
     <string name="chart_day_left">1 day left</string>
     <string name="chart_interactive_hint">Tap on segments or legend items for details</string>
     <string name="chart_cycle_distribution">Monthly vs Yearly Spend</string>
+    <string name="chart_billing_cycle_title">Billing Cycle Breakdown</string>
     <string name="chart_subs_count">%1$d services</string>
     <string name="chart_sub_count">1 service</string>
 

@@ -37,7 +37,7 @@ class GeminiService(private val context: Context) {
     data class ParsedSubscription(
         val name: String,
         val amount: Double,
-        val cycle: String, // "Monthly" or "Yearly"
+        val cycle: String, // "Weekly", "Monthly", "Every 3 Months", "Every 6 Months", "Yearly" or "One-time"
         val category: String, // "Entertainment", "Utilities", "Work", "Cloud", "Music", "Food", "Other"
         val nextBillingDate: Long, // Timestamp
         val currency: String = "VND"
@@ -112,6 +112,17 @@ class GeminiService(private val context: Context) {
             unaccentedLowerText.contains("1 year") || 
             unaccentedLowerText.contains("1 nam")) {
             "Yearly"
+        } else if (unaccentedLowerText.contains("3 thang") ||
+            unaccentedLowerText.contains("3 months") ||
+            unaccentedLowerText.contains("quy") ||
+            unaccentedLowerText.contains("quarterly")) {
+            "Every 3 Months"
+        } else if (unaccentedLowerText.contains("6 thang") ||
+            unaccentedLowerText.contains("6 months") ||
+            unaccentedLowerText.contains("nua nam") ||
+            unaccentedLowerText.contains("half yearly") ||
+            unaccentedLowerText.contains("semi-annual")) {
+            "Every 6 Months"
         } else if (unaccentedLowerText.contains("tuan") ||
             unaccentedLowerText.contains("weekly") ||
             unaccentedLowerText.contains("7 ngay") ||
@@ -119,6 +130,12 @@ class GeminiService(private val context: Context) {
             unaccentedLowerText.contains("1 week") ||
             unaccentedLowerText.contains("1 tuan")) {
             "Weekly"
+        } else if (unaccentedLowerText.contains("ngay") ||
+            unaccentedLowerText.contains("daily") ||
+            unaccentedLowerText.contains("every day") ||
+            unaccentedLowerText.contains("moi ngay") ||
+            unaccentedLowerText.contains("1 day")) {
+            "Daily"
         } else {
             "Monthly"
         }
@@ -130,6 +147,9 @@ class GeminiService(private val context: Context) {
         val defaultNextBilling = when (cycle) {
             "Yearly" -> System.currentTimeMillis() + 86400000L * 365
             "Weekly" -> System.currentTimeMillis() + 86400000L * 7
+            "Daily" -> System.currentTimeMillis() + 86400000L * 1
+            "Every 3 Months" -> System.currentTimeMillis() + 86400000L * 90
+            "Every 6 Months" -> System.currentTimeMillis() + 86400000L * 180
             else -> System.currentTimeMillis() + 86400000L * 30
         }
         val billingDate = detectDate(unaccentedLowerText) ?: defaultNextBilling
