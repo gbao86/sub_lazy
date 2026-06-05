@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.4] - 2026-06-05
+
+### Added
+- **Locale-Aware Currency Input Formatting**: Added real-time thousand separator formatting (`.` for Vietnamese, `,` for English) inside the price input field on the Add/Edit screen. VND input restricts decimals while USD supports up to 2 decimal places.
+- **Dynamic Billing Cycle Suffixes**: Introduced localized suffixes (`/ day`, `/ wk`, `/ mo`, `/ 3 mo`, `/ 6 mo`, `/ yr`, ` (one-time)` for English, and `/ ngày`, `/ tuần`, `/ tháng`, `/ 3 tháng`, `/ 6 tháng`, `/ năm`, ` (một lần)` for Vietnamese) on the subscription list screen.
+
+### Changed
+- **Direct Subscription Amount Display**: Updated the active services list screen to display the actual subscription cost and billing cycle suffix directly instead of showing a monthly averaged equivalent cost (e.g. displaying "1,000,000 VND / 3 months" instead of "333,333 VND / mo").
+
+### Fixed
+- **Formatted Currency Input Parsing**: Implemented locale-aware parsing to correctly convert formatted currency strings (removing separators based on locale) back into clean Double values when saving or updating subscriptions.
+
 ## [0.0.3] - 2026-06-04
 
 ### Added

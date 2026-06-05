@@ -30,6 +30,12 @@
     <string name="list_days_left_plural">%1$d days</string>
     <string name="list_days_left_suffix">left</string>
     <string name="list_monthly_suffix">/ mo</string>
+    <string name="list_daily_suffix">/ day</string>
+    <string name="list_weekly_suffix">/ wk</string>
+    <string name="list_3_months_suffix">/ 3 mo</string>
+    <string name="list_6_months_suffix">/ 6 mo</string>
+    <string name="list_yearly_suffix">/ yr</string>
+    <string name="list_one_time_suffix"> (one-time)</string>
     <string name="list_delete_confirm">Deleted subscription</string>
 
     <!-- Add/Edit Subscription Screen -->

@@ -45,6 +45,7 @@ import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
 import java.util.*
 import androidx.compose.ui.platform.LocalContext
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
+import com.gbao86.sub_lazy.ui.DateUtils
 import com.gbao86.sub_lazy.data.SubscriptionTemplate
 import com.gbao86.sub_lazy.data.SubscriptionTemplates
 import androidx.compose.ui.res.stringResource
@@ -78,21 +79,12 @@ fun OnboardingScreen(
                     Button(
                         onClick = {
                             selectedTemplates.forEach { template ->
-                                val cal = Calendar.getInstance()
-                                when (template.cycle) {
-                                    "Daily" -> cal.add(Calendar.DAY_OF_YEAR, 1)
-                                    "Weekly" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
-                                    "Monthly" -> cal.add(Calendar.MONTH, 1)
-                                    "Every 3 Months" -> cal.add(Calendar.MONTH, 3)
-                                    "Every 6 Months" -> cal.add(Calendar.MONTH, 6)
-                                    "Yearly" -> cal.add(Calendar.YEAR, 1)
-                                    else -> cal.add(Calendar.MONTH, 1)
-                                }
+                                val nextBilling = DateUtils.getNextBillingDate(System.currentTimeMillis(), template.cycle)
                                 viewModel.insert(
                                     Subscription(
                                         name = template.name,
                                         amount = template.amount,
-                                        nextBillingDate = cal.timeInMillis,
+                                        nextBillingDate = nextBilling,
                                         cycle = template.cycle,
                                         category = template.category,
                                         colorHex = template.colorHex

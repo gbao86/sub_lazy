@@ -49,7 +49,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.DateUtils
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.core.graphics.toColorInt
+import java.util.Calendar
+import java.time.Year
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,8 +63,11 @@ fun SubscriptionListScreen(
 ) {
     val haptic = LocalHapticFeedback.current
     val subscriptions by viewModel.allSubscriptions.collectAsStateWithLifecycle(initialValue = emptyList())
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -186,8 +192,21 @@ fun SubscriptionListScreen(
                         )
                     ) {
                         SwipeToDeleteItem(
-                            subscriptionName = subscription.name,
-                            onDelete = { viewModel.delete(subscription) }
+                            onDelete = {
+                                val backup = subscription
+                                viewModel.delete(subscription)
+                                coroutineScope.launch {
+                                    snackbarHostState.currentSnackbarData?.dismiss()
+                                    val result = snackbarHostState.showSnackbar(
+                                        message = "Đã xóa ${backup.name}",
+                                        actionLabel = "Hoàn tác",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        viewModel.insert(backup)
+                                    }
+                                }
+                            }
                         ) {
                             SubscriptionItem(
                                 subscription = subscription,
@@ -204,59 +223,19 @@ fun SubscriptionListScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeToDeleteItem(
-    subscriptionName: String,
     onDelete: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    var showDialog by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = {
             if (it == SwipeToDismissBoxValue.EndToStart) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                showDialog = true
-                false
+                onDelete()
+                true
             } else false
         }
     )
-
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { },
-            shape = RoundedCornerShape(28.dp),
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = {
-                Text(
-                    stringResource(R.string.delete_dialog_title),
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            text = { Text(stringResource(R.string.delete_dialog_message, subscriptionName)) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onDelete()
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text(stringResource(R.string.delete_dialog_confirm), fontWeight = FontWeight.SemiBold)
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { },
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(stringResource(R.string.delete_dialog_cancel))
-                }
-            }
-        )
-    }
 
     SwipeToDismissBox(
         state = dismissState,
@@ -313,14 +292,15 @@ fun SubscriptionItem(
         catch (_: Exception) { Color(0xFF6366F1) }
     }
 
-    // Monthly equivalent calculation
-    val monthlyEquivalent = when (subscription.cycle) {
-        "Daily"          -> subscription.amount * 365.0 / 12.0
-        "Weekly"         -> subscription.amount * 52.0 / 12.0
-        "Every 3 Months" -> subscription.amount / 3.0
-        "Every 6 Months" -> subscription.amount / 6.0
-        "Yearly"         -> subscription.amount / 12.0
-        else             -> subscription.amount
+    val cycleSuffix = when (subscription.cycle) {
+        "Daily"          -> stringResource(R.string.list_daily_suffix)
+        "Weekly"         -> stringResource(R.string.list_weekly_suffix)
+        "Monthly"        -> stringResource(R.string.list_monthly_suffix)
+        "Every 3 Months" -> stringResource(R.string.list_3_months_suffix)
+        "Every 6 Months" -> stringResource(R.string.list_6_months_suffix)
+        "Yearly"         -> stringResource(R.string.list_yearly_suffix)
+        "One-time"       -> stringResource(R.string.list_one_time_suffix)
+        else             -> ""
     }
 
     // Urgency colors
@@ -388,7 +368,7 @@ fun SubscriptionItem(
                 )
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = "${CurrencyFormatter.format(monthlyEquivalent, subscription.currency, locale)}${stringResource(R.string.list_monthly_suffix)}",
+                    text = "${CurrencyFormatter.format(subscription.amount, subscription.currency, locale)}$cycleSuffix",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

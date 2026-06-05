@@ -73,6 +73,7 @@ private val PremiumLightColorScheme = lightColorScheme(
     outlineVariant         = LightOutlineVariant
 )
 
+@Suppress("DEPRECATION")
 @Composable
 fun Sub_lazyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -92,9 +93,12 @@ fun Sub_lazyTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            @Suppress("DEPRECATION")
-            window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
+            window.navigationBarColor = android.graphics.Color.TRANSPARENT
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.isAppearanceLightStatusBars = !darkTheme
+            controller.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

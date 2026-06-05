@@ -37,10 +37,10 @@ interface SubscriptionDao {
     @Delete
     suspend fun deleteSubscription(subscription: Subscription)
 
-    @Query("SELECT SUM(CASE WHEN cycle = 'Daily' THEN amount * 365.0 / 12.0 WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Every 3 Months' THEN amount / 3.0 WHEN cycle = 'Every 6 Months' THEN amount / 6.0 WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) FROM subscriptions")
+    @Query("SELECT SUM(CASE WHEN cycle = 'Daily' THEN amount * 365.0 / 12.0 WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Every 3 Months' THEN amount / 3.0 WHEN cycle = 'Every 6 Months' THEN amount / 6.0 ELSE 0.0 END) FROM subscriptions WHERE cycle != 'Yearly' AND cycle != 'One-time'")
     fun getTotalMonthlyCost(): Flow<Double?>
 
-    @Query("SELECT category, SUM(CASE WHEN cycle = 'Daily' THEN amount * 365.0 / 12.0 WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Every 3 Months' THEN amount / 3.0 WHEN cycle = 'Every 6 Months' THEN amount / 6.0 WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) as totalAmount FROM subscriptions GROUP BY category")
+    @Query("SELECT category, SUM(CASE WHEN cycle = 'Daily' THEN amount * 365.0 / 12.0 WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Every 3 Months' THEN amount / 3.0 WHEN cycle = 'Every 6 Months' THEN amount / 6.0 ELSE 0.0 END) as totalAmount FROM subscriptions WHERE cycle != 'Yearly' AND cycle != 'One-time' GROUP BY category")
     fun getSpendingByCategory(): Flow<List<CategorySpending>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

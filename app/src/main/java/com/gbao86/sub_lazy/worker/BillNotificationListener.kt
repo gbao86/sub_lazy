@@ -24,6 +24,7 @@ import com.gbao86.sub_lazy.R
 import com.gbao86.sub_lazy.data.AppDatabase
 import com.gbao86.sub_lazy.data.PaymentHistory
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
+import com.gbao86.sub_lazy.ui.DateUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -43,6 +44,12 @@ class BillNotificationListener : NotificationListenerService() {
         val text = extras.getString("android.text") ?: ""
 
         val combinedText = "$title $text".lowercase(Locale.getDefault())
+
+        val detectedBalance = detectBalance(combinedText)
+        if (detectedBalance != null) {
+            val sharedPref = applicationContext.getSharedPreferences("app_prefs", MODE_PRIVATE)
+            sharedPref.edit().putFloat("user_balance", detectedBalance.toFloat()).apply()
+        }
 
         // Check for payment-related keywords
         val isPayment = combinedText.contains("thanh toan") ||
@@ -107,14 +114,7 @@ class BillNotificationListener : NotificationListenerService() {
                             dao.deleteSubscription(matchedSub)
                             NotificationScheduler(applicationContext).cancelNotification(matchedSub.id)
                         } else {
-                            val nextDate = getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
-                            val finalNextDate = if (nextDate <= currentSub.nextBillingDate) {
-                                val cal = Calendar.getInstance().apply { timeInMillis = currentSub.nextBillingDate }
-                                cal.add(Calendar.MONTH, 1)
-                                cal.timeInMillis
-                            } else {
-                                nextDate
-                            }
+                            val finalNextDate = DateUtils.getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
                             currentSub = currentSub.copy(nextBillingDate = finalNextDate)
                             dao.updateSubscription(currentSub)
                             NotificationScheduler(applicationContext).scheduleNotification(currentSub)
@@ -248,18 +248,7 @@ class BillNotificationListener : NotificationListenerService() {
         notificationManager.notify(200, notification)
     }
 
-    private fun getNextBillingDate(currentDate: Long, cycle: String): Long {
-        val cal = Calendar.getInstance().apply { timeInMillis = currentDate }
-        when (cycle) {
-            "Daily" -> cal.add(Calendar.DAY_OF_YEAR, 1)
-            "Weekly" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
-            "Monthly" -> cal.add(Calendar.MONTH, 1)
-            "Every 3 Months" -> cal.add(Calendar.MONTH, 3)
-            "Every 6 Months" -> cal.add(Calendar.MONTH, 6)
-            "Yearly" -> cal.add(Calendar.YEAR, 1)
-        }
-        return cal.timeInMillis
-    }
+
 
     private fun showAutoPaidNotification(serviceName: String, amount: Double, currency: String) {
         val channelId = "detected_bills"
@@ -292,5 +281,43 @@ class BillNotificationListener : NotificationListenerService() {
             .build()
 
         notificationManager.notify(201, notification)
+    }
+
+    private fun detectBalance(text: String): Double? {
+        val lower = text.lowercase()
+        val keyword = listOf("so du vi", "số dư ví", "so du", "số dư", "balance").find { lower.contains(it) } ?: return null
+        val startIndex = lower.indexOf(keyword) + keyword.length
+        val textAfter = lower.substring(startIndex)
+
+        val matcher = Pattern.compile("[:\\s]*([0-9.,\\s]+)").matcher(textAfter)
+        if (matcher.find()) {
+            val numberStr = matcher.group(1)?.replace("\\s".toRegex(), "") ?: ""
+            var cleaned = numberStr
+            if (cleaned.contains(".") && cleaned.contains(",")) {
+                val lastDot = cleaned.lastIndexOf(".")
+                val lastComma = cleaned.lastIndexOf(",")
+                if (lastDot > lastComma) {
+                    cleaned = cleaned.replace(",", "")
+                } else {
+                    cleaned = cleaned.replace(".", "").replace(",", ".")
+                }
+            } else if (cleaned.contains(".")) {
+                val parts = cleaned.split(".")
+                if (parts.size == 2 && parts[1].length <= 2) {
+                    // Decimal point
+                } else {
+                    cleaned = cleaned.replace(".", "")
+                }
+            } else if (cleaned.contains(",")) {
+                val parts = cleaned.split(",")
+                if (parts.size == 2 && parts[1].length <= 2) {
+                    cleaned = cleaned.replace(",", ".")
+                } else {
+                    cleaned = cleaned.replace(",", "")
+                }
+            }
+            return cleaned.toDoubleOrNull()
+        }
+        return null
     }
 }

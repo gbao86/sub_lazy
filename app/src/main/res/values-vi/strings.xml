@@ -30,6 +30,12 @@
     <string name="list_days_left_plural">%1$d ngày</string>
     <string name="list_days_left_suffix">còn lại</string>
     <string name="list_monthly_suffix">/ tháng</string>
+    <string name="list_daily_suffix">/ ngày</string>
+    <string name="list_weekly_suffix">/ tuần</string>
+    <string name="list_3_months_suffix">/ 3 tháng</string>
+    <string name="list_6_months_suffix">/ 6 tháng</string>
+    <string name="list_yearly_suffix">/ năm</string>
+    <string name="list_one_time_suffix"> (một lần)</string>
     <string name="list_delete_confirm">Đã xóa dịch vụ</string>
 
     <!-- Add/Edit Subscription Screen -->

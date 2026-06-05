@@ -19,4 +19,18 @@ object DateUtils {
         val diff = nextBillingDate - System.currentTimeMillis()
         return if (diff < 0) 0L else TimeUnit.MILLISECONDS.toDays(diff)
     }
+
+    fun getNextBillingDate(currentDate: Long, cycle: String): Long {
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = currentDate }
+        when (cycle) {
+            "Daily"          -> cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
+            "Weekly"         -> cal.add(java.util.Calendar.WEEK_OF_YEAR, 1)
+            "Monthly"        -> cal.add(java.util.Calendar.MONTH, 1)
+            "Every 3 Months" -> cal.add(java.util.Calendar.MONTH, 3)
+            "Every 6 Months" -> cal.add(java.util.Calendar.MONTH, 6)
+            "Yearly"         -> cal.add(java.util.Calendar.YEAR, 1)
+            else             -> cal.add(java.util.Calendar.MONTH, 1)
+        }
+        return cal.timeInMillis
+    }
 }

@@ -12,16 +12,27 @@ is strictly prohibited without the express written permission of the author.
 
 package com.gbao86.sub_lazy.ui.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -47,10 +58,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -66,12 +79,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -118,7 +134,7 @@ fun AddEditSubscriptionScreen(
     var bankAccountHolder by remember { mutableStateOf("") }
  
     val categories = listOf("Entertainment", "Utilities", "Work", "Cloud", "Music", "Food", "Finance", "Anniversary", "Family", "Trial", "Notes", "Other")
-    var expandedCategory by remember { mutableStateOf(false) }
+    var showCategorySheet by remember { mutableStateOf(false) }
  
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = nextBillingDate)
     var showDatePicker by remember { mutableStateOf(false) }
@@ -130,12 +146,12 @@ fun AddEditSubscriptionScreen(
             val sub = viewModel.getSubscriptionById(subscriptionId)
             sub?.let {
                 name = it.name
-                amount = it.amount.toString()
+                selectedCurrency = it.currency
+                amount = formatDoubleToInput(it.amount, it.currency, locale)
                 nextBillingDate = it.nextBillingDate
                 cycle = it.cycle
                 category = it.category
                 colorHex = it.colorHex
-                selectedCurrency = it.currency
                 
                 val remTimes = it.remainingTimes
                 if (remTimes == null || remTimes <= 0) {
@@ -157,8 +173,8 @@ fun AddEditSubscriptionScreen(
         } else {
             prefillName?.let { name = it }
             prefillAmount?.let { 
-                amount = it.toString()
                 selectedCurrency = if (it > 1000.0) "VND" else "USD"
+                amount = formatDoubleToInput(it, selectedCurrency, locale)
             }
             prefillCycle?.let { cycle = it }
             prefillCategory?.let { category = it }
@@ -181,18 +197,19 @@ fun AddEditSubscriptionScreen(
 
     if (showDatePicker) {
         DatePickerDialog(
-            onDismissRequest = { },
+            onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
                         nextBillingDate = it
                     }
+                    showDatePicker = false
                 }) {
                     Text(stringResource(R.string.ok))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { }) {
+                TextButton(onClick = { showDatePicker = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -256,87 +273,110 @@ fun AddEditSubscriptionScreen(
             ) {
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { amount = it },
+                    onValueChange = { input ->
+                        amount = formatInputString(input, selectedCurrency, locale)
+                    },
                     label = { Text(stringResource(R.string.add_edit_price)) },
                     placeholder = { Text("0.0") },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(16.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     prefix = { Text(if (selectedCurrency == "VND") "₫ " else "$ ", fontWeight = FontWeight.Bold) }
                 )
 
-                // Currency Selector Dropdown
-                var expandedCurrency by remember { mutableStateOf(false) }
-                Box(modifier = Modifier.padding(top = 8.dp)) {
-                    OutlinedCard(
-                        onClick = { expandedCurrency = true },
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.height(56.dp).width(96.dp),
-                        colors = CardDefaults.outlinedCardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
+                // Currency Segmented Control
+                val options = listOf("VND", "USD")
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .height(64.dp)
+                        .width(160.dp)
+                        .padding(top = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        options.forEach { option ->
+                            val isSelected = option == selectedCurrency
+                            val backgroundAlpha by animateFloatAsState(
+                                targetValue = if (isSelected) 1f else 0f,
+                                label = "bg_alpha"
+                            )
+                            val textColor by animateColorAsState(
+                                targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                label = "text_color"
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = backgroundAlpha))
+                                    .clickable {
+                                        val prev = selectedCurrency
+                                        if (prev != option) {
+                                            selectedCurrency = option
+                                            val doubleVal = parseFormattedAmount(amount, locale)
+                                            amount = formatDoubleToInput(doubleVal, option, locale)
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(selectedCurrency, fontWeight = FontWeight.Bold)
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                                Text(
+                                    text = if (option == "VND") "₫ VND" else "$ USD",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textColor
+                                )
                             }
                         }
-                    }
-                    DropdownMenu(
-                        expanded = expandedCurrency,
-                        onDismissRequest = { expandedCurrency = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("VND (₫)") },
-                            onClick = {
-                                selectedCurrency = "VND"
-                                expandedCurrency = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("USD ($)") },
-                            onClick = {
-                                selectedCurrency = "USD"
-                                expandedCurrency = false
-                            }
-                        )
                     }
                 }
             }
 
             // Billing Date
             val dateFormatter = remember { java.text.DateFormat.getDateInstance(java.text.DateFormat.LONG) }
-            OutlinedTextField(
-                value = dateFormatter.format(Date(nextBillingDate)),
-                onValueChange = { },
-                label = { Text(stringResource(R.string.add_edit_renewal_date)) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                readOnly = true,
-                trailingIcon = {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.CalendarToday, contentDescription = stringResource(R.string.add_edit_select_date), tint = MaterialTheme.colorScheme.primary)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showDatePicker = true }
+            ) {
+                OutlinedTextField(
+                    value = dateFormatter.format(Date(nextBillingDate)),
+                    onValueChange = { },
+                    label = { Text(stringResource(R.string.add_edit_renewal_date)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    readOnly = true,
+                    enabled = false,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.primary
+                    ),
+                    trailingIcon = {
+                        Icon(Icons.Default.CalendarToday, contentDescription = stringResource(R.string.add_edit_select_date))
                     }
-                }
-            )
+                )
+            }
 
             // Category Selection
-            ExposedDropdownMenuBox(
-                expanded = expandedCategory,
-                onExpandedChange = { expandedCategory = !expandedCategory }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showCategorySheet = true }
             ) {
                 OutlinedTextField(
                     value = getCategoryDisplayName(category),
                     onValueChange = { },
                     readOnly = true,
+                    enabled = false,
                     label = { Text(stringResource(R.string.add_edit_category)) },
                     leadingIcon = {
                         Icon(
@@ -345,148 +385,146 @@ fun AddEditSubscriptionScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategory) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
-                )
-                ExposedDropdownMenu(
-                    expanded = expandedCategory,
-                    onDismissRequest = { expandedCategory = false }
-                ) {
-                    categories.forEach { selectionOption ->
-                        DropdownMenuItem(
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = CategoryUtils.getCategoryIcon(selectionOption),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            text = { Text(getCategoryDisplayName(selectionOption)) },
-                            onClick = {
-                                category = selectionOption
-                                expandedCategory = false
-                            }
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+            }
+
+            if (showCategorySheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showCategorySheet = false },
+                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                    containerColor = MaterialTheme.colorScheme.surface
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 16.dp)
+                            .navigationBarsPadding(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = "Chọn danh mục",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(3),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.heightIn(max = 340.dp)
+                        ) {
+                            items(categories.size) { index ->
+                                val cat = categories[index]
+                                val isSelected = cat == category
+                                val catColor = getCategoryAccentColor(cat)
+                                
+                                OutlinedCard(
+                                    onClick = {
+                                        category = cat
+                                        showCategorySheet = false
+                                    },
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(
+                                        width = if (isSelected) 2.dp else 1.dp,
+                                        color = if (isSelected) catColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                    ),
+                                    colors = CardDefaults.outlinedCardColors(
+                                        containerColor = if (isSelected) catColor.copy(alpha = 0.08f) else Color.Transparent
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(88.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = CategoryUtils.getCategoryIcon(cat),
+                                            contentDescription = null,
+                                            tint = if (isSelected) catColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = getCategoryDisplayName(cat),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) catColor else MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }
-
             // Cycle Selection
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.add_edit_billing_cycle), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 
+                val cycleRows = listOf(
+                    listOf("Daily", "Weekly", "Monthly"),
+                    listOf("Every 3 Months", "Every 6 Months", "Yearly")
+                )
+                
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("Daily", "Weekly").forEach { item ->
-                            val selected = cycle == item
-                            FilterChip(
-                                selected = selected,
-                                onClick = { cycle = item },
-                                label = { 
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            stringResource(getCycleDisplayNameRes(item)), 
-                                            modifier = Modifier.padding(vertical = 8.dp),
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                        ) 
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    cycleRows.forEach { rowItems ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowItems.forEach { item ->
+                                val selected = cycle == item
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = { cycle = item },
+                                    label = { 
+                                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                            Text(
+                                                stringResource(getCycleDisplayNameRes(item)), 
+                                                modifier = Modifier.padding(vertical = 4.dp),
+                                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                                fontSize = 12.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            ) 
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
                                 )
-                            )
+                            }
+                            if (rowItems.size < 3) {
+                                repeat(3 - rowItems.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
                         }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("Monthly", "Every 3 Months").forEach { item ->
-                            val selected = cycle == item
-                            FilterChip(
-                                selected = selected,
-                                onClick = { cycle = item },
-                                label = { 
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            stringResource(getCycleDisplayNameRes(item)), 
-                                            modifier = Modifier.padding(vertical = 8.dp),
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                        ) 
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("Every 6 Months", "Yearly").forEach { item ->
-                            val selected = cycle == item
-                            FilterChip(
-                                selected = selected,
-                                onClick = { cycle = item },
-                                label = { 
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            stringResource(getCycleDisplayNameRes(item)), 
-                                            modifier = Modifier.padding(vertical = 8.dp),
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                        ) 
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("One-time").forEach { item ->
-                            val selected = cycle == item
-                            FilterChip(
-                                selected = selected,
-                                onClick = { cycle = item },
-                                label = { 
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            stringResource(getCycleDisplayNameRes(item)), 
-                                            modifier = Modifier.padding(vertical = 8.dp),
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                        ) 
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            )
-                        }
-                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -647,28 +685,37 @@ fun AddEditSubscriptionScreen(
                             }
                         }
 
-                        val sub = Subscription(
-                            id = if (isEditMode) subscriptionId else 0,
-                            name = name,
-                            amount = amount.toDoubleOrNull() ?: 0.0,
-                            nextBillingDate = finalNextBillingDate,
-                            cycle = cycle,
-                            category = category,
-                            colorHex = colorHex,
-                            currency = selectedCurrency,
-                            remainingTimes = remainingTimesVal,
-                            
-                            isKmBased = false,
-                            lastOdometer = null,
-                            targetIntervalKm = null,
-                            dailyAverageKm = null,
-                            lastOdometerUpdateDate = null,
-                            
-                            bankAccount = if (hasBankInfo) bankAccount else null,
-                            bankName = if (hasBankInfo) bankName else null,
-                            bankAccountHolder = if (hasBankInfo) bankAccountHolder else null
-                        )
-                        if (isEditMode) viewModel.update(sub) else viewModel.insert(sub)
+                        if (isEditMode) {
+                            viewModel.updateSubscriptionDetails(
+                                id = subscriptionId,
+                                name = name,
+                                amount = parseFormattedAmount(amount, locale),
+                                nextBillingDate = finalNextBillingDate,
+                                cycle = cycle,
+                                category = category,
+                                colorHex = colorHex,
+                                currency = selectedCurrency,
+                                remainingTimes = remainingTimesVal,
+                                bankAccount = if (hasBankInfo) bankAccount else null,
+                                bankName = if (hasBankInfo) bankName else null,
+                                bankAccountHolder = if (hasBankInfo) bankAccountHolder else null
+                            )
+                        } else {
+                            val sub = Subscription(
+                                name = name,
+                                amount = parseFormattedAmount(amount, locale),
+                                nextBillingDate = finalNextBillingDate,
+                                cycle = cycle,
+                                category = category,
+                                colorHex = colorHex,
+                                currency = selectedCurrency,
+                                remainingTimes = remainingTimesVal,
+                                bankAccount = if (hasBankInfo) bankAccount else null,
+                                bankName = if (hasBankInfo) bankName else null,
+                                bankAccountHolder = if (hasBankInfo) bankAccountHolder else null
+                            )
+                            viewModel.insert(sub)
+                        }
                         onNavigateBack()
                     }
                 },
@@ -731,3 +778,116 @@ private fun getCycleDisplayNameRes(cycle: String): Int {
         else -> R.string.cycle_monthly
     }
 }
+
+private fun getCategoryAccentColor(category: String): Color {
+    return when (category) {
+        "Entertainment" -> Color(0xFF7C3AED)
+        "Utilities" -> Color(0xFFF59E0B)
+        "Work" -> Color(0xFF3B82F6)
+        "Cloud" -> Color(0xFF06B6D4)
+        "Music" -> Color(0xFFEC4899)
+        "Food" -> Color(0xFFF97316)
+        "Finance" -> Color(0xFF10B981)
+        "Anniversary" -> Color(0xFFEF4444)
+        "Family" -> Color(0xFF14B8A6)
+        "Trial" -> Color(0xFF8B5CF6)
+        "Notes" -> Color(0xFF64748B)
+        else -> Color(0xFF94A3B8)
+    }
+}
+
+private fun formatInputString(input: String, currency: String, locale: java.util.Locale): String {
+    val isVi = locale.language == "vi"
+    val decimalChar = if (isVi) ',' else '.'
+    val thousandChar = if (isVi) '.' else ','
+    
+    val cleanBuilder = StringBuilder()
+    var decimalSeen = false
+    for (char in input) {
+        if (char.isDigit()) {
+            cleanBuilder.append(char)
+        } else if (char == decimalChar && !decimalSeen && currency != "VND") {
+            cleanBuilder.append(char)
+            decimalSeen = true
+        }
+    }
+    val clean = cleanBuilder.toString()
+    if (clean.isEmpty()) return ""
+    
+    val parts = clean.split(decimalChar)
+    val integerPart = parts[0]
+    val decimalPart = if (parts.size > 1) parts[1] else null
+    
+    val formattedInteger = if (integerPart.isNotEmpty()) {
+        val sb = StringBuilder()
+        var count = 0
+        for (i in integerPart.length - 1 downTo 0) {
+            sb.append(integerPart[i])
+            count++
+            if (count % 3 == 0 && i > 0) {
+                sb.append(thousandChar)
+            }
+        }
+        sb.reverse().toString()
+    } else {
+        ""
+    }
+    
+    return if (decimalPart != null) {
+        val truncatedDecimal = if (decimalPart.length > 2) decimalPart.substring(0, 2) else decimalPart
+        "$formattedInteger$decimalChar$truncatedDecimal"
+    } else if (input.endsWith(decimalChar) && currency != "VND") {
+        "$formattedInteger$decimalChar"
+    } else {
+        formattedInteger
+    }
+}
+
+private fun formatDoubleToInput(value: Double, currency: String, locale: java.util.Locale): String {
+    val isVi = locale.language == "vi"
+    if (currency == "VND" || value % 1.0 == 0.0) {
+        val longVal = value.toLong()
+        val thousandChar = if (isVi) '.' else ','
+        val str = longVal.toString()
+        val sb = StringBuilder()
+        var count = 0
+        for (i in str.length - 1 downTo 0) {
+            sb.append(str[i])
+            count++
+            if (count % 3 == 0 && i > 0) {
+                sb.append(thousandChar)
+            }
+        }
+        return sb.reverse().toString()
+    } else {
+        val decimalChar = if (isVi) ',' else '.'
+        val thousandChar = if (isVi) '.' else ','
+        val formatted = String.format(java.util.Locale.US, "%.2f", value)
+        val parts = formatted.split('.')
+        val integerPart = parts[0]
+        val decimalPart = parts[1]
+        
+        val sb = StringBuilder()
+        var count = 0
+        for (i in integerPart.length - 1 downTo 0) {
+            sb.append(integerPart[i])
+            count++
+            if (count % 3 == 0 && i > 0) {
+                sb.append(thousandChar)
+            }
+        }
+        val formattedInteger = sb.reverse().toString()
+        return "$formattedInteger$decimalChar$decimalPart"
+    }
+}
+
+private fun parseFormattedAmount(amountStr: String, locale: java.util.Locale): Double {
+    if (amountStr.isBlank()) return 0.0
+    val cleanStr = if (locale.language == "vi") {
+        amountStr.replace(".", "").replace(",", ".")
+    } else {
+        amountStr.replace(",", "")
+    }
+    return cleanStr.toDoubleOrNull() ?: 0.0
+}
+

@@ -22,23 +22,63 @@ import com.gbao86.sub_lazy.data.SubscriptionRepository
 import com.gbao86.sub_lazy.data.PaymentHistory
 import com.gbao86.sub_lazy.worker.NotificationScheduler
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
+import com.gbao86.sub_lazy.ui.DateUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.time.Year
+import android.content.Context
+import android.content.SharedPreferences
 
 class SubscriptionViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: SubscriptionRepository
     private val notificationScheduler = NotificationScheduler(application)
+    
+    private val sharedPref = application.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    private val _userBalance = MutableStateFlow(sharedPref.getFloat("user_balance", 2000000f).toDouble())
+    val userBalance: StateFlow<Double> = _userBalance.asStateFlow()
+
+    private val _budgetResetDay = MutableStateFlow(sharedPref.getInt("budget_reset_day", 1))
+    val budgetResetDay: StateFlow<Int> = _budgetResetDay.asStateFlow()
+
+    private val preferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        when (key) {
+            "user_balance" -> {
+                _userBalance.value = sharedPref.getFloat("user_balance", 2000000f).toDouble()
+            }
+            "budget_reset_day" -> {
+                _budgetResetDay.value = sharedPref.getInt("budget_reset_day", 1)
+            }
+        }
+    }
 
     val allSubscriptions: Flow<List<Subscription>>
     val totalMonthlyCost: Flow<Double?>
     val spendingByCategory: Flow<List<CategorySpending>>
     val allPaymentHistory: Flow<List<PaymentHistory>>
 
+    fun updateUserBalance(balance: Double) {
+        sharedPref.edit().putFloat("user_balance", balance.toFloat()).apply()
+        _userBalance.value = balance
+    }
+
+    fun updateBudgetResetDay(day: Int) {
+        sharedPref.edit().putInt("budget_reset_day", day).apply()
+        _budgetResetDay.value = day
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        sharedPref.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
+    }
+
     init {
+        sharedPref.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
         val dao = AppDatabase.getDatabase(application).subscriptionDao()
         repository = SubscriptionRepository(dao)
         allSubscriptions = repository.allSubscriptions
@@ -113,7 +153,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                         currentSub = currentSub.copy(remainingTimes = newLimit)
                     }
 
-                    val nextDate = getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
+                    val nextDate = DateUtils.getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
                     if (nextDate <= currentSub.nextBillingDate) {
                         // Prevent infinite loop if cycle is invalid or unrecognized
                         shouldDelete = true
@@ -133,18 +173,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    private fun getNextBillingDate(currentDate: Long, cycle: String): Long {
-        val cal = Calendar.getInstance().apply { timeInMillis = currentDate }
-        when (cycle) {
-            "Daily" -> cal.add(Calendar.DAY_OF_YEAR, 1)
-            "Weekly" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
-            "Monthly" -> cal.add(Calendar.MONTH, 1)
-            "Every 3 Months" -> cal.add(Calendar.MONTH, 3)
-            "Every 6 Months" -> cal.add(Calendar.MONTH, 6)
-            "Yearly" -> cal.add(Calendar.YEAR, 1)
-        }
-        return cal.timeInMillis
-    }
+
 
     fun insert(subscription: Subscription) = viewModelScope.launch {
         val id = repository.insert(subscription)
@@ -155,6 +184,40 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
     fun update(subscription: Subscription) = viewModelScope.launch {
         repository.update(subscription)
         notificationScheduler.scheduleNotification(subscription)
+    }
+
+    fun updateSubscriptionDetails(
+        id: Long,
+        name: String,
+        amount: Double,
+        nextBillingDate: Long,
+        cycle: String,
+        category: String,
+        colorHex: String,
+        currency: String,
+        remainingTimes: Int?,
+        bankAccount: String?,
+        bankName: String?,
+        bankAccountHolder: String?
+    ) = viewModelScope.launch {
+        val existing = repository.getSubscriptionById(id)
+        if (existing != null) {
+            val updated = existing.copy(
+                name = name,
+                amount = amount,
+                nextBillingDate = nextBillingDate,
+                cycle = cycle,
+                category = category,
+                colorHex = colorHex,
+                currency = currency,
+                remainingTimes = remainingTimes,
+                bankAccount = bankAccount,
+                bankName = bankName,
+                bankAccountHolder = bankAccountHolder
+            )
+            repository.update(updated)
+            notificationScheduler.scheduleNotification(updated)
+        }
     }
 
     fun delete(subscription: Subscription) = viewModelScope.launch {
@@ -198,14 +261,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                 repository.delete(subscription)
                 notificationScheduler.cancelNotification(subscription.id)
             } else {
-                val nextDate = getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
-                val finalNextDate = if (nextDate <= currentSub.nextBillingDate) {
-                    val cal = Calendar.getInstance().apply { timeInMillis = currentSub.nextBillingDate }
-                    cal.add(Calendar.MONTH, 1)
-                    cal.timeInMillis
-                } else {
-                    nextDate
-                }
+                val finalNextDate = DateUtils.getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
                 currentSub = currentSub.copy(nextBillingDate = finalNextDate)
                 repository.update(currentSub)
                 notificationScheduler.scheduleNotification(currentSub)

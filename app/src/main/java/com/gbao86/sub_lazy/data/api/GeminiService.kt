@@ -21,6 +21,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
+import java.util.Calendar
+import com.gbao86.sub_lazy.ui.DateUtils
 
 class GeminiService(private val context: Context) {
 
@@ -143,15 +145,7 @@ class GeminiService(private val context: Context) {
         // 4. Map category
         val category = getCategoryForService(serviceName)
 
-        // 5. Detect billing date
-        val defaultNextBilling = when (cycle) {
-            "Yearly" -> System.currentTimeMillis() + 86400000L * 365
-            "Weekly" -> System.currentTimeMillis() + 86400000L * 7
-            "Daily" -> System.currentTimeMillis() + 86400000L * 1
-            "Every 3 Months" -> System.currentTimeMillis() + 86400000L * 90
-            "Every 6 Months" -> System.currentTimeMillis() + 86400000L * 180
-            else -> System.currentTimeMillis() + 86400000L * 30
-        }
+        val defaultNextBilling = DateUtils.getNextBillingDate(System.currentTimeMillis(), cycle)
         val billingDate = detectDate(unaccentedLowerText) ?: defaultNextBilling
 
         // 6. Detect currency
