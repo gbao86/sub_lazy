@@ -16,26 +16,43 @@ import java.text.NumberFormat
 import java.util.Locale
 
 object CurrencyFormatter {
-    private const val USD_TO_VND = 25400.0
-
     fun convert(amount: Double, fromCurrency: String, toCurrency: String): Double {
         if (fromCurrency.equals(toCurrency, ignoreCase = true)) return amount
-        return if (fromCurrency.equals("USD", ignoreCase = true) && toCurrency.equals("VND", ignoreCase = true)) {
-            amount * USD_TO_VND
-        } else if (fromCurrency.equals("VND", ignoreCase = true) && toCurrency.equals("USD", ignoreCase = true)) {
-            amount / USD_TO_VND
+        val context = ExchangeRateManager.getAppContext()
+        return if (context != null) {
+            ExchangeRateManager.convert(context, amount, fromCurrency, toCurrency)
         } else {
-            amount
+            val rateFrom = ExchangeRateManager.getDefaultRate(fromCurrency)
+            val rateTo = ExchangeRateManager.getDefaultRate(toCurrency)
+            (amount / rateFrom) * rateTo
         }
     }
 
     fun format(amount: Double, sourceCurrency: String, locale: Locale): String {
-        val targetCurrency = if (locale.language == "vi") "VND" else "USD"
+        val targetCurrency = ExchangeRateManager.getTargetCurrencyForLocale(locale)
         val convertedAmount = convert(amount, sourceCurrency, targetCurrency)
-        return if (targetCurrency == "VND") {
-            NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(convertedAmount)
-        } else {
-            NumberFormat.getCurrencyInstance(Locale.US).format(convertedAmount)
+        
+        val formatLocale = when (targetCurrency) {
+            "VND" -> Locale("vi", "VN")
+            "CNY" -> Locale("zh", "CN")
+            "THB" -> Locale("th", "TH")
+            "EUR" -> if (locale.language == "es") Locale("es", "ES") else Locale("fr", "FR")
+            "JPY" -> Locale("ja", "JP")
+            "KRW" -> Locale("ko", "KR")
+            else -> Locale.US
+        }
+        
+        return try {
+            val formatter = NumberFormat.getCurrencyInstance(formatLocale)
+            var formatted = formatter.format(convertedAmount)
+            if (targetCurrency == "CNY") {
+                formatted = formatted.replace("¥", "CN¥").replace("￥", "CN¥")
+            } else if (targetCurrency == "JPY") {
+                formatted = formatted.replace("¥", "JP¥").replace("￥", "JP¥")
+            }
+            formatted
+        } catch (e: Exception) {
+            "$targetCurrency ${String.format(Locale.US, "%.2f", convertedAmount)}"
         }
     }
 }

@@ -17,7 +17,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Subscription::class, PaymentHistory::class], version = 5, exportSchema = false)
+@Database(entities = [Subscription::class, PaymentHistory::class], version = 6, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun subscriptionDao(): SubscriptionDao
 
@@ -67,6 +67,18 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN isSessionBased INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN totalSessions INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN remainingSessions INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN isInstallment INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN totalInstallmentPeriods INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN isShared INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN sharedMembersJson TEXT DEFAULT NULL")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -74,7 +86,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "subscription_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
                 INSTANCE = instance
                 instance

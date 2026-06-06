@@ -166,14 +166,18 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                     repository.delete(sub)
                     notificationScheduler.cancelNotification(sub.id)
                 } else {
+                    // Reset shared members payment status when rolling over
+                    if (currentSub.isShared && !currentSub.sharedMembersJson.isNullOrBlank()) {
+                        val members = com.gbao86.sub_lazy.data.SharedMember.parseMembers(currentSub.sharedMembersJson)
+                        val resetMembers = members.map { it.copy(hasPaid = false) }
+                        currentSub = currentSub.copy(sharedMembersJson = com.gbao86.sub_lazy.data.SharedMember.serializeMembers(resetMembers))
+                    }
                     repository.update(currentSub)
                     notificationScheduler.scheduleNotification(currentSub)
                 }
             }
         }
     }
-
-
 
     fun insert(subscription: Subscription) = viewModelScope.launch {
         val id = repository.insert(subscription)
@@ -198,7 +202,13 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         remainingTimes: Int?,
         bankAccount: String?,
         bankName: String?,
-        bankAccountHolder: String?
+        bankAccountHolder: String?,
+        isSessionBased: Boolean,
+        totalSessions: Int?,
+        remainingSessions: Int?,
+        isInstallment: Boolean,
+        isShared: Boolean,
+        sharedMembersJson: String?
     ) = viewModelScope.launch {
         val existing = repository.getSubscriptionById(id)
         if (existing != null) {
@@ -213,7 +223,13 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                 remainingTimes = remainingTimes,
                 bankAccount = bankAccount,
                 bankName = bankName,
-                bankAccountHolder = bankAccountHolder
+                bankAccountHolder = bankAccountHolder,
+                isSessionBased = isSessionBased,
+                totalSessions = totalSessions,
+                remainingSessions = remainingSessions,
+                isInstallment = isInstallment,
+                isShared = isShared,
+                sharedMembersJson = sharedMembersJson
             )
             repository.update(updated)
             notificationScheduler.scheduleNotification(updated)
@@ -263,9 +279,39 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
             } else {
                 val finalNextDate = DateUtils.getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
                 currentSub = currentSub.copy(nextBillingDate = finalNextDate)
+                
+                // Reset shared members payment status when marking as paid/rolling over
+                if (currentSub.isShared && !currentSub.sharedMembersJson.isNullOrBlank()) {
+                    val members = com.gbao86.sub_lazy.data.SharedMember.parseMembers(currentSub.sharedMembersJson)
+                    val resetMembers = members.map { it.copy(hasPaid = false) }
+                    currentSub = currentSub.copy(sharedMembersJson = com.gbao86.sub_lazy.data.SharedMember.serializeMembers(resetMembers))
+                }
+                
                 repository.update(currentSub)
                 notificationScheduler.scheduleNotification(currentSub)
             }
         }
+    }
+
+    fun checkInSession(subscription: Subscription) = viewModelScope.launch {
+        val rem = subscription.remainingSessions ?: return@launch
+        if (rem > 0) {
+            val updated = subscription.copy(remainingSessions = rem - 1)
+            repository.update(updated)
+        }
+    }
+
+    fun toggleMemberPaidStatus(subscription: Subscription, memberName: String) = viewModelScope.launch {
+        val json = subscription.sharedMembersJson ?: return@launch
+        val members = com.gbao86.sub_lazy.data.SharedMember.parseMembers(json)
+        val updatedMembers = members.map {
+            if (it.name == memberName) {
+                it.copy(hasPaid = !it.hasPaid)
+            } else {
+                it
+            }
+        }
+        val updated = subscription.copy(sharedMembersJson = com.gbao86.sub_lazy.data.SharedMember.serializeMembers(updatedMembers))
+        repository.update(updated)
     }
 }

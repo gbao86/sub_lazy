@@ -47,6 +47,7 @@
     <string name="add_edit_renewal_date">Next Renewal Date</string>
     <string name="add_edit_select_date">Select Date</string>
     <string name="add_edit_category">Category</string>
+    <string name="add_edit_select_category">Select Category</string>
     <string name="add_edit_billing_cycle">Billing Cycle</string>
     <string name="add_edit_btn_track">Track Subscription</string>
     <string name="add_edit_btn_update">Update Service</string>
@@ -151,6 +152,10 @@
     <string name="action_scan_screenshot">Scan Bill Screenshot</string>
     <string name="action_sync_gmail">Sync from Gmail</string>
     <string name="action_sheet_title">How would you like to add?</string>
+    <string name="action_add_from_template">Add from Template</string>
+    <string name="template_dialog_title">Select Template</string>
+    <string name="template_tab_digital">Digital Services</string>
+    <string name="template_tab_lifestyle">Lifestyle</string>
     
     <!-- Gemini / OCR processing -->
     <string name="ocr_processing">AI is analyzing invoice...</string>
@@ -171,4 +176,94 @@
     <string name="payment_history_title">Payment History</string>
     <string name="payment_history_empty">No payments recorded yet</string>
     <string name="payment_history_recorded">Paid %1$s on %2$s</string>
+
+    <!-- Budget Section & Alerts -->
+    <string name="budget_update_title">Update Budget</string>
+    <string name="budget_monthly_label">Monthly Budget (VND)</string>
+    <string name="budget_reset_day_label">Monthly budget reset day (1 - 31)</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="budget_monthly_spending_title">Monthly Budget: </string>
+    <string name="budget_empty_services_hint">Please add services to start tracking your financial limits.</string>
+    <string name="budget_deficit_title">Monthly budget deficit! 🚨</string>
+    <string name="budget_deficit_desc">Total monthly cost of services has exceeded your monthly budget.</string>
+    <string name="budget_safe_title">Safe finance 💚</string>
+    <string name="budget_safe_desc">Budget is sufficient to cover all bills this month.</string>
+    <string name="budget_exhausted_title">Budget exhausted! 🚨</string>
+    <string name="budget_exhausted_desc">Budget is not sufficient to cover the next bill. Add budget or cancel services now!</string>
+    <string name="budget_running_out_title">Budget running out! 🚨</string>
+    <string name="budget_running_out_warning">Upcoming budget depletion warning ⚠️</string>
+    <string name="budget_countdown_pattern">%1$d days %2$d hours %3$d mins</string>
+    <string name="budget_depleted_on_date">Budget is expected to run out on %1$s.</string>
+
+    <!-- Cat section messages -->
+    <string name="cat_bubble_happy">Yay! Recurring spend is optimal, Lazy Cat is happily playing! 😸🎉</string>
+    <string name="cat_bubble_sleeping">Lazy Cat is sleeping soundly... Your bills are well managed! 💤</string>
+    <string name="cat_bubble_bankrupt">Oh no! Budget is completely exhausted (negative or 0). Supplement budget or cancel some services immediately! 🚨</string>
+    <string name="cat_bubble_exceeded">Oh no! Total monthly subscription costs have exceeded your monthly budget! 🚨</string>
+    <string name="cat_bubble_depleted_in_days">Budget will run out in %1$d days! Supplement budget or cancel some services! ⚠️</string>
+    <string name="cat_bubble_deficit_warning">Warning! Budget deficit risk. Supplement budget or cancel some services! ⚠️</string>
+
+    <!-- Trial Sandbox Guides -->
+    <string name="trial_guide_title">How to cancel trial</string>
+    <string name="trial_guide_play_store">Open Play Store -> Tap top avatar -> Payments &amp; subscriptions -> Subscriptions -> Select %1$s -> Cancel subscription.</string>
+    <string name="trial_guide_apple_store">Open iPhone Settings -> Tap your name -> Subscriptions -> Select %1$s -> Cancel trial.</string>
+    <string name="trial_guide_netflix">Open Netflix Web -> Go to Account page -> In Membership section, select Cancel Membership.</string>
+    <string name="trial_guide_spotify">Open Spotify Web -> Go to Account page -> Manage subscription -> Select Change or Cancel -> Cancel Premium.</string>
+    <string name="trial_guide_youtube">Open YouTube app -> Tap avatar -> Purchases and memberships -> Manage membership -> Cancel trial.</string>
+    <string name="trial_guide_general">Open the app where you subscribed -> Go to Account Settings -> Plan/Billing -> Choose Cancel service before the renewal date.</string>
+
+    <!-- Shared/Commitment items -->
+    <string name="dashboard_check_in_session">Check-in 1 session</string>
+    <string name="dashboard_renew_plan">Renew plan</string>
+    <string name="dashboard_scan_vietqr">Scan VietQR Code</string>
+    <string name="dashboard_scan_vietqr_desc">Use your banking app to scan QR for quick payment</string>
+    <string name="dashboard_btn_close">Close</string>
+    <string name="dashboard_details_installment">Installment Plan · %1$d months left</string>
+    <string name="dashboard_details_session">Session Pass · %1$d/%2$d sessions left</string>
+    <string name="dashboard_group_split_cost">Group split cost:</string>
+    <string name="dashboard_reminder_copied">Debt reminder copied!</string>
+    <string name="dashboard_send_reminder_to">Send reminder to %1$s</string>
+    <string name="dashboard_btn_remind">Remind</string>
+    <string name="dashboard_split_reminder_pattern">Hello %1$s, it\'s time to pay for %2$s. The amount is %3$s. You can transfer via VietQR here: %4$s</string>
+    <string name="dashboard_services_tracked">%1$d services tracked</string>
+    <string name="dashboard_services_tracked_single">1 service tracked</string>
+    <string name="dashboard_categories_count">%1$d categories</string>
+    <string name="dashboard_categories_count_single">1 category</string>
+    <string name="dashboard_history_count">%1$d transactions</string>
+    <string name="dashboard_history_count_single">1 transaction</string>
+
+    <!-- Dashboard Tabs -->
+    <string name="dashboard_tab_overview">Overview</string>
+    <string name="dashboard_tab_analysis">Analysis</string>
+
+    <!-- Add/Edit Screen Commitments & Bank Details -->
+    <string name="add_edit_commitment_type">Commitment Type</string>
+    <string name="add_edit_type_standard">Standard Bill</string>
+    <string name="add_edit_type_installment">Installment</string>
+    <string name="add_edit_type_session">Session Pass</string>
+    <string name="add_edit_installment_info">Installment Details</string>
+    <string name="add_edit_installment_periods">Total installment periods (Months)</string>
+    <string name="add_edit_installment_periods_hint">e.g. 6, 12, 24</string>
+    <string name="add_edit_installment_desc">The subscription will be automatically saved as a Monthly cycle and auto-deleted once all periods are paid.</string>
+    <string name="add_edit_session_info">Session Pass Details</string>
+    <string name="add_edit_session_total">Total sessions</string>
+    <string name="add_edit_session_total_hint">e.g. 30</string>
+    <string name="add_edit_session_remaining">Remaining sessions</string>
+    <string name="add_edit_session_desc">You can check-in directly from the dashboard to decrement the remaining sessions.</string>
+    <string name="add_edit_shared_title">Shared Subscription</string>
+    <string name="add_edit_shared_desc">Share costs with friends and automatically calculate splits</string>
+    <string name="add_edit_shared_members">Added Members:</string>
+    <string name="add_edit_shared_add_member">Add New Member</string>
+    <string name="add_edit_shared_member_name">Member Name</string>
+    <string name="add_edit_shared_member_name_hint">e.g. John, Jane</string>
+    <string name="add_edit_shared_member_amount">Split Amount</string>
+    <string name="add_edit_shared_member_phone">Phone (optional)</string>
+    <string name="add_edit_shared_member_phone_hint">09...</string>
+    <string name="add_edit_shared_btn_add">Add to list</string>
+    <string name="add_edit_bank_title">VietQR Bank Transfer Details</string>
+    <string name="add_edit_bank_desc">Configure your bank account to generate quick payment QR codes</string>
+    <string name="add_edit_bank_name">Bank Name (e.g., VCB, MB)</string>
+    <string name="add_edit_bank_account">Account Number</string>
+    <string name="add_edit_bank_account_holder">Account Holder Name (No accents)</string>
 </resources>

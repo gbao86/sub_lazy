@@ -39,5 +39,19 @@ data class Subscription(
     // Bank transfer details for VietQR
     val bankAccount: String? = null,
     val bankName: String? = null,
-    val bankAccountHolder: String? = null
+    val bankAccountHolder: String? = null,
+
+    // Session-based tracking
+    val isSessionBased: Boolean = false,
+    val totalSessions: Int? = null,
+    val remainingSessions: Int? = null,
+
+    // Installment tracking
+    val isInstallment: Boolean = false,
+    val totalInstallmentPeriods: Int? = null,
+
+    // Shared subscription splitting
+    val isShared: Boolean = false,
+    val sharedMembersJson: String? = null // Format: "Name:Amount:HasPaid:Phone;..."
 )
+

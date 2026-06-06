@@ -41,6 +41,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -94,6 +97,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gbao86.sub_lazy.R
 import com.gbao86.sub_lazy.data.Subscription
+import com.gbao86.sub_lazy.data.SharedMember
 import com.gbao86.sub_lazy.ui.CategoryUtils
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
@@ -123,9 +127,22 @@ fun AddEditSubscriptionScreen(
     var cycle by remember { mutableStateOf("Monthly") }
     var category by remember { mutableStateOf("Entertainment") }
     var colorHex by remember { mutableStateOf("#6366F1") }
-    var selectedCurrency by remember { mutableStateOf(if (locale.language == "vi") "VND" else "USD") }
+    var selectedCurrency by remember { mutableStateOf(com.gbao86.sub_lazy.ui.ExchangeRateManager.getTargetCurrencyForLocale(locale)) }
     var autoDeleteMode by remember { mutableStateOf("unlimited") } // "unlimited", "once", "custom"
     var customTimes by remember { mutableStateOf("") }
+
+    // Service Type States
+    var serviceType by remember { mutableStateOf("standard") } // "standard", "installment", "session"
+    var totalSessions by remember { mutableStateOf("") }
+    var remainingSessions by remember { mutableStateOf("") }
+    var totalInstallmentPeriods by remember { mutableStateOf("") }
+
+    // Shared Subscription States
+    var isShared by remember { mutableStateOf(false) }
+    var sharedMembersList by remember { mutableStateOf(emptyList<SharedMember>()) }
+    var newMemberName by remember { mutableStateOf("") }
+    var newMemberAmount by remember { mutableStateOf("") }
+    var newMemberPhone by remember { mutableStateOf("") }
 
     // Bank transfer details for VietQR states
     var hasBankInfo by remember { mutableStateOf(false) }
@@ -169,6 +186,18 @@ fun AddEditSubscriptionScreen(
                 bankAccount = it.bankAccount ?: ""
                 bankName = it.bankName ?: ""
                 bankAccountHolder = it.bankAccountHolder ?: ""
+
+                // Map new fields
+                totalSessions = it.totalSessions?.toString() ?: ""
+                remainingSessions = it.remainingSessions?.toString() ?: ""
+                totalInstallmentPeriods = it.totalInstallmentPeriods?.toString() ?: ""
+                isShared = it.isShared
+                sharedMembersList = SharedMember.parseMembers(it.sharedMembersJson)
+                serviceType = when {
+                    it.isInstallment -> "installment"
+                    it.isSessionBased -> "session"
+                    else -> "standard"
+                }
             }
         } else {
             prefillName?.let { name = it }
@@ -189,9 +218,37 @@ fun AddEditSubscriptionScreen(
     }
 
     LaunchedEffect(name) {
-        if (!isEditMode && (name.contains("thay dầu", ignoreCase = true) || name.contains("xe máy", ignoreCase = true) || name.contains("nhớt", ignoreCase = true))) {
-            cycle = "Every 6 Months"
-            category = "Utilities"
+        if (!isEditMode) {
+            val lowercaseName = name.lowercase()
+            when {
+                lowercaseName.contains("thay dầu") || lowercaseName.contains("xe máy") || lowercaseName.contains("nhớt") || lowercaseName.contains("bảo trì xe") -> {
+                    cycle = "Every 6 Months"
+                    category = "Utilities"
+                    serviceType = "standard"
+                }
+                lowercaseName.contains("máy lạnh") || lowercaseName.contains("điều hòa") || lowercaseName.contains("vệ sinh máy") -> {
+                    cycle = "Every 6 Months"
+                    category = "Utilities"
+                    serviceType = "standard"
+                }
+                lowercaseName.contains("gym") || lowercaseName.contains("yoga") || lowercaseName.contains("phòng tập") || lowercaseName.contains("bể bơi") -> {
+                    serviceType = "session"
+                    totalSessions = "10"
+                    remainingSessions = "10"
+                    category = "Utilities"
+                }
+                lowercaseName.contains("spaylater") || lowercaseName.contains("fundiin") || lowercaseName.contains("trả góp") || lowercaseName.contains("kỳ hạn") -> {
+                    serviceType = "installment"
+                    totalInstallmentPeriods = "12"
+                    cycle = "Monthly"
+                    category = "Finance"
+                }
+                lowercaseName.contains("bảo hiểm") -> {
+                    cycle = "Yearly"
+                    category = "Finance"
+                    serviceType = "standard"
+                }
+            }
         }
     }
 
@@ -257,6 +314,16 @@ fun AddEditSubscriptionScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 singleLine = true,
+                trailingIcon = {
+                    if (name.isNotBlank()) {
+                        Icon(
+                            imageVector = CategoryUtils.getIconForName(name, category),
+                            contentDescription = "Auto-detected Icon",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
@@ -264,6 +331,44 @@ fun AddEditSubscriptionScreen(
                     cursorColor = MaterialTheme.colorScheme.primary
                 )
             )
+
+            // Service Type Selector (Thường, Trả góp, Số buổi)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.add_edit_commitment_type), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val types = listOf(
+                        "standard" to stringResource(R.string.add_edit_type_standard),
+                        "installment" to stringResource(R.string.add_edit_type_installment),
+                        "session" to stringResource(R.string.add_edit_type_session)
+                    )
+                    types.forEach { (typeVal, typeLabel) ->
+                        val selected = serviceType == typeVal
+                        FilterChip(
+                            selected = selected,
+                            onClick = { serviceType = typeVal },
+                            label = {
+                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        typeLabel,
+                                        modifier = Modifier.padding(vertical = 4.dp),
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                    }
+                }
+            }
 
             // Amount
             Row(
@@ -282,11 +387,23 @@ fun AddEditSubscriptionScreen(
                     shape = RoundedCornerShape(16.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    prefix = { Text(if (selectedCurrency == "VND") "₫ " else "$ ", fontWeight = FontWeight.Bold) }
+                    prefix = {
+                        val prefixText = when (selectedCurrency) {
+                            "VND" -> "₫ "
+                            "EUR" -> "€ "
+                            "CNY" -> "CN¥ "
+                            "JPY" -> "JP¥ "
+                            "THB" -> "฿ "
+                            "KRW" -> "₩ "
+                            else -> "$ "
+                        }
+                        Text(prefixText, fontWeight = FontWeight.Bold)
+                    }
                 )
 
                 // Currency Segmented Control
-                val options = listOf("VND", "USD")
+                val targetCurrency = com.gbao86.sub_lazy.ui.ExchangeRateManager.getTargetCurrencyForLocale(locale)
+                val options = if (targetCurrency == "USD") listOf("USD", "VND") else listOf(targetCurrency, "USD")
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -327,8 +444,17 @@ fun AddEditSubscriptionScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
+                                val optionLabel = when (option) {
+                                    "VND" -> "₫ VND"
+                                    "EUR" -> "€ EUR"
+                                    "CNY" -> "¥ CNY"
+                                    "JPY" -> "¥ JPY"
+                                    "THB" -> "฿ THB"
+                                    "KRW" -> "₩ KRW"
+                                    else -> "$ USD"
+                                }
                                 Text(
-                                    text = if (option == "VND") "₫ VND" else "$ USD",
+                                    text = optionLabel,
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = textColor
@@ -417,7 +543,7 @@ fun AddEditSubscriptionScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            text = "Chọn danh mục",
+                            text = stringResource(R.string.add_edit_select_category),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -429,7 +555,7 @@ fun AddEditSubscriptionScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.heightIn(max = 340.dp)
                         ) {
-                            items(categories.size) { index ->
+                            items(categories.size, key = { categories[it] }) { index ->
                                 val cat = categories[index]
                                 val isSelected = cat == category
                                 val catColor = getCategoryAccentColor(cat)
@@ -479,35 +605,89 @@ fun AddEditSubscriptionScreen(
                     }
                 }
             }
-            // Cycle Selection
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(R.string.add_edit_billing_cycle), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                
-                val cycleRows = listOf(
-                    listOf("Daily", "Weekly", "Monthly"),
-                    listOf("Every 3 Months", "Every 6 Months", "Yearly")
-                )
-                
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    cycleRows.forEach { rowItems ->
+            
+            // Conditional Sections based on Service Type
+            if (serviceType == "standard") {
+                // Cycle Selection
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.add_edit_billing_cycle), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    
+                    val cycleRows = listOf(
+                        listOf("Daily", "Weekly", "Monthly"),
+                        listOf("Every 3 Months", "Every 6 Months", "Yearly")
+                    )
+                    
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        cycleRows.forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowItems.forEach { item ->
+                                    val selected = cycle == item
+                                    FilterChip(
+                                        selected = selected,
+                                        onClick = { cycle = item },
+                                        label = { 
+                                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    stringResource(getCycleDisplayNameRes(item)), 
+                                                    modifier = Modifier.padding(vertical = 4.dp),
+                                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                                    fontSize = 12.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                ) 
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    )
+                                }
+                                if (rowItems.size < 3) {
+                                    repeat(3 - rowItems.size) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Auto-delete Options Section
+                if (cycle != "One-time") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            stringResource(R.string.add_edit_auto_delete_title), 
+                            style = MaterialTheme.typography.titleSmall, 
+                            fontWeight = FontWeight.Bold
+                        )
+                        
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            rowItems.forEach { item ->
-                                val selected = cycle == item
+                            listOf("unlimited", "once", "custom").forEach { mode ->
+                                val selected = autoDeleteMode == mode
+                                val labelRes = when (mode) {
+                                    "unlimited" -> R.string.auto_delete_unlimited
+                                    "once" -> R.string.auto_delete_once
+                                    else -> R.string.auto_delete_custom
+                                }
                                 FilterChip(
                                     selected = selected,
-                                    onClick = { cycle = item },
+                                    onClick = { autoDeleteMode = mode },
                                     label = { 
                                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                                             Text(
-                                                stringResource(getCycleDisplayNameRes(item)), 
-                                                modifier = Modifier.padding(vertical = 4.dp),
+                                                stringResource(labelRes), 
+                                                modifier = Modifier.padding(vertical = 8.dp),
                                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                                fontSize = 12.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                                fontSize = 13.sp
                                             ) 
                                         }
                                     },
@@ -519,74 +699,239 @@ fun AddEditSubscriptionScreen(
                                     )
                                 )
                             }
-                            if (rowItems.size < 3) {
-                                repeat(3 - rowItems.size) {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                }
-                            }
                         }
-                    }
-                }
-            }
-
-            // Auto-delete Options Section
-            if (cycle != "One-time") {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        stringResource(R.string.add_edit_auto_delete_title), 
-                        style = MaterialTheme.typography.titleSmall, 
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("unlimited", "once", "custom").forEach { mode ->
-                            val selected = autoDeleteMode == mode
-                            val labelRes = when (mode) {
-                                "unlimited" -> R.string.auto_delete_unlimited
-                                "once" -> R.string.auto_delete_once
-                                else -> R.string.auto_delete_custom
-                            }
-                            FilterChip(
-                                selected = selected,
-                                onClick = { autoDeleteMode = mode },
-                                label = { 
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            stringResource(labelRes), 
-                                            modifier = Modifier.padding(vertical = 8.dp),
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                            fontSize = 13.sp
-                                        ) 
+                        
+                        if (autoDeleteMode == "custom") {
+                            OutlinedTextField(
+                                value = customTimes,
+                                onValueChange = { input ->
+                                    if (input.all { it.isDigit() }) {
+                                        customTimes = input
                                     }
                                 },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
+                                label = { Text(stringResource(R.string.auto_delete_custom_hint)) },
+                                placeholder = { Text("e.g. 5") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
                             )
                         }
                     }
-                    
-                    if (autoDeleteMode == "custom") {
+                }
+            } else if (serviceType == "installment") {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.add_edit_installment_info), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = totalInstallmentPeriods,
+                        onValueChange = { input ->
+                            if (input.all { it.isDigit() }) {
+                                totalInstallmentPeriods = input
+                            }
+                        },
+                        label = { Text(stringResource(R.string.add_edit_installment_periods)) },
+                        placeholder = { Text(stringResource(R.string.add_edit_installment_periods_hint)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
+                    Text(
+                        stringResource(R.string.add_edit_installment_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else if (serviceType == "session") {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.add_edit_session_info), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         OutlinedTextField(
-                            value = customTimes,
+                            value = totalSessions,
                             onValueChange = { input ->
                                 if (input.all { it.isDigit() }) {
-                                    customTimes = input
+                                    totalSessions = input
+                                    if (remainingSessions.isEmpty()) {
+                                        remainingSessions = input
+                                    }
                                 }
                             },
-                            label = { Text(stringResource(R.string.auto_delete_custom_hint)) },
-                            placeholder = { Text("e.g. 5") },
-                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text(stringResource(R.string.add_edit_session_total)) },
+                            placeholder = { Text(stringResource(R.string.add_edit_session_total_hint)) },
+                            modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(16.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )
+
+                        OutlinedTextField(
+                            value = remainingSessions,
+                            onValueChange = { input ->
+                                if (input.all { it.isDigit() }) {
+                                    remainingSessions = input
+                                }
+                            },
+                            label = { Text(stringResource(R.string.add_edit_session_remaining)) },
+                            placeholder = { Text(stringResource(R.string.add_edit_session_total_hint)) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.add_edit_session_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            // Shared Subscription Card
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.add_edit_shared_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(stringResource(R.string.add_edit_shared_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Switch(checked = isShared, onCheckedChange = { isShared = it })
+                    }
+
+                    if (isShared) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        
+                        // List added members
+                        if (sharedMembersList.isNotEmpty()) {
+                            Text(stringResource(R.string.add_edit_shared_members), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            sharedMembersList.forEachIndexed { idx, member ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(member.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                        if (!member.phone.isNullOrBlank()) {
+                                            Text(member.phone, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            formatDoubleToInput(member.amount, selectedCurrency, locale) + " " + selectedCurrency,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        IconButton(
+                                            onClick = {
+                                                sharedMembersList = sharedMembersList.filterIndexed { i, _ -> i != idx }
+                                            },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = stringResource(R.string.delete_dialog_confirm),
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        }
+                        
+                        // Add new member form
+                        Text(stringResource(R.string.add_edit_shared_add_member), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        OutlinedTextField(
+                            value = newMemberName,
+                            onValueChange = { newMemberName = it },
+                            label = { Text(stringResource(R.string.add_edit_shared_member_name)) },
+                            placeholder = { Text(stringResource(R.string.add_edit_shared_member_name_hint)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
+                        )
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = newMemberAmount,
+                                onValueChange = { newMemberAmount = formatInputString(it, selectedCurrency, locale) },
+                                label = { Text(stringResource(R.string.add_edit_shared_member_amount)) },
+                                placeholder = { Text("0.0") },
+                                modifier = Modifier.weight(1.2f),
+                                shape = RoundedCornerShape(12.dp),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                singleLine = true,
+                                prefix = {
+                                    val prefixText = when (selectedCurrency) {
+                                        "VND" -> "₫ "
+                                        "EUR" -> "€ "
+                                        "CNY" -> "CN¥ "
+                                        "JPY" -> "JP¥ "
+                                        "THB" -> "฿ "
+                                        "KRW" -> "₩ "
+                                        else -> "$ "
+                                    }
+                                    Text(prefixText, fontWeight = FontWeight.Bold)
+                                }
+                            )
+                            OutlinedTextField(
+                                value = newMemberPhone,
+                                onValueChange = { newMemberPhone = it },
+                                label = { Text(stringResource(R.string.add_edit_shared_member_phone)) },
+                                placeholder = { Text(stringResource(R.string.add_edit_shared_member_phone_hint)) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                singleLine = true
+                            )
+                        }
+                        
+                        Button(
+                            onClick = {
+                                if (newMemberName.isNotBlank() && newMemberAmount.isNotBlank()) {
+                                    val amt = parseFormattedAmount(newMemberAmount, locale)
+                                    sharedMembersList = sharedMembersList + SharedMember(
+                                        name = newMemberName,
+                                        amount = amt,
+                                        hasPaid = false,
+                                        phone = newMemberPhone.takeIf { it.isNotBlank() }
+                                    )
+                                    newMemberName = ""
+                                    newMemberAmount = ""
+                                    newMemberPhone = ""
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(stringResource(R.string.add_edit_shared_btn_add), style = MaterialTheme.typography.labelLarge)
+                        }
                     }
                 }
             }
@@ -610,9 +955,9 @@ fun AddEditSubscriptionScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Thông tin chuyển khoản VietQR", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.add_edit_bank_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(2.dp))
-                            Text("Cấu hình tài khoản ngân hàng để tạo mã QR thanh toán nhanh", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.add_edit_bank_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Switch(checked = hasBankInfo, onCheckedChange = { hasBankInfo = it })
@@ -623,7 +968,7 @@ fun AddEditSubscriptionScreen(
                         OutlinedTextField(
                             value = bankName,
                             onValueChange = { bankName = it },
-                            label = { Text("Tên ngân hàng (Ví dụ: VCB, TCB, MB)") },
+                            label = { Text(stringResource(R.string.add_edit_bank_name)) },
                             placeholder = { Text("e.g. MB") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
@@ -637,8 +982,8 @@ fun AddEditSubscriptionScreen(
                         OutlinedTextField(
                             value = bankAccount,
                             onValueChange = { bankAccount = it },
-                            label = { Text("Số tài khoản nhận tiền") },
-                            placeholder = { Text("Nhập số tài khoản") },
+                            label = { Text(stringResource(R.string.add_edit_bank_account)) },
+                            placeholder = { Text("e.g. 123456...") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -652,8 +997,8 @@ fun AddEditSubscriptionScreen(
                         OutlinedTextField(
                             value = bankAccountHolder,
                             onValueChange = { bankAccountHolder = it },
-                            label = { Text("Tên chủ tài khoản") },
-                            placeholder = { Text("Ví dụ: NGUYEN VAN A") },
+                            label = { Text(stringResource(R.string.add_edit_bank_account_holder)) },
+                            placeholder = { Text("e.g. NGUYEN VAN A") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             singleLine = true,
@@ -666,7 +1011,7 @@ fun AddEditSubscriptionScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
@@ -674,16 +1019,36 @@ fun AddEditSubscriptionScreen(
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         
                         val finalNextBillingDate = nextBillingDate
+                        val finalCycle = when (serviceType) {
+                            "installment" -> "Monthly"
+                            "session" -> "One-time"
+                            else -> cycle
+                        }
 
-                        val remainingTimesVal = if (cycle == "One-time") {
-                            null
-                        } else {
-                            when (autoDeleteMode) {
-                                "once" -> 1
-                                "custom" -> customTimes.toIntOrNull()?.coerceAtLeast(1) ?: 1
-                                else -> null
+                        val remainingTimesVal = when (serviceType) {
+                            "installment" -> totalInstallmentPeriods.toIntOrNull()?.coerceAtLeast(1) ?: 12
+                            "session" -> null
+                            else -> {
+                                if (finalCycle == "One-time") {
+                                    null
+                                } else {
+                                    when (autoDeleteMode) {
+                                        "once" -> 1
+                                        "custom" -> customTimes.toIntOrNull()?.coerceAtLeast(1) ?: 1
+                                        else -> null
+                                    }
+                                }
                             }
                         }
+
+                        val finalIsSessionBased = serviceType == "session"
+                        val finalTotalSessions = if (finalIsSessionBased) totalSessions.toIntOrNull() else null
+                        val finalRemainingSessions = if (finalIsSessionBased) remainingSessions.toIntOrNull() else null
+                        val finalIsInstallment = serviceType == "installment"
+                        val finalTotalInstallmentPeriods = if (finalIsInstallment) totalInstallmentPeriods.toIntOrNull() else null
+                        
+                        val finalIsShared = isShared
+                        val finalSharedMembersJson = if (finalIsShared) SharedMember.serializeMembers(sharedMembersList) else null
 
                         if (isEditMode) {
                             viewModel.updateSubscriptionDetails(
@@ -691,28 +1056,41 @@ fun AddEditSubscriptionScreen(
                                 name = name,
                                 amount = parseFormattedAmount(amount, locale),
                                 nextBillingDate = finalNextBillingDate,
-                                cycle = cycle,
+                                cycle = finalCycle,
                                 category = category,
                                 colorHex = colorHex,
                                 currency = selectedCurrency,
                                 remainingTimes = remainingTimesVal,
                                 bankAccount = if (hasBankInfo) bankAccount else null,
                                 bankName = if (hasBankInfo) bankName else null,
-                                bankAccountHolder = if (hasBankInfo) bankAccountHolder else null
+                                bankAccountHolder = if (hasBankInfo) bankAccountHolder else null,
+                                isSessionBased = finalIsSessionBased,
+                                totalSessions = finalTotalSessions,
+                                remainingSessions = finalRemainingSessions,
+                                isInstallment = finalIsInstallment,
+                                isShared = finalIsShared,
+                                sharedMembersJson = finalSharedMembersJson
                             )
                         } else {
                             val sub = Subscription(
                                 name = name,
                                 amount = parseFormattedAmount(amount, locale),
                                 nextBillingDate = finalNextBillingDate,
-                                cycle = cycle,
+                                cycle = finalCycle,
                                 category = category,
                                 colorHex = colorHex,
                                 currency = selectedCurrency,
                                 remainingTimes = remainingTimesVal,
                                 bankAccount = if (hasBankInfo) bankAccount else null,
                                 bankName = if (hasBankInfo) bankName else null,
-                                bankAccountHolder = if (hasBankInfo) bankAccountHolder else null
+                                bankAccountHolder = if (hasBankInfo) bankAccountHolder else null,
+                                isSessionBased = finalIsSessionBased,
+                                totalSessions = finalTotalSessions,
+                                remainingSessions = finalRemainingSessions,
+                                isInstallment = finalIsInstallment,
+                                totalInstallmentPeriods = finalTotalInstallmentPeriods,
+                                isShared = finalIsShared,
+                                sharedMembersJson = finalSharedMembersJson
                             )
                             viewModel.insert(sub)
                         }
@@ -797,16 +1175,17 @@ private fun getCategoryAccentColor(category: String): Color {
 }
 
 private fun formatInputString(input: String, currency: String, locale: java.util.Locale): String {
-    val isVi = locale.language == "vi"
-    val decimalChar = if (isVi) ',' else '.'
-    val thousandChar = if (isVi) '.' else ','
+    val symbols = java.text.DecimalFormatSymbols.getInstance(locale)
+    val decimalChar = symbols.decimalSeparator
+    val thousandChar = symbols.groupingSeparator
+    val hasNoDecimals = currency == "VND" || currency == "JPY" || currency == "KRW"
     
     val cleanBuilder = StringBuilder()
     var decimalSeen = false
     for (char in input) {
         if (char.isDigit()) {
             cleanBuilder.append(char)
-        } else if (char == decimalChar && !decimalSeen && currency != "VND") {
+        } else if (char == decimalChar && !decimalSeen && !hasNoDecimals) {
             cleanBuilder.append(char)
             decimalSeen = true
         }
@@ -836,7 +1215,7 @@ private fun formatInputString(input: String, currency: String, locale: java.util
     return if (decimalPart != null) {
         val truncatedDecimal = if (decimalPart.length > 2) decimalPart.substring(0, 2) else decimalPart
         "$formattedInteger$decimalChar$truncatedDecimal"
-    } else if (input.endsWith(decimalChar) && currency != "VND") {
+    } else if (input.endsWith(decimalChar) && !hasNoDecimals) {
         "$formattedInteger$decimalChar"
     } else {
         formattedInteger
@@ -844,10 +1223,12 @@ private fun formatInputString(input: String, currency: String, locale: java.util
 }
 
 private fun formatDoubleToInput(value: Double, currency: String, locale: java.util.Locale): String {
-    val isVi = locale.language == "vi"
-    if (currency == "VND" || value % 1.0 == 0.0) {
+    val symbols = java.text.DecimalFormatSymbols.getInstance(locale)
+    val decimalChar = symbols.decimalSeparator
+    val thousandChar = symbols.groupingSeparator
+    val hasNoDecimals = currency == "VND" || currency == "JPY" || currency == "KRW"
+    if (hasNoDecimals || value % 1.0 == 0.0) {
         val longVal = value.toLong()
-        val thousandChar = if (isVi) '.' else ','
         val str = longVal.toString()
         val sb = StringBuilder()
         var count = 0
@@ -860,8 +1241,6 @@ private fun formatDoubleToInput(value: Double, currency: String, locale: java.ut
         }
         return sb.reverse().toString()
     } else {
-        val decimalChar = if (isVi) ',' else '.'
-        val thousandChar = if (isVi) '.' else ','
         val formatted = String.format(java.util.Locale.US, "%.2f", value)
         val parts = formatted.split('.')
         val integerPart = parts[0]
@@ -883,11 +1262,11 @@ private fun formatDoubleToInput(value: Double, currency: String, locale: java.ut
 
 private fun parseFormattedAmount(amountStr: String, locale: java.util.Locale): Double {
     if (amountStr.isBlank()) return 0.0
-    val cleanStr = if (locale.language == "vi") {
-        amountStr.replace(".", "").replace(",", ".")
-    } else {
-        amountStr.replace(",", "")
-    }
+    val symbols = java.text.DecimalFormatSymbols.getInstance(locale)
+    val decimalChar = symbols.decimalSeparator.toString()
+    val thousandChar = symbols.groupingSeparator.toString()
+    
+    val cleanStr = amountStr.replace(thousandChar, "").replace(decimalChar, ".")
     return cleanStr.toDoubleOrNull() ?: 0.0
 }
 

@@ -185,11 +185,30 @@ class GeminiService(private val context: Context) {
             "netflix", "spotify", "youtube", "icloud", "google", "microsoft", "office", "apple",
             "vieon", "k+", "netnam", "viettel", "vnpt", "aws", "github", "copilot", "chatgpt", 
             "openai", "momo", "grab", "mobi", "vina", "zalo", "shopee", "tiki", "canva", "capcut",
-            "zoom", "medium", "notion"
+            "zoom", "medium", "notion", "galaxy play", "clip tv", "vtvcab on", "danet", "fpt camera",
+            "kplus", "beamin", "be app", "gojek", "tinder gold", "tinder platinum", "spotify premium",
+            "adobe creative cloud", "dropbox", "canva pro", "duolingo plus", "grammarly", "babbel",
+            "elsa speak", "monkey stories"
         )
         for (service in services) {
             if (text.contains(service)) {
                 return when (service) {
+                    "galaxy play" -> "Galaxy Play"
+                    "clip tv" -> "Clip TV"
+                    "vtvcab on" -> "VTVcab ON"
+                    "danet" -> "Danet"
+                    "fpt camera" -> "FPT Camera"
+                    "kplus" -> "K+"
+                    "beamin" -> "Baemin"
+                    "be app" -> "Be"
+                    "gojek" -> "Gojek"
+                    "tinder gold" -> "Tinder Gold"
+                    "tinder platinum" -> "Tinder Platinum"
+                    "adobe creative cloud" -> "Adobe CC"
+                    "canva pro" -> "Canva Pro"
+                    "duolingo plus" -> "Duolingo Plus"
+                    "elsa speak" -> "ELSA Speak"
+                    "monkey stories" -> "Monkey Stories"
                     "fpt play" -> "FPT Play"
                     "vieon" -> "VieON"
                     "k+" -> "K+"
@@ -203,7 +222,7 @@ class GeminiService(private val context: Context) {
                     "chatgpt plus", "chatgpt" -> "ChatGPT Plus"
                     "openai" -> "OpenAI API"
                     "netflix" -> "Netflix"
-                    "spotify" -> "Spotify"
+                    "spotify", "spotify premium" -> "Spotify"
                     "youtube premium", "youtube" -> "YouTube Premium"
                     "icloud" -> "iCloud"
                     "google one", "google" -> "Google One"
@@ -262,6 +281,7 @@ class GeminiService(private val context: Context) {
         // 1. Patterns with Currency Symbols
         val suffixPattern = Pattern.compile("(?i)(\\d{1,3}(?:[.,\\s]\\d{3})+|\\d+(?:[.,]\\d{2})?)\\s*(đ|d|vnd|vnđ|usd|\\$|đ|đ|vnd|vnđ)")
         val prefixPattern = Pattern.compile("(?i)(\\$|usd|vnd|vnđ|đ|d)\\s*(\\d{1,3}(?:[.,\\s]\\d{3})+|\\d+(?:[.,]\\d{2})?)")
+        val kPattern = Pattern.compile("(?i)(\\d+(?:[.,]\\d{1,3})?)\\s*(k)\\b")
         
         // 2. Base separator & plain patterns
         val separatorPattern = Pattern.compile("\\b(\\d{1,3}(?:[.,]\\d{3})+)\\b")
@@ -355,6 +375,16 @@ class GeminiService(private val context: Context) {
             val parsedVal = parseAmountValue(numStr)
             if (parsedVal != null) {
                 candidates.add(AmountCandidate(parsedVal, score = 100))
+            }
+        }
+
+        // Match k pattern (100k, 25.5k)
+        val kMatcher = kPattern.matcher(cleanText)
+        while (kMatcher.find()) {
+            val numStr = kMatcher.group(1) ?: continue
+            val parsedVal = parseAmountValue(numStr)
+            if (parsedVal != null) {
+                candidates.add(AmountCandidate(parsedVal * 1000.0, score = 95))
             }
         }
 
@@ -486,8 +516,25 @@ class GeminiService(private val context: Context) {
     private fun detectDate(text: String): Long? {
         val datePattern1 = Pattern.compile("(\\d{1,2})[/-](\\d{1,2})[/-](\\d{2,4})")
         val datePattern2 = Pattern.compile("(\\d{4})[/-](\\d{1,2})[/-](\\d{1,2})")
+        val vnDatePattern = Pattern.compile("ngay (\\d{1,2})[/-](\\d{1,2})[/-](\\d{2,4})")
 
-        var matcher = datePattern1.matcher(text)
+        var matcher = vnDatePattern.matcher(text)
+        if (matcher.find()) {
+            try {
+                val day = matcher.group(1)!!.toInt()
+                val month = matcher.group(2)!!.toInt()
+                var year = matcher.group(3)!!.toInt()
+                if (year < 100) year += 2000
+                val cal = java.util.Calendar.getInstance().apply {
+                    set(year, month - 1, day)
+                }
+                return cal.timeInMillis
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+
+        matcher = datePattern1.matcher(text)
         if (matcher.find()) {
             try {
                 val day = matcher.group(1)!!.toInt()

@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.5] - 2026-06-06
+
+### Added
+- **Real-World Commitment Management**: Extended tracking to support installment schedules (e.g. SPayLater, Fundiin) and session-based memberships (e.g. Gym, Yoga with check-in buttons). Added keyword auto-detection to configure cycles and categories instantly as users type.
+- **Shared Subscriptions & Auto-Split VietQR**: Introduced group subscription sharing (e.g. Netflix Family, Spotify Premium) with automated cost splitting. Tapping a member generates a dynamic VietQR payment URL and triggers a system share sheet for 1-tap reminders.
+- **"Lazy Cat" Saving Gamification**: Implemented an animated custom canvas-drawn "Lazy Cat" avatar responding to budget health with distinct states (HAPPY, SLEEPING, PANICKED).
+- **Trial Sandbox Cancellation Guide**: Added visual step-by-step guides helping users cancel free trials on popular platforms (Google Play, Apple App Store, Netflix, YouTube, Spotify).
+- **Automatic Visual Icon Mapping**: Integrated automatic, real-time mapping of custom visual icons (TV, headphones, vehicle, pets, tools, dentist, etc.) matching entered subscription names. Added live trailing icon previews inside the Add/Edit form.
+- **Interactive Dashboard Animations**: 
+  - Added smooth "pop-in" scale animations for the Donut Chart.
+  - Implemented progressive path-drawing and staggered point animations for the Cashflow Forecasting line chart.
+  - Synchronized and smoothed bar growth animations in the Billing Cycle Chart.
+- **Localized Vietnamese Templates**: Significantly expanded preset templates with popular local services like Galaxy Play VIP, VieON VIP, Clip TV, and common 4G data packages (Viettel, Mobifone). Added lifestyle presets for Gym memberships and English tuition fees.
+
+### Changed
+- **Version bump**: Upgraded project configurations and dependencies to version `0.0.5` (Code version `5`).
+- **Enhanced OCR Detection**:
+  - Improved `GeminiService` to recognize more Vietnamese currency patterns (e.g., `100k`, `50.000đ`, `VND`).
+  - Added support for Vietnamese date prefixes (e.g., `ngày 15/06/2024`) in bill scanning.
+  - Expanded the OCR service database with many more local Vietnamese service keywords.
+
+### Fixed
+- **Seamless Language Switching**: Eliminated the black flicker/flash when changing app languages by optimizing theme window preview settings and refining activity recreation transitions.
+- **Composables Brace Scopes**: Fixed ModalBottomSheet syntax scopes and unclosed outlines in `AddEditSubscriptionScreen.kt`.
+- **Preview Lambda Mismatch**: Restored mock parameters for `onCheckInSession` and `onToggleMemberPaidStatus` in `DashboardScreen.kt` previews.
+- **List Performance & Stability**: Added unique keys to all items in `LazyColumn`, `LazyRow`, and `LazyVerticalGrid` across the Dashboard and Subscription list, resolving potential scrolling lag and state preservation issues.
+
 ## [0.0.4] - 2026-06-05
 
 ### Added

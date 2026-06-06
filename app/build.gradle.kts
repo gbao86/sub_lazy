@@ -13,8 +13,8 @@ android {
         applicationId = "com.gbao86.sub_lazy"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.0.4"
+        versionCode = 5
+        versionName = "0.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -29,11 +29,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     kotlin {
-        jvmToolchain(17)
+        jvmToolchain(21)
     }
     buildFeatures {
         compose = true

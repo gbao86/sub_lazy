@@ -13,6 +13,7 @@ is strictly prohibited without the express written permission of the author.
 package com.gbao86.sub_lazy
 
 import android.Manifest
+import android.app.Activity
 import android.os.Build
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -33,8 +34,17 @@ import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                overrideActivityTransition(Activity.OVERRIDE_TRANSITION_OPEN, 0, 0)
+            } else {
+                @Suppress("DEPRECATION")
+                overridePendingTransition(0, 0)
+            }
+        }
         enableEdgeToEdge()
 
+        com.gbao86.sub_lazy.ui.ExchangeRateManager.fetchRates(this)
         val sharedPref = getSharedPreferences("app_prefs", MODE_PRIVATE)
         val isOnboardingCompleted = sharedPref.getBoolean("onboarding_completed", false)
         
@@ -79,6 +89,24 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
             }
+        }
+    }
+
+    override fun recreate() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0)
+            overrideActivityTransition(Activity.OVERRIDE_TRANSITION_OPEN, 0, 0)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, 0)
+        }
+        super.recreate()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0)
+            overrideActivityTransition(Activity.OVERRIDE_TRANSITION_OPEN, 0, 0)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, 0)
         }
     }
 }

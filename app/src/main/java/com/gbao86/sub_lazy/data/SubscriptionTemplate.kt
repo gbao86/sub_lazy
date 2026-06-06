@@ -33,7 +33,13 @@ object SubscriptionTemplates {
         SubscriptionTemplate("YouTube Premium", 79000.0, "Entertainment", "#FF0000"),
         SubscriptionTemplate("iCloud 50GB", 19000.0, "Cloud", "#007AFF"),
         SubscriptionTemplate("Net/Wifi", 250000.0, "Utilities", "#6366F1"),
-        SubscriptionTemplate("ChatGPT Plus", 490000.0, "Work", "#10a37f")
+        SubscriptionTemplate("ChatGPT Plus", 490000.0, "Work", "#10a37f"),
+        SubscriptionTemplate("Galaxy Play VIP", 100000.0, "Entertainment", "#22D3EE"),
+        SubscriptionTemplate("VieON VIP", 49000.0, "Entertainment", "#10B981"),
+        SubscriptionTemplate("Clip TV", 50000.0, "Entertainment", "#F59E0B"),
+        SubscriptionTemplate("Gói cước 4G V120", 120000.0, "Utilities", "#E11D48"),
+        SubscriptionTemplate("Canva Pro", 149000.0, "Work", "#00C4CC"),
+        SubscriptionTemplate("Elsa Speak", 150000.0, "Work", "#6366F1", cycle = "Yearly")
     )
 
     val lifestyleTemplates = listOf(
@@ -42,6 +48,9 @@ object SubscriptionTemplates {
         SubscriptionTemplate("Thay lõi lọc nước", 300000.0, "Utilities", "#06B6D4", cycle = "Every 6 Months"),
         SubscriptionTemplate("Tiền nhà hàng tháng", 3500000.0, "Finance", "#10B981", cycle = "Monthly"),
         SubscriptionTemplate("Đóng phí chung cư", 500000.0, "Finance", "#6366F1", cycle = "Monthly"),
-        SubscriptionTemplate("Khám răng định kỳ", 200000.0, "Family", "#F43F5E", cycle = "Every 6 Months")
+        SubscriptionTemplate("Khám răng định kỳ", 200000.0, "Family", "#F43F5E", cycle = "Every 6 Months"),
+        SubscriptionTemplate("Học phí tiếng Anh", 2500000.0, "Work", "#7C3AED", cycle = "Monthly"),
+        SubscriptionTemplate("Thẻ tập Gym", 600000.0, "Utilities", "#F43F5E", cycle = "Monthly"),
+        SubscriptionTemplate("Cắt tóc định kỳ", 100.0, "Other", "#94A3B8", cycle = "Monthly")
     )
 }

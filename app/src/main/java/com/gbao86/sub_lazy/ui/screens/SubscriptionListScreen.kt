@@ -48,6 +48,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.DateUtils
+import com.gbao86.sub_lazy.ui.CategoryUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.core.graphics.toColorInt
@@ -149,7 +150,7 @@ fun SubscriptionListScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
-                    Spacer(modifier = Modifier.height(28.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                     Text(
                         stringResource(R.string.list_empty),
                         style = MaterialTheme.typography.titleLarge,
@@ -171,7 +172,7 @@ fun SubscriptionListScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(bottom = 100.dp, start = 20.dp, end = 20.dp, top = 12.dp),
+                contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp, top = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 itemsIndexed(
@@ -251,7 +252,7 @@ fun SwipeToDeleteItem(
                     .fillMaxSize()
                     .clip(RoundedCornerShape(24.dp))
                     .background(color)
-                    .padding(horizontal = 28.dp),
+                    .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
@@ -346,15 +347,15 @@ fun SubscriptionItem(
                     .background(accentColor.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = subscription.name.take(1).uppercase(),
-                    color = accentColor,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 22.sp
+                Icon(
+                    imageVector = CategoryUtils.getIconForName(subscription.name, subscription.category),
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(26.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             // ── Middle: Name + cost ──────────────────────────────────────────
             Column(modifier = Modifier.weight(1f)) {
@@ -366,7 +367,7 @@ fun SubscriptionItem(
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(3.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${CurrencyFormatter.format(subscription.amount, subscription.currency, locale)}$cycleSuffix",
                     style = MaterialTheme.typography.bodySmall,
@@ -374,24 +375,46 @@ fun SubscriptionItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (subscription.remainingTimes != null && subscription.remainingTimes > 0) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                val tagText = when {
+                    subscription.isInstallment -> "Trả góp · Còn ${subscription.remainingTimes} kỳ"
+                    subscription.isSessionBased -> "Số buổi · Còn ${subscription.remainingSessions ?: 0}/${subscription.totalSessions ?: 0} buổi"
+                    subscription.isShared -> "Gói dùng chung"
+                    subscription.category == "Trial" -> "Gói dùng thử"
+                    subscription.remainingTimes != null && subscription.remainingTimes > 0 -> 
+                        stringResource(R.string.list_remaining_times, subscription.remainingTimes)
+                    else -> null
+                }
+                
+                if (tagText != null) {
+                    Spacer(modifier = Modifier.height(6.dp))
                     Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+                        shape = RoundedCornerShape(8.dp),
+                        color = when {
+                            subscription.isInstallment -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)
+                            subscription.isSessionBased -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+                            subscription.isShared -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                            subscription.category == "Trial" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+                            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                        }
                     ) {
                         Text(
-                            text = stringResource(R.string.list_remaining_times, subscription.remainingTimes),
+                            text = tagText,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            color = when {
+                                subscription.isInstallment -> MaterialTheme.colorScheme.onTertiaryContainer
+                                subscription.isSessionBased -> MaterialTheme.colorScheme.onSecondaryContainer
+                                subscription.isShared -> MaterialTheme.colorScheme.onPrimaryContainer
+                                subscription.category == "Trial" -> MaterialTheme.colorScheme.onErrorContainer
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             // ── Right: Countdown pill ─────────────────────────────────────────
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -400,7 +423,7 @@ fun SubscriptionItem(
                     color = countdownColor.copy(alpha = 0.1f)
                 ) {
                     Column(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(

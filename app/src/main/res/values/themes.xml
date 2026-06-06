@@ -1,4 +1,8 @@
 <resources>
 
-    <style name="Theme.Sub_lazy" parent="Theme.MaterialComponents.Light" />
+    <style name="Theme.Sub_lazy" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:windowContentTransitions">false</item>
+        <item name="android:windowActivityTransitions">false</item>
+    </style>
 </resources>

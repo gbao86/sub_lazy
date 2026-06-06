@@ -4,7 +4,7 @@
 
 # Sub Lazy 📱
 
-[![Version](https://img.shields.io/badge/Version-0.0.4-blue.svg?style=for-the-badge)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-0.0.5-blue.svg?style=for-the-badge)](./CHANGELOG.md)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.0-purple.svg?style=for-the-badge&logo=kotlin)](https://kotlinlang.org/)
 [![Android](https://img.shields.io/badge/Android-SDK%2026%2B-green.svg?style=for-the-badge&logo=android)](https://developer.android.com/)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-blue.svg?style=for-the-badge&logo=jetpackcompose)](https://developer.android.com/jetpack/compose)
@@ -32,12 +32,18 @@ Yeah, we've all been there.
   - **Notification Parsing**: Integrates a `BillNotificationListener` to capture SMS or banking app alerts (like MoMo, Vietcombank) and auto-prefill new subscriptions.
 - **Interactive Dashboard**:
   - **Dynamic Spending Card**: Visualizes your total monthly subscription costs in a premium gradient card.
+  - **Animated Charts**: Smooth "pop-in" animations for the Donut Chart and progressive "path-drawing" for the Forecasting line chart.
   - **Interactive Donut Chart**: Touch-responsive category spending donut chart. Tapping segments explodes (offsets) the segment and updates center details.
   - **Expanded Legends**: Tapping a category legend item expands a list showing all subscriptions tracked under that category with smooth slide animations.
   - **Billing Cycle Comparison**: Dynamic vertical bar charts comparing Weekly, Monthly, and Yearly spending impacts.
   - **Upcoming Renewals Timeline**: A scrollable horizontal timeline showing renewal dates. Urgently renewing items display a pulsing animated halo outer ring.
   - **Cashflow & Runway Forecasting**: A bespoke Canvas-drawn curve Line Chart projecting total subscription spending over the next 6 months, automatically highlighting and detailing the month with peak spending.
   - **Payment History feed**: Displays the last 5 manually/automatically completed billing events in a list on the Dashboard.
+- **Real-World Commitments**: Track installments (SPayLater, Fundiin) and session-based memberships (Gym, Yoga with check-in buttons). Supports recurring vehicle or home maintenance scheduling.
+- **Shared Subscriptions & Auto-Split VietQR**: Cost splitting (Netflix Family, Spotify Premium) with friends. Includes dynamic VietQR generation and a quick 1-tap system reminder action.
+- **"Lazy Cat" Saving Gamification**: Canvas-drawn pet avatar reacting to budget health with animated expressions (HAPPY, SLEEPING, PANICKED).
+- **Trial Sandbox**: In-app step-by-step cancellation walkthrough paths for major subscription platforms (Google Play, Apple Store, YouTube, Spotify, Netflix).
+- **Smart Form Auto-Detection & Visual Icon Mapping**: Live mapping of descriptive Material icons based on title names (e.g. TV, headphones, vehicle, pets, tools) and automatic configuration of billing categories/cycles as the user types.
 - **Manual Payment Tracking & VietQR Quick Pay**: Users can click "Mark as Paid" directly from the timeline card details. This records the payment in the database, rolls over the renewal date, and decrements remaining limits. For subscriptions with bank transfer details, the app automatically generates a standard Napas **VietQR** transfer code so users can scan and pay instantly.
 - **Subscription List Screen**: Shows monthly equivalent costs, renewal schedules, color-coded countdown indicators, and a **remaining count badge** (e.g. `Còn 3 lần`) for limited subscriptions. Swift swipe-to-delete has a double-confirm dialog.
 - **Add / Edit Subscriptions**: Fully customizable forms. Includes pricing, renewal date picker, category dropdown, billing cycle selection (**Daily**, **Weekly**, **Monthly**, **Every 3 Months**, **Every 6 Months**, **Yearly**, **One-time**), and a **currency toggle (VND/USD)** using Material 3 card controls.
@@ -139,3 +145,10 @@ All notable changes and updates to this project are documented in the [CHANGELOG
 ## 📄 License
 
 This project is licensed under a Non-Commercial License. You are free to copy and modify the code for personal use, but commercial exploitation or monetization is strictly prohibited. See the [LICENSE](./LICENSE) file for details.
+
+---
+
+## 🔒 Security
+
+For details on security practices, offline-first architectures, or reporting vulnerabilities, see the [Security Policy](./SECURITY.md).
+

@@ -51,11 +51,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
@@ -98,6 +100,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.content.Context
 import coil.compose.AsyncImage
@@ -127,6 +130,8 @@ fun DashboardScreen(
         onUpdateUserBalance = { viewModel.updateUserBalance(it) },
         onUpdateBudgetResetDay = { viewModel.updateBudgetResetDay(it) },
         onMarkAsPaid = { viewModel.markAsPaid(it) },
+        onCheckInSession = { viewModel.checkInSession(it) },
+        onToggleMemberPaidStatus = { sub, name -> viewModel.toggleMemberPaidStatus(sub, name) },
         onNavigateToAdd = onNavigateToAdd,
         onNavigateToList = onNavigateToList
     )
@@ -144,6 +149,8 @@ fun DashboardContent(
     onUpdateUserBalance: (Double) -> Unit,
     onUpdateBudgetResetDay: (Int) -> Unit,
     onMarkAsPaid: (Subscription) -> Unit,
+    onCheckInSession: (Subscription) -> Unit,
+    onToggleMemberPaidStatus: (Subscription, String) -> Unit,
     onNavigateToAdd: (String?, Double?, String?, String?, String?, String?, String?, String?) -> Unit,
     onNavigateToList: () -> Unit
 ) {
@@ -169,7 +176,7 @@ fun DashboardContent(
         AlertDialog(
             onDismissRequest = { showBalanceEditDialog = false },
             shape = RoundedCornerShape(28.dp),
-            title = { Text("Cập nhật ngân sách", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.budget_update_title), fontWeight = FontWeight.Bold) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -188,7 +195,7 @@ fun DashboardContent(
                                 }
                             }
                         },
-                        label = { Text("Ngân sách hàng tháng (VND)") },
+                        label = { Text(stringResource(R.string.budget_monthly_label)) },
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
@@ -208,7 +215,7 @@ fun DashboardContent(
                                 }
                             }
                         },
-                        label = { Text("Ngày làm mới ngân sách hàng tháng (1 - 31)") },
+                        label = { Text(stringResource(R.string.budget_reset_day_label)) },
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
@@ -227,10 +234,10 @@ fun DashboardContent(
                         showBalanceEditDialog = false
                     },
                     shape = RoundedCornerShape(14.dp)
-                ) { Text("Lưu") }
+                ) { Text(stringResource(R.string.btn_save)) }
             },
             dismissButton = {
-                TextButton(onClick = { showBalanceEditDialog = false }) { Text("Hủy") }
+                TextButton(onClick = { showBalanceEditDialog = false }) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
     }
@@ -333,6 +340,30 @@ fun DashboardContent(
                             showLangMenu = false
                             AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("vi"))
                         })
+                        DropdownMenuItem(text = { Text("简体中文") }, onClick = {
+                            showLangMenu = false
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("zh"))
+                        })
+                        DropdownMenuItem(text = { Text("ไทย") }, onClick = {
+                            showLangMenu = false
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("th"))
+                        })
+                        DropdownMenuItem(text = { Text("Español") }, onClick = {
+                            showLangMenu = false
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("es"))
+                        })
+                        DropdownMenuItem(text = { Text("日本語") }, onClick = {
+                            showLangMenu = false
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("ja"))
+                        })
+                        DropdownMenuItem(text = { Text("한국어") }, onClick = {
+                            showLangMenu = false
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("ko"))
+                        })
+                        DropdownMenuItem(text = { Text("Français") }, onClick = {
+                            showLangMenu = false
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("fr"))
+                        })
                     }
                 }
             )
@@ -373,7 +404,7 @@ fun DashboardContent(
                                 pagerState.animateScrollToPage(0)
                             }
                         },
-                        text = { Text("Tổng quan", fontWeight = FontWeight.Bold) },
+                        text = { Text(stringResource(R.string.dashboard_tab_overview), fontWeight = FontWeight.Bold) },
                         icon = { Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null) }
                     )
                     Tab(
@@ -383,7 +414,7 @@ fun DashboardContent(
                                 pagerState.animateScrollToPage(1)
                             }
                         },
-                        text = { Text("Phân tích", fontWeight = FontWeight.Bold) },
+                        text = { Text(stringResource(R.string.dashboard_tab_analysis), fontWeight = FontWeight.Bold) },
                         icon = { Icon(Icons.Rounded.Analytics, contentDescription = null) }
                     )
                 }
@@ -395,8 +426,8 @@ fun DashboardContent(
                     if (page == 0) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 100.dp, start = 20.dp, end = 20.dp, top = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(20.dp)
+                            contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp, top = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             // ── Hero Spending Card ───────────────────────────────────────
                             item {
@@ -417,7 +448,7 @@ fun DashboardContent(
                                                     )
                                                 )
                                             )
-                                            .padding(horizontal = 28.dp, vertical = 28.dp)
+                                            .padding(horizontal = 24.dp, vertical = 24.dp)
                                     ) {
                                         Box(
                                             modifier = Modifier
@@ -451,7 +482,7 @@ fun DashboardContent(
                                                         modifier = Modifier.size(18.dp)
                                                     )
                                                 }
-                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
                                                     stringResource(R.string.dashboard_monthly_spending),
                                                     style = MaterialTheme.typography.labelLarge,
@@ -473,7 +504,11 @@ fun DashboardContent(
                                                 color = Color.White.copy(alpha = 0.15f)
                                             ) {
                                                 Text(
-                                                    text = "${subscriptions.size} dịch vụ đang theo dõi",
+                                                    text = if (subscriptions.size == 1) {
+                                                        stringResource(R.string.dashboard_services_tracked_single)
+                                                    } else {
+                                                        stringResource(R.string.dashboard_services_tracked, subscriptions.size)
+                                                    },
                                                     style = MaterialTheme.typography.labelMedium,
                                                     color = Color.White.copy(alpha = 0.9f),
                                                     fontWeight = FontWeight.Medium,
@@ -505,6 +540,16 @@ fun DashboardContent(
                                             runwayResult.diffMillis < 86400000L * 7 ||
                                             (nextNearestBillDate != null && runwayResult.targetTime <= nextNearestBillDate)
                                         ))
+                                
+                                val hasTrialExpiringSoon = subscriptions.any {
+                                    it.category == "Trial" && (it.nextBillingDate - System.currentTimeMillis() <= 86400000L * 3) && (it.nextBillingDate >= System.currentTimeMillis())
+                                }
+                                
+                                val catState = when {
+                                    isPanicked || hasTrialExpiringSoon -> CatState.PANICKED
+                                    totalMonthlyCost == 0.0 || (runwayResult is BankruptcyRunwayResult.DaysLeft && runwayResult.diffMillis >= 86400000L * 180) -> CatState.HAPPY
+                                    else -> CatState.SLEEPING
+                                }
 
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
@@ -513,12 +558,12 @@ fun DashboardContent(
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                                 ) {
                                     Column(
-                                        modifier = Modifier.padding(20.dp),
+                                        modifier = Modifier.padding(16.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
                                         LazyWalletCatSection(
-                                            isPanicked = isPanicked,
+                                            catState = catState,
                                             runwayResult = runwayResult,
                                             subscriptions = subscriptions,
                                             userBalance = userBalance,
@@ -530,7 +575,8 @@ fun DashboardContent(
                                                 .clip(RoundedCornerShape(16.dp))
                                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                                                 .clickable { showBalanceEditDialog = true }
-                                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                                                .heightIn(min = 48.dp)
+                                                .padding(horizontal = 16.dp, vertical = 8.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.Center
                                         ) {
@@ -542,7 +588,7 @@ fun DashboardContent(
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
-                                                text = "Ngân sách hàng tháng: ",
+                                                text = stringResource(R.string.budget_monthly_spending_title),
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -552,7 +598,7 @@ fun DashboardContent(
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
                                             Icon(
                                                 Icons.Rounded.Edit,
                                                 contentDescription = "Edit Balance",
@@ -564,7 +610,7 @@ fun DashboardContent(
                                         when (runwayResult) {
                                             is BankruptcyRunwayResult.Infinite -> {
                                                 Text(
-                                                    "Hãy thêm dịch vụ để bắt đầu theo dõi hạn mức tài chính.",
+                                                    stringResource(R.string.budget_empty_services_hint),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     textAlign = TextAlign.Center
@@ -595,8 +641,8 @@ fun DashboardContent(
                                                         ) {
                                                             Icon(Icons.Rounded.Dangerous, contentDescription = null, tint = Color(0xFFC62828))
                                                             Column {
-                                                                Text("Thâm hụt ngân sách tháng! 🚨", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFC62828))
-                                                                Text("Tổng chi phí các dịch vụ hàng tháng đã vượt quá Ngân sách hàng tháng của bạn.", style = MaterialTheme.typography.labelMedium, color = Color(0xFFC62828))
+                                                                Text(stringResource(R.string.budget_deficit_title), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFC62828))
+                                                                Text(stringResource(R.string.budget_deficit_desc), style = MaterialTheme.typography.labelMedium, color = Color(0xFFC62828))
                                                             }
                                                         }
                                                     }
@@ -613,8 +659,8 @@ fun DashboardContent(
                                                         ) {
                                                             Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32))
                                                             Column {
-                                                                Text("Tài chính an toàn 💚", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF2E7D32))
-                                                                Text("Ngân sách đủ để chi trả toàn bộ hóa đơn trong tháng này.", style = MaterialTheme.typography.labelMedium, color = Color(0xFF2E7D32))
+                                                                Text(stringResource(R.string.budget_safe_title), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF2E7D32))
+                                                                Text(stringResource(R.string.budget_safe_desc), style = MaterialTheme.typography.labelMedium, color = Color(0xFF2E7D32))
                                                             }
                                                         }
                                                     }
@@ -644,8 +690,8 @@ fun DashboardContent(
                                                     ) {
                                                         Icon(Icons.Rounded.Warning, contentDescription = null, tint = Color(0xFFC62828))
                                                         Column {
-                                                            Text("Ngân sách đã cạn kiệt! 🚨", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFC62828))
-                                                            Text("Ngân sách không đủ chi trả cho hóa đơn tiếp theo. Bổ sung ngân sách hoặc hủy dịch vụ ngay!", style = MaterialTheme.typography.labelMedium, color = Color(0xFFC62828))
+                                                            Text(stringResource(R.string.budget_exhausted_title), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFC62828))
+                                                            Text(stringResource(R.string.budget_exhausted_desc), style = MaterialTheme.typography.labelMedium, color = Color(0xFFC62828))
                                                         }
                                                     }
                                                 }
@@ -681,7 +727,7 @@ fun DashboardContent(
                                                                 tint = if (isPanicked) Color(0xFFD32F2F) else Color(0xFFFBC02D)
                                                             )
                                                             Text(
-                                                                text = if (isPanicked) "Ngân sách sắp cạn kiệt! 🚨" else "Dự báo cạn ngân sách sắp tới ⚠️",
+                                                                text = if (isPanicked) stringResource(R.string.budget_running_out_title) else stringResource(R.string.budget_running_out_warning),
                                                                 fontWeight = FontWeight.Bold,
                                                                 style = MaterialTheme.typography.bodyMedium,
                                                                 color = if (isPanicked) Color(0xFFD32F2F) else Color(0xFFFBC02D)
@@ -693,7 +739,7 @@ fun DashboardContent(
                                                             modifier = Modifier.padding(vertical = 4.dp)
                                                         ) {
                                                             Text(
-                                                                text = "${days} ngày ${hours} giờ ${minutes} phút",
+                                                                text = stringResource(R.string.budget_countdown_pattern, days, hours, minutes),
                                                                 style = MaterialTheme.typography.titleMedium,
                                                                 fontWeight = FontWeight.Bold,
                                                                 color = if (isPanicked) Color(0xFFFF3333) else Color(0xFFFFD700),
@@ -701,7 +747,7 @@ fun DashboardContent(
                                                             )
                                                         }
                                                         Text(
-                                                            text = "Ngân sách dự kiến chạm đáy vào ngày $formattedTargetDate.",
+                                                            text = stringResource(R.string.budget_depleted_on_date, formattedTargetDate),
                                                             style = MaterialTheme.typography.bodySmall,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                             textAlign = TextAlign.Center
@@ -761,6 +807,8 @@ fun DashboardContent(
                                             selectedSub = subscriptions.find { it.id == selectedUpcomingSub?.id },
                                             onSubSelected = { selectedUpcomingSub = it },
                                             onMarkAsPaid = onMarkAsPaid,
+                                            onCheckInSession = onCheckInSession,
+                                            onToggleMemberPaidStatus = onToggleMemberPaidStatus,
                                             modifier = Modifier.fillMaxWidth()
                                         )
                                     }
@@ -815,7 +863,11 @@ fun DashboardContent(
                                                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                                                 ) {
                                                     Text(
-                                                        text = "${spendingByCategory.size} danh mục",
+                                                        text = if (spendingByCategory.size == 1) {
+                                                            stringResource(R.string.dashboard_categories_count_single)
+                                                        } else {
+                                                            stringResource(R.string.dashboard_categories_count, spendingByCategory.size)
+                                                        },
                                                         style = MaterialTheme.typography.labelSmall,
                                                         color = MaterialTheme.colorScheme.primary,
                                                         fontWeight = FontWeight.SemiBold,
@@ -823,7 +875,7 @@ fun DashboardContent(
                                                     )
                                                 }
                                             }
-                                            Spacer(modifier = Modifier.height(28.dp))
+                                            Spacer(modifier = Modifier.height(24.dp))
                                             InteractiveDonutChart(
                                                 spending = spendingByCategory,
                                                 totalSpending = spendingByCategory.sumOf { it.totalAmount },
@@ -831,7 +883,7 @@ fun DashboardContent(
                                                 onCategorySelected = { selectedCategory = it },
                                                 modifier = Modifier.size(220.dp)
                                             )
-                                            Spacer(modifier = Modifier.height(28.dp))
+                                            Spacer(modifier = Modifier.height(24.dp))
                                             InteractiveCategoryLegend(
                                                 spending = spendingByCategory,
                                                 selectedCategory = selectedCategory,
@@ -909,7 +961,7 @@ fun DashboardContent(
                                                     tint = MaterialTheme.colorScheme.primary
                                                 )
                                             }
-                                            Spacer(modifier = Modifier.height(20.dp))
+                                            Spacer(modifier = Modifier.height(16.dp))
                                             Text(
                                                 text = stringResource(R.string.dashboard_no_data),
                                                 style = MaterialTheme.typography.titleSmall,
@@ -965,7 +1017,7 @@ fun DashboardContent(
                     }
                 )
                 ListItem(
-                    headlineContent = { Text("Thêm từ mẫu định kỳ") },
+                    headlineContent = { Text(stringResource(R.string.action_add_from_template)) },
                     leadingContent = { Icon(Icons.Rounded.Bookmarks, null) },
                     modifier = Modifier.clickable {
                         showAddBottomSheet.value = false
@@ -980,7 +1032,7 @@ fun DashboardContent(
         var selectedTab by remember { mutableIntStateOf(0) }
         AlertDialog(
             onDismissRequest = { showTemplatesDialog.value = false },
-            title = { Text("Chọn mẫu định kỳ", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.template_dialog_title), fontWeight = FontWeight.Bold) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -988,10 +1040,10 @@ fun DashboardContent(
                 ) {
                     TabRow(selectedTabIndex = selectedTab) {
                         Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
-                            Text("Dịch vụ số", modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.template_tab_digital), modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
                         }
                         Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
-                            Text("Đời sống", modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.template_tab_lifestyle), modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -1007,7 +1059,7 @@ fun DashboardContent(
                             .fillMaxWidth()
                             .heightIn(max = 300.dp)
                     ) {
-                        items(templates) { template ->
+                        items(templates, key = { it.name }) { template ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1042,7 +1094,7 @@ fun DashboardContent(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            imageVector = if (selectedTab == 0) Icons.Rounded.Devices else Icons.Rounded.DirectionsCar,
+                                            imageVector = CategoryUtils.getIconForName(template.name, template.category),
                                             contentDescription = null,
                                             tint = Color(template.colorHex.toColorInt()),
                                             modifier = Modifier.size(20.dp)
@@ -1133,15 +1185,24 @@ fun InteractiveDonutChart(
     )
     val locale = LocalContext.current.resources.configuration.locales[0]
     val animateSweep = remember { Animatable(0f) }
+    val animateScale = remember { Animatable(0.8f) }
+    
     LaunchedEffect(spending) {
-        animateSweep.snapTo(0f)
-        animateSweep.animateTo(1f, tween(1200, easing = FastOutSlowInEasing))
+        launch {
+            animateSweep.snapTo(0f)
+            animateSweep.animateTo(1f, tween(1200, easing = FastOutSlowInEasing))
+        }
+        launch {
+            animateScale.snapTo(0.8f)
+            animateScale.animateTo(1f, tween(1000, easing = EaseOutBack))
+        }
     }
 
     Box(contentAlignment = Alignment.Center, modifier = modifier) {
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
+                .scale(animateScale.value)
                 .pointerInput(spending) {
                     detectTapGestures { offset ->
                         if (totalSpending <= 0.0) return@detectTapGestures
@@ -1510,6 +1571,8 @@ fun UpcomingRenewalsTimeline(
     selectedSub: Subscription?,
     onSubSelected: (Subscription?) -> Unit,
     onMarkAsPaid: (Subscription) -> Unit,
+    onCheckInSession: (Subscription) -> Unit,
+    onToggleMemberPaidStatus: (Subscription, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val locale = LocalContext.current.resources.configuration.locales[0]
@@ -1529,7 +1592,7 @@ fun UpcomingRenewalsTimeline(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(horizontal = 2.dp)
         ) {
-            items(upcoming) { sub ->
+            items(upcoming, key = { it.id ?: 0 }) { sub ->
                 val days = DateUtils.getDaysLeft(sub.nextBillingDate)
                 val isSelected = selectedSub?.id == sub.id
                 val subColor = remember(sub.colorHex) {
@@ -1563,11 +1626,11 @@ fun UpcomingRenewalsTimeline(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            sub.name.take(1).uppercase(),
-                            color = Color.White,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 20.sp
+                        Icon(
+                            imageVector = CategoryUtils.getIconForName(sub.name, sub.category),
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                     Spacer(modifier = Modifier.height(6.dp))
@@ -1608,9 +1671,14 @@ fun UpcomingRenewalsTimeline(
                 "One-time" -> stringResource(R.string.cycle_one_time)
                 else -> selectedSub.cycle
             }
-            val remainingText = if (selectedSub.remainingTimes != null && selectedSub.remainingTimes > 0) {
-                " • " + stringResource(R.string.list_remaining_times, selectedSub.remainingTimes)
-            } else ""
+            
+            val detailsLabel = when {
+                selectedSub.isInstallment -> stringResource(R.string.dashboard_details_installment, selectedSub.remainingTimes ?: 0)
+                selectedSub.isSessionBased -> stringResource(R.string.dashboard_details_session, selectedSub.remainingSessions ?: 0, selectedSub.totalSessions ?: 0)
+                selectedSub.remainingTimes != null && selectedSub.remainingTimes > 0 -> 
+                    stringResource(R.string.list_remaining_times, selectedSub.remainingTimes)
+                else -> cycleText
+            }
 
             AnimatedVisibility(
                 visible = true,
@@ -1624,8 +1692,32 @@ fun UpcomingRenewalsTimeline(
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            val accentColor = remember(selectedSub.colorHex) {
+                                try { Color(selectedSub.colorHex.toColorInt()) }
+                                catch (_: Exception) { Color(0xFF6366F1) }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(accentColor.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = CategoryUtils.getIconForName(selectedSub.name, selectedSub.category),
+                                    contentDescription = null,
+                                    tint = accentColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     selectedSub.name,
@@ -1636,7 +1728,7 @@ fun UpcomingRenewalsTimeline(
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "${CurrencyFormatter.format(selectedSub.amount, selectedSub.currency, locale)} · $cycleText$remainingText",
+                                    text = "${CurrencyFormatter.format(selectedSub.amount, selectedSub.currency, locale)} · $detailsLabel",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     softWrap = false,
@@ -1658,9 +1750,160 @@ fun UpcomingRenewalsTimeline(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(14.dp))
 
-                        if (selectedSub.bankAccount != null && selectedSub.bankName != null) {
+                        // Shared Members Splitting View
+                        if (selectedSub.isShared && !selectedSub.sharedMembersJson.isNullOrBlank()) {
+                            val members = com.gbao86.sub_lazy.data.SharedMember.parseMembers(selectedSub.sharedMembersJson)
+                            if (members.isNotEmpty()) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                Text(stringResource(R.string.dashboard_group_split_cost), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                members.forEach { member ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Checkbox(
+                                                checked = member.hasPaid,
+                                                onCheckedChange = { onToggleMemberPaidStatus(selectedSub, member.name) }
+                                            )
+                                            Text(member.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                        }
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = CurrencyFormatter.format(member.amount, selectedSub.currency, locale),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (member.hasPaid) Color.Gray else MaterialTheme.colorScheme.primary
+                                            )
+                                            if (!member.hasPaid) {
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                                                val toastContext = LocalContext.current
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        val qrUrl = if (selectedSub.bankAccount != null && selectedSub.bankName != null) {
+                                                            VietQRGenerator.generateQrUrl(
+                                                                bankName = selectedSub.bankName,
+                                                                accountNumber = selectedSub.bankAccount,
+                                                                amount = member.amount,
+                                                                description = "SubLazy ${selectedSub.name} ${member.name}",
+                                                                accountHolder = selectedSub.bankAccountHolder
+                                                            )
+                                                        } else ""
+                                                        val memberAmountFormatted = CurrencyFormatter.format(member.amount, selectedSub.currency, locale)
+                                                        val message = toastContext.getString(
+                                                            R.string.dashboard_split_reminder_pattern,
+                                                            member.name,
+                                                            selectedSub.name,
+                                                            memberAmountFormatted,
+                                                            qrUrl
+                                                        )
+                                                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(message))
+                                                        Toast.makeText(toastContext, toastContext.getString(R.string.dashboard_reminder_copied), Toast.LENGTH_SHORT).show()
+                                                        try {
+                                                            val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                                putExtra(android.content.Intent.EXTRA_TEXT, message)
+                                                                type = "text/plain"
+                                                            }
+                                                            val chooserTitle = toastContext.getString(R.string.dashboard_send_reminder_to, member.name)
+                                                            toastContext.startActivity(android.content.Intent.createChooser(sendIntent, chooserTitle))
+                                                        } catch (e: Exception) {
+                                                            // fallback silently
+                                                        }
+                                                    },
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    modifier = Modifier.height(28.dp)
+                                                ) {
+                                                    Text(stringResource(R.string.dashboard_btn_remind), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Trial Sandbox Cancellation Guide View
+                        if (selectedSub.category == "Trial") {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.08f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Info,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(stringResource(R.string.trial_guide_title), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                    }
+                                    val cancelGuide = when {
+                                        selectedSub.name.contains("Google", ignoreCase = true) || selectedSub.name.contains("Play", ignoreCase = true) -> {
+                                            stringResource(R.string.trial_guide_play_store, selectedSub.name)
+                                        }
+                                        selectedSub.name.contains("Apple", ignoreCase = true) || selectedSub.name.contains("iCloud", ignoreCase = true) || selectedSub.name.contains("App Store", ignoreCase = true) -> {
+                                            stringResource(R.string.trial_guide_apple_store, selectedSub.name)
+                                        }
+                                        selectedSub.name.contains("Netflix", ignoreCase = true) -> {
+                                            stringResource(R.string.trial_guide_netflix)
+                                        }
+                                        selectedSub.name.contains("Spotify", ignoreCase = true) -> {
+                                            stringResource(R.string.trial_guide_spotify)
+                                        }
+                                        selectedSub.name.contains("Youtube", ignoreCase = true) -> {
+                                            stringResource(R.string.trial_guide_youtube)
+                                        }
+                                        else -> {
+                                            stringResource(R.string.trial_guide_general)
+                                        }
+                                    }
+                                    Text(cancelGuide, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+
+                        // Buttons Section
+                        if (selectedSub.isSessionBased) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                val remaining = selectedSub.remainingSessions ?: 0
+                                OutlinedButton(
+                                    onClick = { onCheckInSession(selectedSub) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(14.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                                    enabled = remaining > 0
+                                ) {
+                                    Icon(Icons.Rounded.CheckCircle, null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(stringResource(R.string.dashboard_check_in_session), fontWeight = FontWeight.SemiBold)
+                                }
+                                Button(
+                                    onClick = {
+                                        onMarkAsPaid(selectedSub)
+                                        onSubSelected(null)
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(stringResource(R.string.dashboard_renew_plan), fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        } else if (selectedSub.bankAccount != null && selectedSub.bankName != null) {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -1673,7 +1916,7 @@ fun UpcomingRenewalsTimeline(
                                 ) {
                                     Icon(Icons.Rounded.QrCode, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.secondary)
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("VietQR", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.secondary)
+                                    Text(stringResource(R.string.dashboard_scan_vietqr), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.secondary)
                                 }
                                 Button(
                                     onClick = {
@@ -1716,7 +1959,7 @@ fun UpcomingRenewalsTimeline(
                             AlertDialog(
                                 onDismissRequest = { showQrDialog = false },
                                 shape = RoundedCornerShape(28.dp),
-                                title = { Text("Quét mã VietQR", fontWeight = FontWeight.Bold) },
+                                title = { Text(stringResource(R.string.dashboard_scan_vietqr), fontWeight = FontWeight.Bold) },
                                 text = {
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1756,7 +1999,7 @@ fun UpcomingRenewalsTimeline(
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
-                                            "Dùng app Ngân hàng quét QR để thanh toán nhanh",
+                                            stringResource(R.string.dashboard_scan_vietqr_desc),
                                             style = MaterialTheme.typography.labelSmall,
                                             textAlign = TextAlign.Center,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1767,7 +2010,7 @@ fun UpcomingRenewalsTimeline(
                                     Button(
                                         onClick = { showQrDialog = false },
                                         shape = RoundedCornerShape(14.dp)
-                                    ) { Text("Đóng") }
+                                    ) { Text(stringResource(R.string.dashboard_btn_close)) }
                                 }
                             )
                         }
@@ -1805,6 +2048,8 @@ fun DashboardPreview() {
             onUpdateUserBalance = {},
             onUpdateBudgetResetDay = {},
             onMarkAsPaid = {},
+            onCheckInSession = {},
+            onToggleMemberPaidStatus = { _, _ -> },
             onNavigateToAdd = { _, _, _, _, _, _, _, _ -> },
             onNavigateToList = {}
         )
@@ -1819,9 +2064,15 @@ fun DashboardPreview() {
 // LazyWalletCat
 // ─────────────────────────────────────────────────────────────────────────────
 
+enum class CatState {
+    HAPPY,
+    SLEEPING,
+    PANICKED
+}
+
 @Composable
 fun LazyWalletCatSection(
-    isPanicked: Boolean,
+    catState: CatState,
     runwayResult: BankruptcyRunwayResult,
     subscriptions: List<Subscription>,
     userBalance: Double,
@@ -1842,77 +2093,74 @@ fun LazyWalletCatSection(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AnimatedVisibility(
-            visible = isPanicked,
-            enter = fadeIn(animationSpec = tween(300)) + scaleIn(animationSpec = tween(400, easing = EaseOutBack)),
-            exit = fadeOut(animationSpec = tween(200)) + scaleOut(animationSpec = tween(200))
-        ) {
-            val activeSubs = remember(subscriptions) {
-                subscriptions.filter { it.cycle != "One-time" && it.cycle != "Yearly" }
+        val bubbleText = when (catState) {
+            CatState.HAPPY -> {
+                stringResource(R.string.cat_bubble_happy)
             }
-            val nextNearestBillDate = remember(activeSubs) {
-                activeSubs.minOfOrNull { it.nextBillingDate }
+            CatState.SLEEPING -> {
+                stringResource(R.string.cat_bubble_sleeping)
             }
-            val totalMonthlyCost = remember(activeSubs) {
-                activeSubs.sumOf { FinanceCalculator.calculateMonthlyEquivalentCostInVnd(it) }
-            }
-
-            val bubbleText = when {
-                runwayResult is BankruptcyRunwayResult.AlreadyBankrupt -> {
-                    "Ối sen ơi! Ngân sách đã cạn kiệt rồi (âm hoặc bằng 0). Hãy bổ sung ngân sách hoặc hủy bớt dịch vụ ngay! 🚨"
+            CatState.PANICKED -> {
+                when {
+                    runwayResult is BankruptcyRunwayResult.AlreadyBankrupt -> {
+                        stringResource(R.string.cat_bubble_bankrupt)
+                    }
+                    else -> {
+                        val activeSubs = subscriptions.filter { it.cycle != "One-time" && it.cycle != "Yearly" }
+                        val totalMonthlyCost = activeSubs.sumOf { FinanceCalculator.calculateMonthlyEquivalentCostInVnd(it) }
+                        if (totalMonthlyCost > userBalance) {
+                            stringResource(R.string.cat_bubble_exceeded)
+                        } else if (runwayResult is BankruptcyRunwayResult.DaysLeft && runwayResult.diffMillis < 86400000L * 7) {
+                            val days = (runwayResult.diffMillis / 86400000L).coerceAtLeast(1)
+                            stringResource(R.string.cat_bubble_depleted_in_days, days.toInt())
+                        } else {
+                            stringResource(R.string.cat_bubble_deficit_warning)
+                        }
+                    }
                 }
-                totalMonthlyCost > userBalance -> {
-                    "Ối sen ơi! Tổng chi phí dịch vụ hàng tháng đã vượt quá Ngân sách hàng tháng rồi! 🚨"
-                }
-                runwayResult is BankruptcyRunwayResult.DaysLeft && runwayResult.diffMillis < 86400000L * 7 -> {
-                    val days = (runwayResult.diffMillis / 86400000L).coerceAtLeast(1)
-                    "Ngân sách sẽ cạn kiệt trong vòng $days ngày nữa! Hãy bổ sung ngân sách hoặc hủy bớt dịch vụ! ⚠️"
-                }
-                runwayResult is BankruptcyRunwayResult.DaysLeft && nextNearestBillDate != null && runwayResult.targetTime <= nextNearestBillDate -> {
-                    "Ngân sách không đủ chi trả hóa đơn sắp tới gần nhất! Hãy bổ sung ngân sách hoặc hủy bớt dịch vụ! 💸"
-                }
-                else -> {
-                    "Cảnh báo! Ngân sách có nguy cơ thiếu hụt. Hãy bổ sung ngân sách hoặc hủy bớt dịch vụ! ⚠️"
-                }
-            }
-            
-            Column(
-                modifier = Modifier
-                    .offset(y = floatOffset.dp)
-                    .padding(bottom = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .border(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = bubbleText,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(16.dp, 8.dp)
-                        .offset(y = (-1).dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            shape = TriangleEdgeShape()
-                        )
-                )
             }
         }
         
+        Column(
+            modifier = Modifier
+                .offset(y = floatOffset.dp)
+                .padding(bottom = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = if (catState == CatState.PANICKED) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .border(
+                        1.dp, 
+                        if (catState == CatState.PANICKED) MaterialTheme.colorScheme.error.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), 
+                        RoundedCornerShape(16.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = bubbleText,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (catState == CatState.PANICKED) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                    textAlign = TextAlign.Center
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(16.dp, 8.dp)
+                    .offset(y = (-1).dp)
+                    .background(
+                        color = if (catState == CatState.PANICKED) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                        shape = TriangleEdgeShape()
+                    )
+            )
+        }
+        
         LazyWalletCat(
-            isPanicked = isPanicked,
+            catState = catState,
             modifier = Modifier.size(150.dp)
         )
     }
@@ -1940,12 +2188,12 @@ private fun lerp(start: Float, stop: Float, fraction: Float): Float {
 
 @Composable
 fun LazyWalletCat(
-    isPanicked: Boolean,
+    catState: CatState,
     modifier: Modifier = Modifier
 ) {
     val sleepProgress = remember { Animatable(0f) }
-    LaunchedEffect(isPanicked) {
-        if (!isPanicked) {
+    LaunchedEffect(catState) {
+        if (catState == CatState.SLEEPING) {
             sleepProgress.snapTo(0f)
             sleepProgress.animateTo(1f, animationSpec = tween(3500, easing = EaseOutCubic))
         } else {
@@ -1965,7 +2213,7 @@ fun LazyWalletCat(
         ),
         label = "breathing"
     )
-    val bodyScale = if (!isPanicked) {
+    val bodyScale = if (catState == CatState.SLEEPING) {
         1f + (breathingScale - 1f) * sleepProgress.value
     } else 1.0f
 
@@ -2021,37 +2269,57 @@ fun LazyWalletCat(
                 size = androidx.compose.ui.geometry.Size(120f * scaleFactor, 18f * scaleFactor)
             )
 
-            if (isPanicked) {
-                // Thức dậy + Rung lắc hoảng hốt
-                translate(shakeX, shakeY) {
+            if (catState == CatState.PANICKED || catState == CatState.HAPPY) {
+                // Thức dậy (Panicked hoặc Happy)
+                val translationX = if (catState == CatState.PANICKED) shakeX else 0f
+                val translationY = if (catState == CatState.PANICKED) shakeY else 0f
+                
+                translate(translationX, translationY) {
                     val headCenter = Offset(centerX, centerY - 30f * scaleFactor)
                     val headRadius = 38f * scaleFactor
                     
-                    // Tail standing up & shivering
-                    val tailPath = Path().apply {
-                        moveTo(centerX - 28f * scaleFactor, centerY + 30f * scaleFactor)
-                        quadraticTo(
-                            centerX - 52f * scaleFactor + shakeX, centerY + 10f * scaleFactor + shakeY,
-                            centerX - 46f * scaleFactor, centerY - 35f * scaleFactor
+                    // Tail standing up (panicked) or curved wagging (happy)
+                    if (catState == CatState.PANICKED) {
+                        val tailPath = Path().apply {
+                            moveTo(centerX - 28f * scaleFactor, centerY + 30f * scaleFactor)
+                            quadraticTo(
+                                centerX - 52f * scaleFactor + shakeX, centerY + 10f * scaleFactor + shakeY,
+                                centerX - 46f * scaleFactor, centerY - 35f * scaleFactor
+                            )
+                        }
+                        drawPath(
+                            path = tailPath,
+                            color = catColor,
+                            style = Stroke(width = 8f * scaleFactor, cap = StrokeCap.Round)
+                        )
+                        val tailTipPath = Path().apply {
+                            moveTo(centerX - 48f * scaleFactor, centerY - 25f * scaleFactor)
+                            quadraticTo(
+                                centerX - 50f * scaleFactor + shakeX, centerY - 30f * scaleFactor + shakeY,
+                                centerX - 46f * scaleFactor, centerY - 35f * scaleFactor
+                            )
+                        }
+                        drawPath(
+                            path = tailTipPath,
+                            color = Color(0xFFFFF9E6),
+                            style = Stroke(width = 8f * scaleFactor, cap = StrokeCap.Round)
+                        )
+                    } else {
+                        // Happy tail waving slowly
+                        val happyTailWag = sin(System.currentTimeMillis() / 200.0) * 8.0
+                        val tailPath = Path().apply {
+                            moveTo(centerX - 28f * scaleFactor, centerY + 30f * scaleFactor)
+                            quadraticTo(
+                                centerX - 48f * scaleFactor, centerY + 15f * scaleFactor + happyTailWag.toFloat(),
+                                centerX - 52f * scaleFactor, centerY - 2f * scaleFactor + happyTailWag.toFloat()
+                            )
+                        }
+                        drawPath(
+                            path = tailPath,
+                            color = catColor,
+                            style = Stroke(width = 8f * scaleFactor, cap = StrokeCap.Round)
                         )
                     }
-                    drawPath(
-                        path = tailPath,
-                        color = catColor,
-                        style = Stroke(width = 8f * scaleFactor, cap = StrokeCap.Round)
-                    )
-                    val tailTipPath = Path().apply {
-                        moveTo(centerX - 48f * scaleFactor, centerY - 25f * scaleFactor)
-                        quadraticTo(
-                            centerX - 50f * scaleFactor + shakeX, centerY - 30f * scaleFactor + shakeY,
-                            centerX - 46f * scaleFactor, centerY - 35f * scaleFactor
-                        )
-                    }
-                    drawPath(
-                        path = tailTipPath,
-                        color = Color(0xFFFFF9E6),
-                        style = Stroke(width = 8f * scaleFactor, cap = StrokeCap.Round)
-                    )
 
                     // Left & Right Ears
                     val leftEarPath = Path().apply {
@@ -2140,28 +2408,43 @@ fun LazyWalletCat(
                     )
 
                     // Eyes
-                    drawCircle(color = Color.White, radius = 9f * scaleFactor, center = Offset(centerX - 14f * scaleFactor, centerY - 30f * scaleFactor))
-                    drawCircle(color = Color.White, radius = 9f * scaleFactor, center = Offset(centerX + 14f * scaleFactor, centerY - 30f * scaleFactor))
-                    drawCircle(color = Color.Black, radius = 4f * scaleFactor, center = Offset(centerX - 14f * scaleFactor, centerY - 30f * scaleFactor))
-                    drawCircle(color = Color.Black, radius = 4f * scaleFactor, center = Offset(centerX + 14f * scaleFactor, centerY - 30f * scaleFactor))
-                    drawCircle(color = Color.White, radius = 1.5f * scaleFactor, center = Offset(centerX - 16f * scaleFactor, centerY - 32f * scaleFactor))
-                    drawCircle(color = Color.White, radius = 1.5f * scaleFactor, center = Offset(centerX + 12f * scaleFactor, centerY - 32f * scaleFactor))
+                    if (catState == CatState.PANICKED) {
+                        drawCircle(color = Color.White, radius = 9f * scaleFactor, center = Offset(centerX - 14f * scaleFactor, centerY - 30f * scaleFactor))
+                        drawCircle(color = Color.White, radius = 9f * scaleFactor, center = Offset(centerX + 14f * scaleFactor, centerY - 30f * scaleFactor))
+                        drawCircle(color = Color.Black, radius = 4f * scaleFactor, center = Offset(centerX - 14f * scaleFactor, centerY - 30f * scaleFactor))
+                        drawCircle(color = Color.Black, radius = 4f * scaleFactor, center = Offset(centerX + 14f * scaleFactor, centerY - 30f * scaleFactor))
+                        drawCircle(color = Color.White, radius = 1.5f * scaleFactor, center = Offset(centerX - 16f * scaleFactor, centerY - 32f * scaleFactor))
+                        drawCircle(color = Color.White, radius = 1.5f * scaleFactor, center = Offset(centerX + 12f * scaleFactor, centerY - 32f * scaleFactor))
 
-                    // Worried eyebrows
-                    drawLine(
-                        color = Color(0x99000000),
-                        start = Offset(centerX - 22f * scaleFactor, centerY - 44f * scaleFactor),
-                        end = Offset(centerX - 8f * scaleFactor, centerY - 40f * scaleFactor),
-                        strokeWidth = 2f * scaleFactor,
-                        cap = StrokeCap.Round
-                    )
-                    drawLine(
-                        color = Color(0x99000000),
-                        start = Offset(centerX + 22f * scaleFactor, centerY - 44f * scaleFactor),
-                        end = Offset(centerX + 8f * scaleFactor, centerY - 40f * scaleFactor),
-                        strokeWidth = 2f * scaleFactor,
-                        cap = StrokeCap.Round
-                    )
+                        // Worried eyebrows
+                        drawLine(
+                            color = Color(0x99000000),
+                            start = Offset(centerX - 22f * scaleFactor, centerY - 44f * scaleFactor),
+                            end = Offset(centerX - 8f * scaleFactor, centerY - 40f * scaleFactor),
+                            strokeWidth = 2f * scaleFactor,
+                            cap = StrokeCap.Round
+                        )
+                        drawLine(
+                            color = Color(0x99000000),
+                            start = Offset(centerX + 22f * scaleFactor, centerY - 44f * scaleFactor),
+                            end = Offset(centerX + 8f * scaleFactor, centerY - 40f * scaleFactor),
+                            strokeWidth = 2f * scaleFactor,
+                            cap = StrokeCap.Round
+                        )
+                    } else {
+                        // HAPPY: Arched happy eyes ^^
+                        val eyePathLeft = Path().apply {
+                            moveTo(centerX - 22f * scaleFactor, centerY - 28f * scaleFactor)
+                            quadraticTo(centerX - 15f * scaleFactor, centerY - 34f * scaleFactor, centerX - 8f * scaleFactor, centerY - 28f * scaleFactor)
+                        }
+                        drawPath(eyePathLeft, color = Color.Black, style = Stroke(width = 3.5f * scaleFactor, cap = StrokeCap.Round))
+                        
+                        val eyePathRight = Path().apply {
+                            moveTo(centerX + 8f * scaleFactor, centerY - 28f * scaleFactor)
+                            quadraticTo(centerX + 15f * scaleFactor, centerY - 34f * scaleFactor, centerX + 20f * scaleFactor, centerY - 28f * scaleFactor)
+                        }
+                        drawPath(eyePathRight, color = Color.Black, style = Stroke(width = 3.5f * scaleFactor, cap = StrokeCap.Round))
+                    }
 
                     // Blush
                     drawCircle(color = Color(0xFFFF8E9E).copy(alpha = 0.5f), radius = 5f * scaleFactor, center = Offset(centerX - 22f * scaleFactor, centerY - 20f * scaleFactor))
@@ -2177,8 +2460,18 @@ fun LazyWalletCat(
                     drawPath(nosePath, color = Color(0xFFFF5252))
 
                     // Mouth
-                    drawCircle(color = Color(0x1F000000), radius = 5f * scaleFactor, center = Offset(centerX, centerY - 12f * scaleFactor))
-                    drawCircle(color = Color(0xFF3E2723), radius = 3.5f * scaleFactor, center = Offset(centerX, centerY - 12f * scaleFactor))
+                    if (catState == CatState.PANICKED) {
+                        drawCircle(color = Color(0x1F000000), radius = 5f * scaleFactor, center = Offset(centerX, centerY - 12f * scaleFactor))
+                        drawCircle(color = Color(0xFF3E2723), radius = 3.5f * scaleFactor, center = Offset(centerX, centerY - 12f * scaleFactor))
+                    } else {
+                        // HAPPY mouth
+                        val mouthPath = Path().apply {
+                            moveTo(centerX - 4f * scaleFactor, centerY - 16f * scaleFactor)
+                            quadraticTo(centerX - 2f * scaleFactor, centerY - 12f * scaleFactor, centerX, centerY - 15f * scaleFactor)
+                            quadraticTo(centerX + 2f * scaleFactor, centerY - 12f * scaleFactor, centerX + 4f * scaleFactor, centerY - 15f * scaleFactor)
+                        }
+                        drawPath(mouthPath, color = Color(0xFF3E2723), style = Stroke(width = 2.5f * scaleFactor, cap = StrokeCap.Round))
+                    }
 
                     // Whiskers
                     drawLine(Color.Black.copy(0.2f), Offset(centerX - 32f * scaleFactor, centerY - 20f * scaleFactor), Offset(centerX - 52f * scaleFactor, centerY - 24f * scaleFactor), strokeWidth = 2f)
@@ -2190,9 +2483,11 @@ fun LazyWalletCat(
                     drawCircle(color = Color(0xFFFFF8E7), radius = 6f * scaleFactor, center = Offset(centerX - 14f * scaleFactor, centerY + 36f * scaleFactor))
                     drawCircle(color = Color(0xFFFFF8E7), radius = 6f * scaleFactor, center = Offset(centerX + 14f * scaleFactor, centerY + 36f * scaleFactor))
 
-                    // Sweat drops
-                    drawCircle(Color(0xFF8AE9FF), radius = 3.5f * scaleFactor, center = Offset(centerX - 52f * scaleFactor - shakeX, centerY - 38f * scaleFactor))
-                    drawCircle(Color(0xFF8AE9FF), radius = 3f * scaleFactor, center = Offset(centerX + 52f * scaleFactor + shakeX, centerY - 33f * scaleFactor))
+                    // Sweat drops (only when panicked)
+                    if (catState == CatState.PANICKED) {
+                        drawCircle(Color(0xFF8AE9FF), radius = 3.5f * scaleFactor, center = Offset(centerX - 52f * scaleFactor - shakeX, centerY - 38f * scaleFactor))
+                        drawCircle(Color(0xFF8AE9FF), radius = 3f * scaleFactor, center = Offset(centerX + 52f * scaleFactor + shakeX, centerY - 33f * scaleFactor))
+                    }
                 }
             } else {
                 // Ngủ cuộn tròn mượt mà (dựa theo progress)
@@ -2555,16 +2850,6 @@ private fun getCategoryDisplayName(category: String): String {
     return stringResource(resId)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Forecasting Data (Moved to FinanceCalculator)
-// ─────────────────────────────────────────────────────────────────────────────
-
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Cashflow Forecasting Chart
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Composable
 fun CashflowForecastingChart(subscriptions: List<Subscription>, modifier: Modifier = Modifier) {
     val locale = LocalContext.current.resources.configuration.locales[0]
@@ -2577,6 +2862,21 @@ fun CashflowForecastingChart(subscriptions: List<Subscription>, modifier: Modifi
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val highlightColor = MaterialTheme.colorScheme.error
+
+    val pathProgress = remember { Animatable(0f) }
+    val pointProgress = remember { Animatable(0f) }
+    
+    LaunchedEffect(forecasts) {
+        launch {
+            pathProgress.snapTo(0f)
+            pathProgress.animateTo(1f, tween(1500, easing = FastOutSlowInEasing))
+        }
+        launch {
+            pointProgress.snapTo(0f)
+            delay(500)
+            pointProgress.animateTo(1f, tween(800, easing = EaseOutBack))
+        }
+    }
 
     Column(modifier = modifier.padding(24.dp)) {
         Text(
@@ -2639,10 +2939,12 @@ fun CashflowForecastingChart(subscriptions: List<Subscription>, modifier: Modifi
                     lineTo(points.last().x, paddingTop + chartHeight)
                     close()
                 }
+                
+                // Animate fill alpha
                 drawPath(
                     path = fillPath,
                     brush = Brush.verticalGradient(
-                        colors = listOf(primaryColor.copy(alpha = 0.2f), Color.Transparent),
+                        colors = listOf(primaryColor.copy(alpha = 0.2f * pathProgress.value), Color.Transparent),
                         startY = points.minOf { it.y },
                         endY = paddingTop + chartHeight
                     )
@@ -2660,7 +2962,17 @@ fun CashflowForecastingChart(subscriptions: List<Subscription>, modifier: Modifi
                         cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, curr.x, curr.y)
                     }
                 }
-                drawPath(strokePath, color = primaryColor, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
+                
+                // Use a measure to draw only partial path if needed, but for simplicity we'll just use pathProgress
+                // For a more advanced path animation, one would use PathMeasure.
+                // Here we'll just draw the stroke and animate alpha or use a simpler trick.
+                // Actually, let's use pathProgress to clip the drawing area.
+                
+                clipRect(
+                    right = paddingLeft + chartWidth * pathProgress.value
+                ) {
+                    drawPath(strokePath, color = primaryColor, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
+                }
             }
 
             val textPaint = Paint().apply {
@@ -2678,33 +2990,41 @@ fun CashflowForecastingChart(subscriptions: List<Subscription>, modifier: Modifi
             points.forEachIndexed { index, point ->
                 val forecast = forecasts[index]
                 val isMax = forecast == maxForecast && forecast.amount > 0.0
+                
+                // Animate point appearance
+                val scale = if (index / (points.size - 1f) <= pathProgress.value) pointProgress.value else 0f
 
-                drawCircle(
-                    color = if (isMax) highlightColor else primaryColor,
-                    radius = if (isMax) 5.dp.toPx() else 3.5f.dp.toPx(),
-                    center = point
-                )
-                drawCircle(
-                    color = Color.White,
-                    radius = if (isMax) 2.5f.dp.toPx() else 1.8f.dp.toPx(),
-                    center = point
-                )
-                drawContext.canvas.nativeCanvas.drawText(
-                    forecast.monthName, point.x, height - 6.dp.toPx(), textPaint
-                )
-                if (forecast.amount > 0.0) {
-                    val amountText = if (forecast.amount >= 1000000.0) {
-                        String.format(locale, "%.1fM", forecast.amount / 1000000.0)
-                    } else {
-                        String.format(locale, "%.0fk", forecast.amount / 1000.0)
-                    }
-                    val paintToUse = if (isMax) {
-                        Paint(amountPaint).apply {
-                            color = highlightColor.toArgb()
-                            typeface = Typeface.DEFAULT_BOLD
+                if (scale > 0f) {
+                    drawCircle(
+                        color = if (isMax) highlightColor else primaryColor,
+                        radius = (if (isMax) 5.dp.toPx() else 3.5f.dp.toPx()) * scale,
+                        center = point
+                    )
+                    drawCircle(
+                        color = Color.White,
+                        radius = (if (isMax) 2.5f.dp.toPx() else 1.8f.dp.toPx()) * scale,
+                        center = point
+                    )
+                    
+                    // Month name
+                    drawContext.canvas.nativeCanvas.drawText(
+                        forecast.monthName, point.x, height - 6.dp.toPx(), textPaint.apply { alpha = (255 * scale).toInt() }
+                    )
+                    
+                    if (forecast.amount > 0.0) {
+                        val amountText = if (forecast.amount >= 1000000.0) {
+                            String.format(locale, "%.1fM", forecast.amount / 1000000.0)
+                        } else {
+                            String.format(locale, "%.0fk", forecast.amount / 1000.0)
                         }
-                    } else amountPaint
-                    drawContext.canvas.nativeCanvas.drawText(amountText, point.x, point.y - 8.dp.toPx(), paintToUse)
+                        val paintToUse = if (isMax) {
+                            Paint(amountPaint).apply {
+                                color = highlightColor.toArgb()
+                                typeface = Typeface.DEFAULT_BOLD
+                            }
+                        } else amountPaint
+                        drawContext.canvas.nativeCanvas.drawText(amountText, point.x, point.y - 8.dp.toPx(), paintToUse.apply { alpha = (255 * scale).toInt() })
+                    }
                 }
             }
         }
@@ -2738,7 +3058,11 @@ fun PaymentHistorySection(paymentHistory: List<PaymentHistory>, modifier: Modifi
                 ) {
                     Text(
                         // Show actual count capped at 5
-                        text = "${minOf(paymentHistory.size, 5)} giao dịch",
+                        text = if (minOf(paymentHistory.size, 5) == 1) {
+                            stringResource(R.string.dashboard_history_count_single)
+                        } else {
+                            stringResource(R.string.dashboard_history_count, minOf(paymentHistory.size, 5))
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         fontWeight = FontWeight.SemiBold,
@@ -2763,7 +3087,7 @@ fun PaymentHistorySection(paymentHistory: List<PaymentHistory>, modifier: Modifi
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(

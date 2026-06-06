@@ -1,29 +1,20 @@
 <resources>
-    <!-- App Details -->
     <string name="app_name">Sub Lazy</string>
-
-    <!-- General / Actions -->
     <string name="back">Quay lại</string>
     <string name="ok">OK</string>
     <string name="cancel">Hủy</string>
-
-    <!-- Onboarding Screen -->
     <string name="onboarding_title">Thiết lập nhanh</string>
     <string name="onboarding_welcome">Chào mừng đến với Sub Lazy</string>
     <string name="onboarding_subtitle">Chọn các dịch vụ bạn đang sử dụng để hiển thị trên bảng điều khiển.</string>
     <string name="onboarding_btn_start">Bắt đầu tiết kiệm</string>
     <string name="onboarding_skip">Bỏ qua</string>
     <string name="onboarding_btn_empty">Hiện tại chưa có dịch vụ nào</string>
-
-    <!-- Dashboard Screen -->
     <string name="dashboard_monthly_spending">Chi tiêu hàng tháng</string>
     <string name="dashboard_btn_manage">Quản lý dịch vụ</string>
     <string name="dashboard_distribution">Phân bổ chi tiêu</string>
     <string name="dashboard_no_data">Không có dữ liệu hiển thị</string>
     <string name="dashboard_total">Tổng</string>
     <string name="dashboard_lang_select_title">Language / Ngôn ngữ</string>
-
-    <!-- Subscription List Screen -->
     <string name="list_title">Dịch vụ đang dùng</string>
     <string name="list_empty">Chưa theo dõi dịch vụ nào</string>
     <string name="list_days_left_today">Hôm nay</string>
@@ -37,8 +28,6 @@
     <string name="list_yearly_suffix">/ năm</string>
     <string name="list_one_time_suffix"> (một lần)</string>
     <string name="list_delete_confirm">Đã xóa dịch vụ</string>
-
-    <!-- Add/Edit Subscription Screen -->
     <string name="add_title">Thêm dịch vụ mới</string>
     <string name="edit_title">Chỉnh sửa dịch vụ</string>
     <string name="add_edit_service_name">Tên dịch vụ</string>
@@ -47,11 +36,10 @@
     <string name="add_edit_renewal_date">Ngày gia hạn tiếp theo</string>
     <string name="add_edit_select_date">Chọn ngày</string>
     <string name="add_edit_category">Danh mục</string>
+    <string name="add_edit_select_category">Chọn danh mục</string>
     <string name="add_edit_billing_cycle">Chu kỳ thanh toán</string>
     <string name="add_edit_btn_track">Theo dõi dịch vụ</string>
     <string name="add_edit_btn_update">Cập nhật dịch vụ</string>
-
-    <!-- Billing Cycles -->
     <string name="cycle_daily">Hàng ngày</string>
     <string name="cycle_weekly">Hàng tuần</string>
     <string name="cycle_monthly">Hàng tháng</string>
@@ -59,16 +47,12 @@
     <string name="cycle_6_months">Mỗi 6 tháng</string>
     <string name="cycle_yearly">Hàng năm</string>
     <string name="cycle_one_time">Một lần</string>
-
-    <!-- Auto-Delete Options -->
     <string name="add_edit_auto_delete_title">Tự động xóa sau số lần thanh toán</string>
     <string name="auto_delete_unlimited">Không giới hạn</string>
     <string name="auto_delete_once">1 lần</string>
     <string name="auto_delete_custom">n lần</string>
     <string name="auto_delete_custom_hint">Số lần thanh toán</string>
     <string name="list_remaining_times">Còn %1$d lần</string>
-
-    <!-- Categories -->
     <string name="category_entertainment">Giải trí</string>
     <string name="category_utilities">Tiện ích</string>
     <string name="category_work">Công việc</string>
@@ -81,8 +65,6 @@
     <string name="category_trial">Dùng thử &amp; Quảng cáo</string>
     <string name="category_notes">Ghi chú &amp; Nhắc nhở</string>
     <string name="category_other">Khác</string>
-
-    <!-- Notifications -->
     <string name="notification_channel_name">Cảnh báo thanh toán</string>
     <string name="notification_channel_desc">Thông báo về việc gia hạn dịch vụ sắp tới</string>
     <string name="notification_message">Cảnh báo thanh toán %1$s! Hóa đơn %2$s trị giá %3$s sẽ gia hạn sau 2 ngày. Hãy chuẩn bị đủ tiền nhé!</string>
@@ -96,7 +78,6 @@
     <string name="notification_notes_message">Nhắc nhở: %1$s</string>
     <string name="notification_km_title">Bảo dưỡng phương tiện 🏍️</string>
     <string name="notification_km_message">Dịch vụ %1$s sắp đến kỳ bảo dưỡng! Ước tính xe của bạn đã đi được khoảng %2$s km. Hãy kiểm tra hoặc thay dầu nhé!</string>
-
     <string name="odo_update_title">Cập nhật số ODO</string>
     <string name="odo_current_label">Số ODO hiện tại (km)</string>
     <string name="odo_update_btn">Lưu ODO</string>
@@ -105,8 +86,6 @@
     <string name="odo_remaining_km">Còn %1$s km nữa</string>
     <string name="odo_exceeded_km">Vượt quá %1$s km</string>
     <string name="action_mark_maintenance_done">Đã bảo dưỡng</string>
-
-    <!-- Additional Charts Label Strings -->
     <string name="chart_all_categories">Tất cả danh mục</string>
     <string name="chart_weekly_forecast">So sánh chu kỳ thanh toán</string>
     <string name="chart_upcoming_timeline">Lịch trình gia hạn sắp tới</string>
@@ -121,14 +100,10 @@
     <string name="chart_billing_cycle_title">Phân tích chu kỳ thanh toán</string>
     <string name="chart_subs_count">%1$d dịch vụ</string>
     <string name="chart_sub_count">1 dịch vụ</string>
-
-    <!-- Delete Confirmation Dialog -->
     <string name="delete_dialog_title">Xóa dịch vụ</string>
     <string name="delete_dialog_message">Bạn có chắc chắn muốn ngừng theo dõi %1$s không? Hành động này không thể hoàn tác.</string>
     <string name="delete_dialog_confirm">Xóa</string>
     <string name="delete_dialog_cancel">Hủy</string>
-
-    <!-- Detected Bills -->
     <string name="notification_detected_channel_name">Hóa đơn phát hiện tự động</string>
     <string name="notification_detected_channel_desc">Cảnh báo khi phát hiện thông báo thanh toán định kỳ</string>
     <string name="notification_detected_title">Phát hiện hóa đơn mới!</string>
@@ -145,30 +120,104 @@
     <string name="settings_gmail_btn_link">Đăng nhập</string>
     <string name="settings_gmail_btn_unlink">Đăng xuất</string>
     <string name="settings_btn_save">Lưu Cài đặt</string>
-    
-    <!-- Action Sheet / FAB options -->
     <string name="action_add_manually">Thêm thủ công</string>
     <string name="action_scan_screenshot">Quét ảnh hóa đơn</string>
     <string name="action_sync_gmail">Đồng bộ từ Gmail</string>
     <string name="action_sheet_title">Bạn muốn thêm bằng cách nào?</string>
-    
-    <!-- Gemini / OCR processing -->
+    <string name="action_add_from_template">Thêm từ mẫu định kỳ</string>
+    <string name="template_dialog_title">Chọn mẫu định kỳ</string>
+    <string name="template_tab_digital">Dịch vụ số</string>
+    <string name="template_tab_lifestyle">Đời sống</string>
     <string name="ocr_processing">AI đang phân tích hóa đơn...</string>
     <string name="ocr_success">Đã phân tích hóa đơn thành công!</string>
     <string name="ocr_error">Phân tích thất bại. Vui lòng kiểm tra kết nối/API key.</string>
-    
-    <!-- Gmail Sync processing -->
     <string name="gmail_sync_processing">Đang quét thư hóa đơn Gmail...</string>
     <string name="gmail_sync_found">Tìm thấy %1$d hóa đơn từ Gmail!</string>
     <string name="gmail_sync_none">Không tìm thấy thư hóa đơn mới nào.</string>
     <string name="gmail_import_title">Nhập hóa đơn dịch vụ</string>
     <string name="gmail_import_btn">Nhập dịch vụ đã chọn (%1$d)</string>
-
-    <!-- Forecasting & Payment History -->
     <string name="chart_forecasting_title">Dự báo dòng tiền chi tiêu</string>
     <string name="chart_forecasting_peak_desc">Chi tiêu cao nhất vào %1$s: %2$s</string>
     <string name="action_mark_paid">Đã thanh toán</string>
     <string name="payment_history_title">Lịch sử thanh toán</string>
     <string name="payment_history_empty">Chưa có lịch sử thanh toán</string>
     <string name="payment_history_recorded">Đã trả %1$s ngày %2$s</string>
+    <string name="budget_update_title">Cập nhật ngân sách</string>
+    <string name="budget_monthly_label">Ngân sách hàng tháng (VND)</string>
+    <string name="budget_reset_day_label">Ngày làm mới ngân sách hàng tháng (1 - 31)</string>
+    <string name="btn_save">Lưu</string>
+    <string name="btn_cancel">Hủy</string>
+    <string name="budget_monthly_spending_title">Ngân sách hàng tháng: </string>
+    <string name="budget_empty_services_hint">Hãy thêm dịch vụ để bắt đầu theo dõi hạn mức tài chính.</string>
+    <string name="budget_deficit_title">Thâm hụt ngân sách tháng! 🚨</string>
+    <string name="budget_deficit_desc">Tổng chi phí các dịch vụ hàng tháng đã vượt quá Ngân sách hàng tháng của bạn.</string>
+    <string name="budget_safe_title">Tài chính an toàn 💚</string>
+    <string name="budget_safe_desc">Ngân sách đủ để chi trả toàn bộ hóa đơn trong tháng này.</string>
+    <string name="budget_exhausted_title">Ngân sách đã cạn kiệt! 🚨</string>
+    <string name="budget_exhausted_desc">Ngân sách không đủ chi trả cho hóa đơn tiếp theo. Bổ sung ngân sách hoặc hủy dịch vụ ngay!</string>
+    <string name="budget_running_out_title">Ngân sách sắp cạn kiệt! 🚨</string>
+    <string name="budget_running_out_warning">Dự báo cạn ngân sách sắp tới ⚠️</string>
+    <string name="budget_countdown_pattern">%1$d ngày %2$d giờ %3$d phút</string>
+    <string name="budget_depleted_on_date">Ngân sách dự kiến chạm đáy vào ngày %1$s.</string>
+    <string name="cat_bubble_happy">Yay! Chi tiêu định kỳ đang cực kỳ tối ưu, Mèo Lười rất vui vẻ chơi đùa! 😸🎉</string>
+    <string name="cat_bubble_sleeping">Mèo Lười đang say giấc nồng... Hóa đơn của sen đang được quản lý tốt! 💤</string>
+    <string name="cat_bubble_bankrupt">Ối sen ơi! Ngân sách đã cạn kiệt rồi (âm hoặc bằng 0). Hãy bổ sung ngân sách hoặc hủy bớt dịch vụ ngay! 🚨</string>
+    <string name="cat_bubble_exceeded">Ối sen ơi! Tổng chi phí dịch vụ hàng tháng đã vượt quá Ngân sách hàng tháng rồi! 🚨</string>
+    <string name="cat_bubble_depleted_in_days">Ngân sách sẽ cạn kiệt trong vòng %1$d ngày nữa! Hãy bổ sung ngân sách hoặc hủy bớt dịch vụ! ⚠️</string>
+    <string name="cat_bubble_deficit_warning">Cảnh báo! Ngân sách có nguy cơ thiếu hụt. Hãy bổ sung ngân sách hoặc hủy bớt dịch vụ! ⚠️</string>
+    <string name="trial_guide_title">Hướng dẫn hủy gói dùng thử</string>
+    <string name="trial_guide_play_store">Mở Play Store -&gt; Nhấn avatar góc trên -&gt; Thanh toán &amp; Gói đăng ký -&gt; Gói đăng ký -&gt; Chọn %1$s -&gt; Hủy đăng ký.</string>
+    <string name="trial_guide_apple_store">Mở Cài đặt iPhone -&gt; Nhấn vào tên của bạn -&gt; Đăng ký -&gt; Chọn %1$s -&gt; Hủy dùng thử.</string>
+    <string name="trial_guide_netflix">Mở Web Netflix -&gt; Vào trang Tài khoản -&gt; Trong mục Tư cách thành viên chọn Hủy tư cách thành viên.</string>
+    <string name="trial_guide_spotify">Mở Web Spotify -&gt; Vào trang Tài khoản -&gt; Quản lý gói đăng ký -&gt; Chọn Thay đổi hoặc Hủy -&gt; Hủy Premium.</string>
+    <string name="trial_guide_youtube">Mở ứng dụng Youtube -&gt; Nhấn avatar -&gt; Gói thành viên mua chung -&gt; Quản lý gói -&gt; Hủy dùng thử.</string>
+    <string name="trial_guide_general">Mở ứng dụng nơi đăng ký -&gt; Vào Cài đặt Tài khoản -&gt; Gói dịch vụ/Thanh toán -&gt; Chọn Hủy dịch vụ trước ngày gia hạn.</string>
+    <string name="dashboard_check_in_session">Check-in 1 buổi</string>
+    <string name="dashboard_renew_plan">Gia hạn gói</string>
+    <string name="dashboard_scan_vietqr">Quét mã VietQR</string>
+    <string name="dashboard_scan_vietqr_desc">Dùng app Ngân hàng quét QR để thanh toán nhanh</string>
+    <string name="dashboard_btn_close">Đóng</string>
+    <string name="dashboard_details_installment">Khoản trả góp · Còn %1$d tháng</string>
+    <string name="dashboard_details_session">Thẻ dịch vụ · Còn %1$d/%2$d buổi</string>
+    <string name="dashboard_group_split_cost">Chia tiền nhóm:</string>
+    <string name="dashboard_reminder_copied">Đã sao chép tin nhắn nhắc nợ!</string>
+    <string name="dashboard_send_reminder_to">Gửi nhắc nợ cho %1$s</string>
+    <string name="dashboard_btn_remind">Nhắc nợ</string>
+    <string name="dashboard_split_reminder_pattern">Chào %1$s, đến hạn đóng tiền %2$s rồi nha. Số tiền là: %3$s. Bạn chuyển khoản qua VietQR tại đây nhé: %4$s</string>
+    <string name="dashboard_services_tracked">%1$d dịch vụ đang theo dõi</string>
+    <string name="dashboard_services_tracked_single">1 dịch vụ đang theo dõi</string>
+    <string name="dashboard_categories_count">%1$d danh mục</string>
+    <string name="dashboard_categories_count_single">1 danh mục</string>
+    <string name="dashboard_history_count">%1$d giao dịch</string>
+    <string name="dashboard_history_count_single">1 giao dịch</string>
+    <string name="dashboard_tab_overview">Tổng quan</string>
+    <string name="dashboard_tab_analysis">Phân tích</string>
+    <string name="add_edit_commitment_type">Loại cam kết</string>
+    <string name="add_edit_type_standard">Hóa đơn chuẩn</string>
+    <string name="add_edit_type_installment">Trả góp</string>
+    <string name="add_edit_type_session">Phiên vượt qua</string>
+    <string name="add_edit_installment_info">Chi tiết Trả góp</string>
+    <string name="add_edit_installment_periods">Tổng thời gian trả góp (Tháng)</string>
+    <string name="add_edit_installment_periods_hint">ví dụ. 6, 12, 24</string>
+    <string name="add_edit_installment_desc">Đăng ký sẽ được tự động lưu dưới dạng chu kỳ Hàng tháng và tự động xóa sau khi tất cả các kỳ được thanh toán.</string>
+    <string name="add_edit_session_info">Chi tiết vượt qua phiên</string>
+    <string name="add_edit_session_total">Tổng số phiên</string>
+    <string name="add_edit_session_total_hint">ví dụ. 30</string>
+    <string name="add_edit_session_remaining">Các phiên còn lại</string>
+    <string name="add_edit_session_desc">Bạn có thể đăng ký trực tiếp từ bảng điều khiển để giảm các phiên còn lại.</string>
+    <string name="add_edit_shared_title">Đăng ký chia sẻ</string>
+    <string name="add_edit_shared_desc">Chia sẻ chi phí với bạn bè và tự động tính toán phần chia</string>
+    <string name="add_edit_shared_members">Đã thêm thành viên:</string>
+    <string name="add_edit_shared_add_member">Thêm thành viên mới</string>
+    <string name="add_edit_shared_member_name">Tên thành viên</string>
+    <string name="add_edit_shared_member_name_hint">ví dụ. John, Jane</string>
+    <string name="add_edit_shared_member_amount">Số tiền chia</string>
+    <string name="add_edit_shared_member_phone">Điện thoại (tùy chọn)</string>
+    <string name="add_edit_shared_member_phone_hint">09...</string>
+    <string name="add_edit_shared_btn_add">Thêm vào danh sách</string>
+    <string name="add_edit_bank_title">Chi tiết chuyển khoản ngân hàng VietQR</string>
+    <string name="add_edit_bank_desc">Định cấu hình tài khoản ngân hàng của bạn để tạo mã QR thanh toán nhanh chóng</string>
+    <string name="add_edit_bank_name">Tên ngân hàng (ví dụ: VCB, MB)</string>
+    <string name="add_edit_bank_account">Số tài khoản</string>
+    <string name="add_edit_bank_account_holder">Tên chủ tài khoản (Không dấu)</string>
 </resources>
