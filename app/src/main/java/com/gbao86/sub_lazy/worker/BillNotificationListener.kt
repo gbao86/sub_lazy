@@ -222,6 +222,7 @@ class BillNotificationListener : NotificationListenerService() {
 
         // PendingIntent to launch MainActivity with pre-fill parameters
         val intent = Intent(this, MainActivity::class.java).apply {
+            setPackage(packageName)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("is_prefilled", true)
             putExtra("prefill_name", serviceName)
@@ -260,6 +261,7 @@ class BillNotificationListener : NotificationListenerService() {
         val message = "Đã tự động xác nhận thanh toán hóa đơn $serviceName ($amountFormatted). Chúc bạn lười vui vẻ! 🐱"
 
         val intent = Intent(this, MainActivity::class.java).apply {
+            setPackage(packageName)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
 
