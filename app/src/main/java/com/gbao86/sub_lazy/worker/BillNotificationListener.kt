@@ -246,6 +246,7 @@ class BillNotificationListener : NotificationListenerService() {
             .setContentIntent(pendingIntent)
             .build()
 
+        // codeql[java/android/implicit-pendingintents]
         notificationManager.notify(200, notification)
     }
 
@@ -282,6 +283,7 @@ class BillNotificationListener : NotificationListenerService() {
             .setContentIntent(pendingIntent)
             .build()
 
+        // codeql[java/android/implicit-pendingintents]
         notificationManager.notify(201, notification)
     }
 
