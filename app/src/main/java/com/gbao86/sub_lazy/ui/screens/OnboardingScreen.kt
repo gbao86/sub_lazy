@@ -62,6 +62,7 @@ fun OnboardingScreen(
     onFinishOnboarding: () -> Unit
 ) {
     var selectedTemplates by remember { mutableStateOf(setOf<SubscriptionTemplate>()) }
+    var selectedTemplateTab by remember { mutableIntStateOf(0) }
 
     Scaffold(
         bottomBar = {
@@ -260,26 +261,55 @@ fun OnboardingScreen(
             }
 
             item {
-                Text(
-                    text = "Chọn dịch vụ bạn đang dùng",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
+                Column(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Chọn dịch vụ bạn đang dùng",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    TabRow(
+                        selectedTabIndex = selectedTemplateTab,
+                        containerColor = Color.Transparent,
+                        divider = {}
+                    ) {
+                        Tab(
+                            selected = selectedTemplateTab == 0,
+                            onClick = { selectedTemplateTab = 0 },
+                            text = { Text("Kỹ thuật số", fontWeight = FontWeight.Bold) }
+                        )
+                        Tab(
+                            selected = selectedTemplateTab == 1,
+                            onClick = { selectedTemplateTab = 1 },
+                            text = { Text("Đời sống", fontWeight = FontWeight.Bold) }
+                        )
+                    }
+                }
             }
 
-            itemsIndexed(popularTemplates) { index, template ->
-                var visible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    delay(index * 60L)
+            val templates = if (selectedTemplateTab == 0) {
+                SubscriptionTemplates.digitalTemplates
+            } else {
+                SubscriptionTemplates.lifestyleTemplates
+            }
+
+            itemsIndexed(
+                items = templates,
+                key = { _, template -> template.name }
+            ) { index, template ->
+                var visible by remember(selectedTemplateTab) { mutableStateOf(false) }
+                LaunchedEffect(selectedTemplateTab) {
+                    delay((index * 40L).coerceAtMost(200L))
                     visible = true
                 }
                 AnimatedVisibility(
                     visible = visible,
-                    enter = fadeIn(tween(300)) + slideInVertically(
-                        initialOffsetY = { it / 3 },
-                        animationSpec = tween(300, easing = FastOutSlowInEasing)
+                    enter = fadeIn(tween(250)) + slideInVertically(
+                        initialOffsetY = { it / 4 },
+                        animationSpec = tween(250, easing = FastOutSlowInEasing)
                     ),
                     modifier = Modifier.padding(horizontal = 24.dp)
                 ) {

@@ -173,73 +173,93 @@ fun DashboardContent(
             )
         }
         var resetDayInput by remember { mutableStateOf(budgetResetDay.toString()) }
-        AlertDialog(
+        ModalBottomSheet(
             onDismissRequest = { showBalanceEditDialog = false },
-            shape = RoundedCornerShape(28.dp),
-            title = { Text(stringResource(R.string.budget_update_title), fontWeight = FontWeight.Bold) },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = inputVal,
-                        onValueChange = { text ->
-                            val cleanDigits = text.replace("[^\\d]".toRegex(), "")
-                            if (cleanDigits.isEmpty()) {
-                                inputVal = ""
-                            } else {
-                                val parsed = cleanDigits.toLongOrNull()
-                                if (parsed != null) {
-                                    inputVal = java.text.NumberFormat.getNumberInstance(locale).format(parsed)
-                                }
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.budget_update_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+
+                OutlinedTextField(
+                    value = inputVal,
+                    onValueChange = { text ->
+                        val cleanDigits = text.replace("[^\\d]".toRegex(), "")
+                        if (cleanDigits.isEmpty()) {
+                            inputVal = ""
+                        } else {
+                            val parsed = cleanDigits.toLongOrNull()
+                            if (parsed != null) {
+                                inputVal = java.text.NumberFormat.getNumberInstance(locale).format(parsed)
                             }
-                        },
-                        label = { Text(stringResource(R.string.budget_monthly_label)) },
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        singleLine = true
-                    )
-                    
-                    OutlinedTextField(
-                        value = resetDayInput,
-                        onValueChange = { text ->
-                            val cleanDigits = text.replace("[^\\d]".toRegex(), "")
-                            if (cleanDigits.isEmpty()) {
-                                resetDayInput = ""
-                            } else {
-                                val parsed = cleanDigits.toIntOrNull()
-                                if (parsed != null && parsed in 1..31) {
-                                    resetDayInput = parsed.toString()
-                                }
-                            }
-                        },
-                        label = { Text(stringResource(R.string.budget_reset_day_label)) },
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        singleLine = true
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val cleanDigits = inputVal.replace("[^\\d]".toRegex(), "")
-                        val newBalance = cleanDigits.toDoubleOrNull() ?: 0.0
-                        val newResetDay = resetDayInput.toIntOrNull() ?: 1
-                        onUpdateUserBalance(newBalance)
-                        onUpdateBudgetResetDay(newResetDay)
-                        showBalanceEditDialog = false
+                        }
                     },
-                    shape = RoundedCornerShape(14.dp)
-                ) { Text(stringResource(R.string.btn_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBalanceEditDialog = false }) { Text(stringResource(R.string.btn_cancel)) }
+                    label = { Text(stringResource(R.string.budget_monthly_label)) },
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    singleLine = true
+                )
+                
+                OutlinedTextField(
+                    value = resetDayInput,
+                    onValueChange = { text ->
+                        val cleanDigits = text.replace("[^\\d]".toRegex(), "")
+                        if (cleanDigits.isEmpty()) {
+                            resetDayInput = ""
+                        } else {
+                            val parsed = cleanDigits.toIntOrNull()
+                            if (parsed != null && parsed in 1..31) {
+                                resetDayInput = parsed.toString()
+                            }
+                        }
+                    },
+                    label = { Text(stringResource(R.string.budget_reset_day_label)) },
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    singleLine = true
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TextButton(
+                        onClick = { showBalanceEditDialog = false },
+                        modifier = Modifier.weight(1f).height(50.dp)
+                    ) {
+                        Text(stringResource(R.string.btn_cancel), fontWeight = FontWeight.SemiBold)
+                    }
+                    Button(
+                        onClick = {
+                            val cleanDigits = inputVal.replace("[^\\d]".toRegex(), "")
+                            val newBalance = cleanDigits.toDoubleOrNull() ?: 0.0
+                            val newResetDay = resetDayInput.toIntOrNull() ?: 1
+                            onUpdateUserBalance(newBalance)
+                            onUpdateBudgetResetDay(newResetDay)
+                            showBalanceEditDialog = false
+                        },
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text(stringResource(R.string.btn_save), fontWeight = FontWeight.Bold)
+                    }
+                }
             }
-        )
+        }
     }
 
     var selectedCategory by remember { mutableStateOf<CategorySpending?>(null) }
@@ -514,6 +534,38 @@ fun DashboardContent(
                                                     fontWeight = FontWeight.Medium,
                                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                                 )
+                                            }
+
+                                            // Budget usage progress bar
+                                            if (userBalance > 0.0) {
+                                                val progress = ((totalMonthlyCost ?: 0.0) / userBalance).toFloat().coerceIn(0f, 1f)
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween
+                                                    ) {
+                                                        Text(
+                                                            text = "Ngốn ${(progress * 100).toInt()}% ngân sách tháng",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = Color.White.copy(alpha = 0.8f)
+                                                        )
+                                                        Text(
+                                                            text = "${CurrencyFormatter.format(userBalance - (totalMonthlyCost ?: 0.0), "VND", locale)} còn lại",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = Color.White.copy(alpha = 0.8f)
+                                                        )
+                                                    }
+                                                    LinearProgressIndicator(
+                                                        progress = { progress },
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .height(6.dp)
+                                                            .clip(RoundedCornerShape(3.dp)),
+                                                        color = Color.White,
+                                                        trackColor = Color.White.copy(alpha = 0.25f)
+                                                    )
+                                                }
                                             }
                                         }
                                     }

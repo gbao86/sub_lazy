@@ -18,6 +18,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -168,51 +170,184 @@ fun SubscriptionListScreen(
                 }
             }
         } else {
-            LazyColumn(
+            var searchQuery by remember { mutableStateOf("") }
+            var selectedCategoryFilter by remember { mutableStateOf<String?>(null) }
+
+            val filteredSubs = remember(subscriptions, searchQuery, selectedCategoryFilter) {
+                subscriptions.filter { sub ->
+                    val matchesSearch = sub.name.contains(searchQuery, ignoreCase = true)
+                    val matchesCategory = selectedCategoryFilter == null || sub.category == selectedCategoryFilter
+                    matchesSearch && matchesCategory
+                }
+            }
+
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp, top = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(padding)
             ) {
-                itemsIndexed(
-                    items = subscriptions,
-                    key = { _, sub -> sub.id }
-                ) { index, subscription ->
-                    // Staggered entrance animation
-                    var visible by remember { mutableStateOf(false) }
-                    LaunchedEffect(Unit) {
-                        delay((index * 40L).coerceAtMost(300L))
-                        visible = true
-                    }
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(tween(300)) + slideInVertically(
-                            initialOffsetY = { it / 4 },
-                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                // Search Bar
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Tìm kiếm dịch vụ...") },
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Rounded.Clear, contentDescription = null)
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(18.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+
+                // Category Filter Chips
+                val uniqueCategories = remember(subscriptions) {
+                    subscriptions.map { it.category }.distinct()
+                }
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedCategoryFilter == null,
+                            onClick = { selectedCategoryFilter = null },
+                            label = { Text("Tất cả") },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = selectedCategoryFilter == null,
+                                borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                borderWidth = 1.dp
+                            )
                         )
+                    }
+
+                    items(uniqueCategories) { category ->
+                        val isSelected = selectedCategoryFilter == category
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedCategoryFilter = if (isSelected) null else category },
+                            label = { Text(getCategoryDisplayName(category)) },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                borderWidth = 1.dp
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                if (filteredSubs.isEmpty()) {
+                    // Search Empty State
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
                     ) {
-                        SwipeToDeleteItem(
-                            onDelete = {
-                                val backup = subscription
-                                viewModel.delete(subscription)
-                                coroutineScope.launch {
-                                    snackbarHostState.currentSnackbarData?.dismiss()
-                                    val result = snackbarHostState.showSnackbar(
-                                        message = "Đã xóa ${backup.name}",
-                                        actionLabel = "Hoàn tác",
-                                        duration = SnackbarDuration.Short
-                                    )
-                                    if (result == SnackbarResult.ActionPerformed) {
-                                        viewModel.insert(backup)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(40.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Search,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "Không tìm thấy kết quả",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Hãy thử nhập từ khóa khác hoặc xóa bộ lọc",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp, top = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        itemsIndexed(
+                            items = filteredSubs,
+                            key = { _, sub -> sub.id }
+                        ) { index, subscription ->
+                            // Staggered entrance animation
+                            var visible by remember { mutableStateOf(false) }
+                            LaunchedEffect(subscription.id) {
+                                visible = true
+                            }
+                            AnimatedVisibility(
+                                visible = visible,
+                                enter = fadeIn(tween(200)) + slideInVertically(
+                                    initialOffsetY = { it / 6 },
+                                    animationSpec = tween(200, easing = FastOutSlowInEasing)
+                                )
+                            ) {
+                                SwipeToDeleteItem(
+                                    onDelete = {
+                                        val backup = subscription
+                                        viewModel.delete(subscription)
+                                        coroutineScope.launch {
+                                            snackbarHostState.currentSnackbarData?.dismiss()
+                                            val result = snackbarHostState.showSnackbar(
+                                                message = "Đã xóa ${backup.name}",
+                                                actionLabel = "Hoàn tác",
+                                                duration = SnackbarDuration.Short
+                                            )
+                                            if (result == SnackbarResult.ActionPerformed) {
+                                                viewModel.insert(backup)
+                                            }
+                                        }
                                     }
+                                ) {
+                                    SubscriptionItem(
+                                        subscription = subscription,
+                                        onClick = { onNavigateToDetail(subscription.id) }
+                                    )
                                 }
                             }
-                        ) {
-                            SubscriptionItem(
-                                subscription = subscription,
-                                onClick = { onNavigateToDetail(subscription.id) }
-                            )
                         }
                     }
                 }
@@ -455,4 +590,23 @@ fun SubscriptionListPreview() {
             onNavigateBack = {}
         )
     }
+}
+
+@Composable
+private fun getCategoryDisplayName(category: String): String {
+    val resId = when (category) {
+        "Entertainment" -> R.string.category_entertainment
+        "Utilities"     -> R.string.category_utilities
+        "Work"          -> R.string.category_work
+        "Cloud"         -> R.string.category_cloud
+        "Music"         -> R.string.category_music
+        "Food"          -> R.string.category_food
+        "Finance"       -> R.string.category_finance
+        "Anniversary"   -> R.string.category_anniversary
+        "Family"        -> R.string.category_family
+        "Trial"         -> R.string.category_trial
+        "Notes"         -> R.string.category_notes
+        else            -> R.string.category_other
+    }
+    return stringResource(resId)
 }

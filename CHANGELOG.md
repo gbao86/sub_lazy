@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.6] - 2026-06-08
+
+### Added
+- **Search & Category Filtering**: Integrated a search bar and custom category filter chips in `SubscriptionListScreen.kt` for easier management of long subscription lists, including a search empty results state.
+- **Form Card Expansion**: Reorganized the Add/Edit form layout in `AddEditSubscriptionScreen.kt` using clean, animated, expandable card sections for "Shared Subscription" and "VietQR bank info" details, significantly reducing screen length and cognitive load.
+- **Budget Consumption Indicator**: Added a visual `LinearProgressIndicator` budget utilization bar within the main Dashboard spending card, demonstrating the percentage of monthly budget eaten up by subscriptions.
+- **Multi-Category presets in Onboarding**: Redesigned template selectors inside `OnboardingScreen.kt` by separating preset choices into Digital and Lifestyle tabs, allowing users to select from all available templates with staggered animations.
+
+### Changed
+- **Version bump**: Incremented app version to `0.0.6` (Code version `6`) in configuration and documentation.
+- **Modal Bottom Sheet Budget Editing**: Replaced the legacy thô budget edit `AlertDialog` with a modern, spacious, rounded Material 3 `ModalBottomSheet` in `DashboardScreen.kt`.
+
 ## [0.0.5] - 2026-06-06
 
 ### Added

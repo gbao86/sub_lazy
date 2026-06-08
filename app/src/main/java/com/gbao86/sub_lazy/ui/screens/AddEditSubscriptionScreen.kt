@@ -12,8 +12,13 @@ is strictly prohibited without the express written permission of the author.
 
 package com.gbao86.sub_lazy.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -44,6 +49,10 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.People
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -149,6 +158,8 @@ fun AddEditSubscriptionScreen(
     var bankAccount by remember { mutableStateOf("") }
     var bankName by remember { mutableStateOf("") }
     var bankAccountHolder by remember { mutableStateOf("") }
+    var isSharedExpanded by remember { mutableStateOf(false) }
+    var isBankExpanded by remember { mutableStateOf(false) }
  
     val categories = listOf("Entertainment", "Utilities", "Work", "Cloud", "Music", "Food", "Finance", "Anniversary", "Family", "Trial", "Notes", "Other")
     var showCategorySheet by remember { mutableStateOf(false) }
@@ -183,6 +194,7 @@ fun AddEditSubscriptionScreen(
                 }
 
                 hasBankInfo = it.bankAccount != null
+                isBankExpanded = it.bankAccount != null
                 bankAccount = it.bankAccount ?: ""
                 bankName = it.bankName ?: ""
                 bankAccountHolder = it.bankAccountHolder ?: ""
@@ -192,6 +204,7 @@ fun AddEditSubscriptionScreen(
                 remainingSessions = it.remainingSessions?.toString() ?: ""
                 totalInstallmentPeriods = it.totalInstallmentPeriods?.toString() ?: ""
                 isShared = it.isShared
+                isSharedExpanded = it.isShared
                 sharedMembersList = SharedMember.parseMembers(it.sharedMembersJson)
                 serviceType = when {
                     it.isInstallment -> "installment"
@@ -210,6 +223,7 @@ fun AddEditSubscriptionScreen(
             prefillColorHex?.let { colorHex = it }
             if (prefillBankAccount != null || prefillBankName != null) {
                 hasBankInfo = true
+                isBankExpanded = true
                 bankAccount = prefillBankAccount ?: ""
                 bankName = prefillBankName ?: ""
                 bankAccountHolder = prefillBankAccountHolder ?: ""
@@ -794,143 +808,192 @@ fun AddEditSubscriptionScreen(
             Card(
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isSharedExpanded) 0.5f else 0.25f)
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (isSharedExpanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Header Clickable
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isSharedExpanded = !isSharedExpanded }
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(R.string.add_edit_shared_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(stringResource(R.string.add_edit_shared_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                        Icon(
+                            imageVector = Icons.Rounded.People,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
                         Spacer(modifier = Modifier.width(12.dp))
-                        Switch(checked = isShared, onCheckedChange = { isShared = it })
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.add_edit_shared_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = stringResource(R.string.add_edit_shared_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = if (isSharedExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
-                    if (isShared) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                        
-                        // List added members
-                        if (sharedMembersList.isNotEmpty()) {
-                            Text(stringResource(R.string.add_edit_shared_members), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                            sharedMembersList.forEachIndexed { idx, member ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(member.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                        if (!member.phone.isNullOrBlank()) {
-                                            Text(member.phone, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                    }
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            formatDoubleToInput(member.amount, selectedCurrency, locale) + " " + selectedCurrency,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        IconButton(
-                                            onClick = {
-                                                sharedMembersList = sharedMembersList.filterIndexed { i, _ -> i != idx }
-                                            },
-                                            modifier = Modifier.size(36.dp)
+                    AnimatedVisibility(
+                        visible = isSharedExpanded,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Kích hoạt chia sẻ chi phí", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Switch(checked = isShared, onCheckedChange = { isShared = it })
+                            }
+
+                            if (isShared) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                
+                                // List added members
+                                if (sharedMembersList.isNotEmpty()) {
+                                    Text(stringResource(R.string.add_edit_shared_members), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                    sharedMembersList.forEachIndexed { idx, member ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = stringResource(R.string.delete_dialog_confirm),
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(20.dp)
-                                            )
+                                            Column {
+                                                Text(member.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                                if (!member.phone.isNullOrBlank()) {
+                                                    Text(member.phone, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                }
+                                            }
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    formatDoubleToInput(member.amount, selectedCurrency, locale) + " " + selectedCurrency,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                IconButton(
+                                                    onClick = {
+                                                        sharedMembersList = sharedMembersList.filterIndexed { i, _ -> i != idx }
+                                                    },
+                                                    modifier = Modifier.size(36.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Delete,
+                                                        contentDescription = stringResource(R.string.delete_dialog_confirm),
+                                                        tint = MaterialTheme.colorScheme.error,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                }
+                                
+                                // Add new member form
+                                Text(stringResource(R.string.add_edit_shared_add_member), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                OutlinedTextField(
+                                    value = newMemberName,
+                                    onValueChange = { newMemberName = it },
+                                    label = { Text(stringResource(R.string.add_edit_shared_member_name)) },
+                                    placeholder = { Text(stringResource(R.string.add_edit_shared_member_name_hint)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    singleLine = true
+                                )
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = newMemberAmount,
+                                        onValueChange = { newMemberAmount = formatInputString(it, selectedCurrency, locale) },
+                                        label = { Text(stringResource(R.string.add_edit_shared_member_amount)) },
+                                        placeholder = { Text("0.0") },
+                                        modifier = Modifier.weight(1.2f),
+                                        shape = RoundedCornerShape(12.dp),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        singleLine = true,
+                                        prefix = {
+                                            val prefixText = when (selectedCurrency) {
+                                                "VND" -> "₫ "
+                                                "EUR" -> "€ "
+                                                "CNY" -> "CN¥ "
+                                                "JPY" -> "JP¥ "
+                                                "THB" -> "฿ "
+                                                "KRW" -> "₩ "
+                                                else -> "$ "
+                                            }
+                                            Text(prefixText, fontWeight = FontWeight.Bold)
+                                        }
+                                    )
+                                    OutlinedTextField(
+                                        value = newMemberPhone,
+                                        onValueChange = { newMemberPhone = it },
+                                        label = { Text(stringResource(R.string.add_edit_shared_member_phone)) },
+                                        placeholder = { Text(stringResource(R.string.add_edit_shared_member_phone_hint)) },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(12.dp),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                        singleLine = true
+                                    )
+                                }
+                                
+                                Button(
+                                    onClick = {
+                                        if (newMemberName.isNotBlank() && newMemberAmount.isNotBlank()) {
+                                            val amt = parseFormattedAmount(newMemberAmount, locale)
+                                            sharedMembersList = sharedMembersList + SharedMember(
+                                                name = newMemberName,
+                                                amount = amt,
+                                                hasPaid = false,
+                                                phone = newMemberPhone.takeIf { it.isNotBlank() }
+                                            )
+                                            newMemberName = ""
+                                            newMemberAmount = ""
+                                            newMemberPhone = ""
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(stringResource(R.string.add_edit_shared_btn_add), style = MaterialTheme.typography.labelLarge)
                                 }
                             }
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                        }
-                        
-                        // Add new member form
-                        Text(stringResource(R.string.add_edit_shared_add_member), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                        OutlinedTextField(
-                            value = newMemberName,
-                            onValueChange = { newMemberName = it },
-                            label = { Text(stringResource(R.string.add_edit_shared_member_name)) },
-                            placeholder = { Text(stringResource(R.string.add_edit_shared_member_name_hint)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true
-                        )
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = newMemberAmount,
-                                onValueChange = { newMemberAmount = formatInputString(it, selectedCurrency, locale) },
-                                label = { Text(stringResource(R.string.add_edit_shared_member_amount)) },
-                                placeholder = { Text("0.0") },
-                                modifier = Modifier.weight(1.2f),
-                                shape = RoundedCornerShape(12.dp),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                singleLine = true,
-                                prefix = {
-                                    val prefixText = when (selectedCurrency) {
-                                        "VND" -> "₫ "
-                                        "EUR" -> "€ "
-                                        "CNY" -> "CN¥ "
-                                        "JPY" -> "JP¥ "
-                                        "THB" -> "฿ "
-                                        "KRW" -> "₩ "
-                                        else -> "$ "
-                                    }
-                                    Text(prefixText, fontWeight = FontWeight.Bold)
-                                }
-                            )
-                            OutlinedTextField(
-                                value = newMemberPhone,
-                                onValueChange = { newMemberPhone = it },
-                                label = { Text(stringResource(R.string.add_edit_shared_member_phone)) },
-                                placeholder = { Text(stringResource(R.string.add_edit_shared_member_phone_hint)) },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                                singleLine = true
-                            )
-                        }
-                        
-                        Button(
-                            onClick = {
-                                if (newMemberName.isNotBlank() && newMemberAmount.isNotBlank()) {
-                                    val amt = parseFormattedAmount(newMemberAmount, locale)
-                                    sharedMembersList = sharedMembersList + SharedMember(
-                                        name = newMemberName,
-                                        amount = amt,
-                                        hasPaid = false,
-                                        phone = newMemberPhone.takeIf { it.isNotBlank() }
-                                    )
-                                    newMemberName = ""
-                                    newMemberAmount = ""
-                                    newMemberPhone = ""
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.add_edit_shared_btn_add), style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
@@ -941,72 +1004,121 @@ fun AddEditSubscriptionScreen(
             Card(
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isBankExpanded) 0.5f else 0.25f)
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (isBankExpanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Header Clickable
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isBankExpanded = !isBankExpanded }
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(R.string.add_edit_bank_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(stringResource(R.string.add_edit_bank_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                        Icon(
+                            imageVector = Icons.Rounded.AccountBalance,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
                         Spacer(modifier = Modifier.width(12.dp))
-                        Switch(checked = hasBankInfo, onCheckedChange = { hasBankInfo = it })
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.add_edit_bank_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = stringResource(R.string.add_edit_bank_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = if (isBankExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
-                    if (hasBankInfo) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                        OutlinedTextField(
-                            value = bankName,
-                            onValueChange = { bankName = it },
-                            label = { Text(stringResource(R.string.add_edit_bank_name)) },
-                            placeholder = { Text("e.g. MB") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-                            )
-                        )
+                    AnimatedVisibility(
+                        visible = isBankExpanded,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Nhập thông tin VietQR", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Switch(checked = hasBankInfo, onCheckedChange = { hasBankInfo = it })
+                            }
 
-                        OutlinedTextField(
-                            value = bankAccount,
-                            onValueChange = { bankAccount = it },
-                            label = { Text(stringResource(R.string.add_edit_bank_account)) },
-                            placeholder = { Text("e.g. 123456...") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-                            )
-                        )
+                            if (hasBankInfo) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                OutlinedTextField(
+                                    value = bankName,
+                                    onValueChange = { bankName = it },
+                                    label = { Text(stringResource(R.string.add_edit_bank_name)) },
+                                    placeholder = { Text("e.g. MB") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                                    )
+                                )
 
-                        OutlinedTextField(
-                            value = bankAccountHolder,
-                            onValueChange = { bankAccountHolder = it },
-                            label = { Text(stringResource(R.string.add_edit_bank_account_holder)) },
-                            placeholder = { Text("e.g. NGUYEN VAN A") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-                            )
-                        )
+                                OutlinedTextField(
+                                    value = bankAccount,
+                                    onValueChange = { bankAccount = it },
+                                    label = { Text(stringResource(R.string.add_edit_bank_account)) },
+                                    placeholder = { Text("e.g. 123456...") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                                    )
+                                )
+
+                                OutlinedTextField(
+                                    value = bankAccountHolder,
+                                    onValueChange = { bankAccountHolder = it },
+                                    label = { Text(stringResource(R.string.add_edit_bank_account_holder)) },
+                                    placeholder = { Text("e.g. NGUYEN VAN A") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
