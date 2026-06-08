@@ -222,7 +222,7 @@ class BillNotificationListener : NotificationListenerService() {
 
         // PendingIntent to launch MainActivity with pre-fill parameters
         val intent = Intent(this, MainActivity::class.java).apply {
-            setPackage(packageName)
+            setClassName(this@BillNotificationListener, "com.gbao86.sub_lazy.MainActivity")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("is_prefilled", true)
             putExtra("prefill_name", serviceName)
@@ -246,7 +246,6 @@ class BillNotificationListener : NotificationListenerService() {
             .setContentIntent(pendingIntent)
             .build()
 
-        // codeql[java/android/implicit-pendingintents]
         notificationManager.notify(200, notification)
     }
 
@@ -262,7 +261,7 @@ class BillNotificationListener : NotificationListenerService() {
         val message = "Đã tự động xác nhận thanh toán hóa đơn $serviceName ($amountFormatted). Chúc bạn lười vui vẻ! 🐱"
 
         val intent = Intent(this, MainActivity::class.java).apply {
-            setPackage(packageName)
+            setClassName(this@BillNotificationListener, "com.gbao86.sub_lazy.MainActivity")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
 
@@ -283,7 +282,6 @@ class BillNotificationListener : NotificationListenerService() {
             .setContentIntent(pendingIntent)
             .build()
 
-        // codeql[java/android/implicit-pendingintents]
         notificationManager.notify(201, notification)
     }
 
