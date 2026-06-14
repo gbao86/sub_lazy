@@ -1,6 +1,7 @@
 *.iml
-*.json
 *.txt
+google-services.json
+client_secret_*.json
 .idea/
 .agent/
 .gradle
@@ -18,4 +19,4 @@
 .cxx
 local.properties
 *.hprof
-client_secret_*.json
+review_report.md

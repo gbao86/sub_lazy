@@ -25,3 +25,42 @@
 
 # Cấu hình annotations cho serialization (Gson/Moshi/Retrofit)
 -keepattributes Signature, *Annotation*, EnclosingMethod, InnerClasses
+
+# Room Database
+-keepclassmembers class * extends androidx.room.RoomDatabase {
+    <init>(...);
+}
+-keep @androidx.room.Entity class * { *; }
+-keep class * extends androidx.room.RoomDatabase
+
+# WorkManager
+-keep class * extends androidx.work.ListenableWorker {
+    <init>(...);
+}
+-keep class * extends androidx.work.Worker {
+    <init>(...);
+}
+
+# Moshi
+-keep class * extends com.squareup.moshi.JsonAdapter {
+    <init>(...);
+}
+-keep class * extends com.squareup.moshi.JsonAdapter$Factory {
+    <init>(...);
+}
+-keep @com.squareup.moshi.JsonClass class * { *; }
+-keep class *$$JsonAdapter { *; }
+
+# Retrofit
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}
+
+# NotificationListenerService
+-keep class * extends android.service.notification.NotificationListenerService { *; }
+
+# Kotlin Metadata
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+-keepattributes KotlinMetadata

@@ -13,15 +13,16 @@ android {
         applicationId = "com.gbao86.sub_lazy"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.0.6"
+        versionCode = 7
+        versionName = "0.0.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -39,6 +40,13 @@ android {
         compose = true
         buildConfig = true
     }
+    lint {
+        abortOnError = true
+    }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -64,7 +72,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.accompanist.permissions)
-    implementation(libs.play.services.location)
     implementation(libs.play.services.auth)
     implementation(libs.play.services.mlkit.text.recognition)
     implementation(libs.androidx.camera.camera2)

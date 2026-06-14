@@ -44,7 +44,11 @@ object ExchangeRateManager {
 
     fun initialize(context: Context) {
         if (applicationContext == null) {
-            applicationContext = context.applicationContext
+            synchronized(this) {
+                if (applicationContext == null) {
+                    applicationContext = context.applicationContext
+                }
+            }
         }
     }
 
@@ -54,47 +58,48 @@ object ExchangeRateManager {
         return DEFAULT_RATES[currency.uppercase()] ?: 1.0
     }
 
-    fun fetchRates(context: Context) {
+    suspend fun fetchRates(context: Context) {
         initialize(context)
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val urlConnection = URL("https://open.er-api.com/v6/latest/USD").openConnection() as HttpURLConnection
-                urlConnection.requestMethod = "GET"
-                urlConnection.connectTimeout = 8000
-                urlConnection.readTimeout = 8000
-                
-                val responseCode = urlConnection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val reader = BufferedReader(InputStreamReader(urlConnection.inputStream))
-                    val response = StringBuilder()
-                    var line: String?
-                    while (reader.readLine().also { line = it } != null) {
-                        response.append(line)
-                    }
-                    reader.close()
-
-                    val jsonObject = JSONObject(response.toString())
-                    if (jsonObject.getString("result") == "success") {
-                        val ratesJson = jsonObject.getJSONObject("rates")
-                        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                        val editor = prefs.edit()
-                        
-                        // Save rates
-                        DEFAULT_RATES.keys.forEach { currency ->
-                            if (ratesJson.has(currency)) {
-                                val rate = ratesJson.getDouble(currency)
-                                editor.putFloat(currency, rate.toFloat())
-                            }
-                        }
-                        editor.putLong("last_updated", System.currentTimeMillis())
-                        editor.apply()
-                        Log.d(TAG, "Exchange rates updated successfully from API.")
-                    }
+        var urlConnection: HttpURLConnection? = null
+        try {
+            val url = URL("https://open.er-api.com/v6/latest/USD")
+            urlConnection = url.openConnection() as HttpURLConnection
+            urlConnection.requestMethod = "GET"
+            urlConnection.connectTimeout = 8000
+            urlConnection.readTimeout = 8000
+            
+            val responseCode = urlConnection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val reader = BufferedReader(InputStreamReader(urlConnection.inputStream))
+                val response = StringBuilder()
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    response.append(line)
                 }
-                urlConnection.disconnect()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to fetch exchange rates: ${e.message}")
+                reader.close()
+
+                val jsonObject = JSONObject(response.toString())
+                if (jsonObject.getString("result") == "success") {
+                    val ratesJson = jsonObject.getJSONObject("rates")
+                    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    val editor = prefs.edit()
+                    
+                    // Save rates
+                    DEFAULT_RATES.keys.forEach { currency ->
+                        if (ratesJson.has(currency)) {
+                            val rate = ratesJson.getDouble(currency)
+                            editor.putString(currency, rate.toString())
+                        }
+                    }
+                    editor.putLong("last_updated", System.currentTimeMillis())
+                    editor.apply()
+                    Log.d(TAG, "Exchange rates updated successfully from API.")
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch exchange rates: ${e.message}")
+        } finally {
+            urlConnection?.disconnect()
         }
     }
 
@@ -103,7 +108,8 @@ object ExchangeRateManager {
         val uppercaseCurrency = currency.uppercase()
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val defaultRate = DEFAULT_RATES[uppercaseCurrency] ?: 1.0
-        return prefs.getFloat(uppercaseCurrency, defaultRate.toFloat()).toDouble()
+        val rateStr = prefs.getString(uppercaseCurrency, defaultRate.toString())
+        return rateStr?.toDoubleOrNull() ?: defaultRate
     }
 
     fun convert(context: Context, amount: Double, fromCurrency: String, toCurrency: String): Double {

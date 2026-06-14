@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
-import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
+import com.gbao86.sub_lazy.viewmodel.AddEditViewModel
 import java.util.*
 import androidx.compose.ui.platform.LocalContext
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
@@ -58,7 +58,7 @@ val popularTemplates = SubscriptionTemplates.digitalTemplates.take(5)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(
-    viewModel: SubscriptionViewModel = viewModel(),
+    viewModel: AddEditViewModel = viewModel(),
     onFinishOnboarding: () -> Unit
 ) {
     var selectedTemplates by remember { mutableStateOf(setOf<SubscriptionTemplate>()) }

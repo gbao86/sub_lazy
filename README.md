@@ -4,7 +4,7 @@
 
 # Sub Lazy 📱
 
-[![Version](https://img.shields.io/badge/Version-0.0.6-blue.svg?style=for-the-badge)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-0.0.7-blue.svg?style=for-the-badge)](./CHANGELOG.md)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.20-purple.svg?style=for-the-badge&logo=kotlin)](https://kotlinlang.org/)
 [![Android](https://img.shields.io/badge/Android-SDK%2026%2B-green.svg?style=for-the-badge&logo=android)](https://developer.android.com/)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-blue.svg?style=for-the-badge&logo=jetpackcompose)](https://developer.android.com/jetpack/compose)
@@ -15,6 +15,8 @@ Have you ever looked at your bank statement and gone, *"Wait, when did I sign up
 Yeah, we've all been there. 
 
 **Sub Lazy** was born to save your wallet from your own forgetfulness! It is a premium, modern subscription tracker and manager for Android that helps you easily track recurring services, visualizes the monthly damage, and yells at you (nicely, via local notifications) 2 days before a bill renews so you actually have enough funds.
+
+**Current release status (v0.0.7):** This is a work-in-progress build. The Android 15 crash after tapping/opening the app is still being investigated and is not fully fixed yet.
 
 <p align="center">
   <img src="assets/cat_coding.png" width="220" alt="Lazy Cat coding"/>

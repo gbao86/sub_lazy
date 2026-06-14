@@ -27,6 +27,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.gbao86.sub_lazy.ui.navigation.NavGraph
 import com.gbao86.sub_lazy.ui.navigation.Screen
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
@@ -44,7 +47,9 @@ class MainActivity : AppCompatActivity() {
         }
         enableEdgeToEdge()
 
-        com.gbao86.sub_lazy.ui.ExchangeRateManager.fetchRates(this)
+        lifecycleScope.launch(Dispatchers.IO) {
+            com.gbao86.sub_lazy.ui.ExchangeRateManager.fetchRates(this@MainActivity)
+        }
         val sharedPref = getSharedPreferences("app_prefs", MODE_PRIVATE)
         val isOnboardingCompleted = sharedPref.getBoolean("onboarding_completed", false)
         

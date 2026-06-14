@@ -28,17 +28,28 @@ object VietQRGenerator {
         accountHolder: String? = null,
         template: String = "compact2"
     ): String {
-        val cleanBankId = bankName.lowercase()
+        val cleanBank = bankName.trim()
+        val cleanAccount = accountNumber.trim().replace(" ", "")
+        
+        if (cleanBank.isEmpty() || cleanAccount.isEmpty() || cleanAccount.length < 4 || amount <= 0) {
+            return ""
+        }
+
+        val cleanBankId = cleanBank.lowercase()
             .replace(" ", "")
             .replace("nganhang", "")
             .replace("bank", "")
         
         val bankId = mapToStandardBankId(cleanBankId)
         val amountVal = amount.toLong()
-        val encodedInfo = URLEncoder.encode(description, "UTF-8")
-        val encodedName = accountHolder?.let { URLEncoder.encode(it, "UTF-8") } ?: ""
         
-        return "https://img.vietqr.io/image/$bankId-$accountNumber-$template.png?amount=$amountVal&addInfo=$encodedInfo&accountName=$encodedName"
+        return try {
+            val encodedInfo = URLEncoder.encode(description, "UTF-8")
+            val encodedName = accountHolder?.let { URLEncoder.encode(it, "UTF-8") } ?: ""
+            "https://img.vietqr.io/image/$bankId-$cleanAccount-$template.png?amount=$amountVal&addInfo=$encodedInfo&accountName=$encodedName"
+        } catch (e: Exception) {
+            "https://img.vietqr.io/image/$bankId-$cleanAccount-$template.png?amount=$amountVal"
+        }
     }
 
     private fun mapToStandardBankId(input: String): String {

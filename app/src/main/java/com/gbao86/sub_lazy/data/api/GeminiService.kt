@@ -17,12 +17,12 @@ import android.net.Uri
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
 import java.util.Calendar
 import com.gbao86.sub_lazy.ui.DateUtils
+import com.gbao86.sub_lazy.data.model.BillingCycle
 
 class GeminiService(private val context: Context) {
 
@@ -107,45 +107,26 @@ class GeminiService(private val context: Context) {
             }
         }
 
-        // 3. Detect cycle
-        val cycle = if (unaccentedLowerText.contains("nam") || 
-            unaccentedLowerText.contains("yearly") || 
-            unaccentedLowerText.contains("annual") || 
-            unaccentedLowerText.contains("1 year") || 
-            unaccentedLowerText.contains("1 nam")) {
-            "Yearly"
-        } else if (unaccentedLowerText.contains("3 thang") ||
-            unaccentedLowerText.contains("3 months") ||
-            unaccentedLowerText.contains("quy") ||
-            unaccentedLowerText.contains("quarterly")) {
-            "Every 3 Months"
-        } else if (unaccentedLowerText.contains("6 thang") ||
-            unaccentedLowerText.contains("6 months") ||
-            unaccentedLowerText.contains("nua nam") ||
-            unaccentedLowerText.contains("half yearly") ||
-            unaccentedLowerText.contains("semi-annual")) {
-            "Every 6 Months"
-        } else if (unaccentedLowerText.contains("tuan") ||
-            unaccentedLowerText.contains("weekly") ||
-            unaccentedLowerText.contains("7 ngay") ||
-            unaccentedLowerText.contains("7 days") ||
-            unaccentedLowerText.contains("1 week") ||
-            unaccentedLowerText.contains("1 tuan")) {
-            "Weekly"
-        } else if (unaccentedLowerText.contains("ngay") ||
-            unaccentedLowerText.contains("daily") ||
-            unaccentedLowerText.contains("every day") ||
-            unaccentedLowerText.contains("moi ngay") ||
-            unaccentedLowerText.contains("1 day")) {
-            "Daily"
-        } else {
-            "Monthly"
+        // 3. Detect cycle using word boundaries
+        val yearlyRegex = Regex("\\b(nam|yearly|annual|1\\s*nam|hang\\s*nam|theo\\s*nam)\\b|/\\s*nam\\b")
+        val every3MonthsRegex = Regex("\\b(3\\s*thang|3\\s*months|quy|quarterly)\\b")
+        val every6MonthsRegex = Regex("\\b(6\\s*thang|6\\s*months|nua\\s*nam|half\\s*yearly|semi-annual)\\b")
+        val weeklyRegex = Regex("\\b(tuan|weekly|7\\s*ngay|7\\s*days|1\\s*week|1\\s*tuan)\\b")
+        val dailyRegex = Regex("\\b(ngay|daily|every\\s*day|moi\\s*ngay|1\\s*day)\\b")
+
+        val cycle = when {
+            yearlyRegex.containsMatchIn(unaccentedLowerText) -> "Yearly"
+            every6MonthsRegex.containsMatchIn(unaccentedLowerText) -> "Every 6 Months"
+            every3MonthsRegex.containsMatchIn(unaccentedLowerText) -> "Every 3 Months"
+            weeklyRegex.containsMatchIn(unaccentedLowerText) -> "Weekly"
+            dailyRegex.containsMatchIn(unaccentedLowerText) -> "Daily"
+            else -> "Monthly"
         }
 
         // 4. Map category
         val category = getCategoryForService(serviceName)
 
-        val defaultNextBilling = DateUtils.getNextBillingDate(System.currentTimeMillis(), cycle)
+        val defaultNextBilling = DateUtils.getNextBillingDate(System.currentTimeMillis(), BillingCycle.fromDisplayName(cycle))
         val billingDate = detectDate(unaccentedLowerText) ?: defaultNextBilling
 
         // 6. Detect currency
@@ -179,7 +160,7 @@ class GeminiService(private val context: Context) {
 
     private fun detectService(text: String): String? {
         // Predefined list sorted by length descending to match longer keywords first (e.g. "fpt play" before "fpt")
-        val services = listOf(
+        val rawServices = listOf(
             "github copilot", "chatgpt plus", "youtube premium", "fpt telecom", "fpt play", 
             "google one", "microsoft 365", "apple services", "grab subscription", "momo billing",
             "netflix", "spotify", "youtube", "icloud", "google", "microsoft", "office", "apple",
@@ -190,6 +171,7 @@ class GeminiService(private val context: Context) {
             "adobe creative cloud", "dropbox", "canva pro", "duolingo plus", "grammarly", "babbel",
             "elsa speak", "monkey stories"
         )
+        val services = rawServices.sortedByDescending { it.length }
         for (service in services) {
             if (text.contains(service)) {
                 return when (service) {

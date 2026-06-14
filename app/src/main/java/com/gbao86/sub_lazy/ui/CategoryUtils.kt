@@ -15,26 +15,49 @@ package com.gbao86.sub_lazy.ui
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.gbao86.sub_lazy.R
+import com.gbao86.sub_lazy.data.model.SubscriptionCategory
 
 object CategoryUtils {
-    fun getCategoryIcon(category: String): ImageVector {
+    fun getCategoryIcon(category: SubscriptionCategory): ImageVector {
         return when (category) {
-            "Entertainment" -> Icons.Rounded.Movie
-            "Utilities" -> Icons.Rounded.Bolt
-            "Work" -> Icons.Rounded.Laptop
-            "Cloud" -> Icons.Rounded.Cloud
-            "Music" -> Icons.Rounded.MusicNote
-            "Food" -> Icons.Rounded.Restaurant
-            "Finance" -> Icons.Rounded.AccountBalanceWallet
-            "Anniversary" -> Icons.Rounded.Favorite
-            "Family" -> Icons.Rounded.People
-            "Trial" -> Icons.Rounded.Timer
-            "Notes" -> Icons.Rounded.Description
+            SubscriptionCategory.ENTERTAINMENT -> Icons.Rounded.Movie
+            SubscriptionCategory.UTILITIES -> Icons.Rounded.Bolt
+            SubscriptionCategory.WORK -> Icons.Rounded.Laptop
+            SubscriptionCategory.CLOUD -> Icons.Rounded.Cloud
+            SubscriptionCategory.MUSIC -> Icons.Rounded.MusicNote
+            SubscriptionCategory.FOOD -> Icons.Rounded.Restaurant
+            SubscriptionCategory.FINANCE -> Icons.Rounded.AccountBalanceWallet
+            SubscriptionCategory.ANNIVERSARY -> Icons.Rounded.Favorite
+            SubscriptionCategory.FAMILY -> Icons.Rounded.People
+            SubscriptionCategory.TRIAL -> Icons.Rounded.Timer
+            SubscriptionCategory.NOTES -> Icons.Rounded.Description
             else -> Icons.Rounded.Category
         }
     }
 
-    fun getIconForName(name: String, category: String = ""): ImageVector {
+    @Composable
+    fun getCategoryDisplayName(category: SubscriptionCategory): String {
+        val resId = when (category) {
+            SubscriptionCategory.ENTERTAINMENT -> R.string.category_entertainment
+            SubscriptionCategory.UTILITIES     -> R.string.category_utilities
+            SubscriptionCategory.WORK          -> R.string.category_work
+            SubscriptionCategory.CLOUD         -> R.string.category_cloud
+            SubscriptionCategory.MUSIC         -> R.string.category_music
+            SubscriptionCategory.FOOD          -> R.string.category_food
+            SubscriptionCategory.FINANCE       -> R.string.category_finance
+            SubscriptionCategory.ANNIVERSARY   -> R.string.category_anniversary
+            SubscriptionCategory.FAMILY        -> R.string.category_family
+            SubscriptionCategory.TRIAL         -> R.string.category_trial
+            SubscriptionCategory.NOTES         -> R.string.category_notes
+            else            -> R.string.category_other
+        }
+        return stringResource(resId)
+    }
+
+    fun getIconForName(name: String, category: SubscriptionCategory = SubscriptionCategory.OTHER): ImageVector {
         val lower = name.lowercase()
         return when {
             // Digital Services

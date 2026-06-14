@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.7] - 2026-06-15
+
+### Added
+- **Android 15 Crash Note**: Added release notes for the crash observed after tapping/opening the app on Android 15 during the 22:00–00:15 work window.
+
+### Changed
+- **Version bump**: Incremented app version to `0.0.7` (Code version `7`) in configuration and documentation.
+- **Unfinished crash fix**: This release is explicitly marked as a work-in-progress build; the Android 15 crash fix is not complete yet.
+
+### Known Issues
+- **Android 15 App Crash**: The crash after tapping/opening the app on Android 15 is still reproduced and will continue to be fixed in the next update.
+
 ## [0.0.6] - 2026-06-08
 
 ### Added

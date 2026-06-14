@@ -15,6 +15,7 @@ package com.gbao86.sub_lazy.worker
 import android.content.Context
 import androidx.work.*
 import com.gbao86.sub_lazy.data.Subscription
+import com.gbao86.sub_lazy.data.model.SubscriptionCategory
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -30,9 +31,14 @@ class NotificationScheduler(private val context: Context) {
 
         val inputData = workDataOf("subscriptionId" to subscription.id)
 
+        val constraints = Constraints.Builder()
+            .setRequiresBatteryNotLow(false) // Notification is important, don't skip
+            .build()
+
         val notificationRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
             .setInitialDelay(delay, TimeUnit.MILLISECONDS)
             .setInputData(inputData)
+            .setConstraints(constraints)
             .addTag("sub_${subscription.id}")
             .build()
 
@@ -47,21 +53,23 @@ class NotificationScheduler(private val context: Context) {
         WorkManager.getInstance(context).cancelUniqueWork("sub_$subscriptionId")
     }
 
-    private fun calculateDelay(nextBillingDate: Long, category: String): Long {
+    private fun calculateDelay(nextBillingDate: Long, category: SubscriptionCategory): Long {
         val now = Calendar.getInstance()
         val target = Calendar.getInstance().apply {
             timeInMillis = nextBillingDate
-            if (category in listOf("Anniversary", "Family", "Trial", "Notes")) {
+            if (category in listOf(SubscriptionCategory.ANNIVERSARY, SubscriptionCategory.FAMILY, SubscriptionCategory.TRIAL, SubscriptionCategory.NOTES)) {
                 // Alert exactly on the day of the event/deadline at 9:00 AM
                 set(Calendar.HOUR_OF_DAY, 9)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
             } else {
                 // Alert 2 days before for financial/subscription renewals at 9:00 AM
                 add(Calendar.DAY_OF_YEAR, -2)
                 set(Calendar.HOUR_OF_DAY, 9)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
             }
         }
 

@@ -41,16 +41,19 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gbao86.sub_lazy.data.Subscription
+import com.gbao86.sub_lazy.ui.CategoryUtils
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
-import com.gbao86.sub_lazy.viewmodel.SubscriptionViewModel
+import com.gbao86.sub_lazy.viewmodel.SubscriptionListViewModel
 import androidx.compose.ui.res.stringResource
 import com.gbao86.sub_lazy.R
+import com.gbao86.sub_lazy.data.model.BillingCycle
+import com.gbao86.sub_lazy.data.model.SubscriptionCategory
+import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.DateUtils
-import com.gbao86.sub_lazy.ui.CategoryUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.core.graphics.toColorInt
@@ -60,7 +63,7 @@ import java.time.Year
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubscriptionListScreen(
-    viewModel: SubscriptionViewModel = viewModel(),
+    viewModel: SubscriptionListViewModel = viewModel(),
     onNavigateToDetail: (Long) -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -171,7 +174,7 @@ fun SubscriptionListScreen(
             }
         } else {
             var searchQuery by remember { mutableStateOf("") }
-            var selectedCategoryFilter by remember { mutableStateOf<String?>(null) }
+            var selectedCategoryFilter by remember { mutableStateOf<SubscriptionCategory?>(null) }
 
             val filteredSubs = remember(subscriptions, searchQuery, selectedCategoryFilter) {
                 subscriptions.filter { sub ->
@@ -247,7 +250,7 @@ fun SubscriptionListScreen(
                         FilterChip(
                             selected = isSelected,
                             onClick = { selectedCategoryFilter = if (isSelected) null else category },
-                            label = { Text(getCategoryDisplayName(category)) },
+                            label = { Text(CategoryUtils.getCategoryDisplayName(category)) },
                             shape = RoundedCornerShape(10.dp),
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
@@ -429,14 +432,13 @@ fun SubscriptionItem(
     }
 
     val cycleSuffix = when (subscription.cycle) {
-        "Daily"          -> stringResource(R.string.list_daily_suffix)
-        "Weekly"         -> stringResource(R.string.list_weekly_suffix)
-        "Monthly"        -> stringResource(R.string.list_monthly_suffix)
-        "Every 3 Months" -> stringResource(R.string.list_3_months_suffix)
-        "Every 6 Months" -> stringResource(R.string.list_6_months_suffix)
-        "Yearly"         -> stringResource(R.string.list_yearly_suffix)
-        "One-time"       -> stringResource(R.string.list_one_time_suffix)
-        else             -> ""
+        BillingCycle.DAILY          -> stringResource(R.string.list_daily_suffix)
+        BillingCycle.WEEKLY         -> stringResource(R.string.list_weekly_suffix)
+        BillingCycle.MONTHLY        -> stringResource(R.string.list_monthly_suffix)
+        BillingCycle.EVERY_3_MONTHS -> stringResource(R.string.list_3_months_suffix)
+        BillingCycle.EVERY_6_MONTHS -> stringResource(R.string.list_6_months_suffix)
+        BillingCycle.YEARLY         -> stringResource(R.string.list_yearly_suffix)
+        BillingCycle.ONE_TIME       -> stringResource(R.string.list_one_time_suffix)
     }
 
     // Urgency colors
@@ -504,7 +506,7 @@ fun SubscriptionItem(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${CurrencyFormatter.format(subscription.amount, subscription.currency, locale)}$cycleSuffix",
+                    text = "${CurrencyFormatter.format(subscription.amount, subscription.currency.code, locale)}$cycleSuffix",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -514,7 +516,7 @@ fun SubscriptionItem(
                     subscription.isInstallment -> "Trả góp · Còn ${subscription.remainingTimes} kỳ"
                     subscription.isSessionBased -> "Số buổi · Còn ${subscription.remainingSessions ?: 0}/${subscription.totalSessions ?: 0} buổi"
                     subscription.isShared -> "Gói dùng chung"
-                    subscription.category == "Trial" -> "Gói dùng thử"
+                    subscription.category == SubscriptionCategory.TRIAL -> "Gói dùng thử"
                     subscription.remainingTimes != null && subscription.remainingTimes > 0 -> 
                         stringResource(R.string.list_remaining_times, subscription.remainingTimes)
                     else -> null
@@ -528,7 +530,7 @@ fun SubscriptionItem(
                             subscription.isInstallment -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)
                             subscription.isSessionBased -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
                             subscription.isShared -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                            subscription.category == "Trial" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+                            subscription.category == SubscriptionCategory.TRIAL -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
                             else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
                         }
                     ) {
@@ -539,7 +541,7 @@ fun SubscriptionItem(
                                 subscription.isInstallment -> MaterialTheme.colorScheme.onTertiaryContainer
                                 subscription.isSessionBased -> MaterialTheme.colorScheme.onSecondaryContainer
                                 subscription.isShared -> MaterialTheme.colorScheme.onPrimaryContainer
-                                subscription.category == "Trial" -> MaterialTheme.colorScheme.onErrorContainer
+                                subscription.category == SubscriptionCategory.TRIAL -> MaterialTheme.colorScheme.onErrorContainer
                                 else -> MaterialTheme.colorScheme.onSurfaceVariant
                             },
                             fontWeight = FontWeight.Bold,
@@ -592,21 +594,3 @@ fun SubscriptionListPreview() {
     }
 }
 
-@Composable
-private fun getCategoryDisplayName(category: String): String {
-    val resId = when (category) {
-        "Entertainment" -> R.string.category_entertainment
-        "Utilities"     -> R.string.category_utilities
-        "Work"          -> R.string.category_work
-        "Cloud"         -> R.string.category_cloud
-        "Music"         -> R.string.category_music
-        "Food"          -> R.string.category_food
-        "Finance"       -> R.string.category_finance
-        "Anniversary"   -> R.string.category_anniversary
-        "Family"        -> R.string.category_family
-        "Trial"         -> R.string.category_trial
-        "Notes"         -> R.string.category_notes
-        else            -> R.string.category_other
-    }
-    return stringResource(resId)
-}

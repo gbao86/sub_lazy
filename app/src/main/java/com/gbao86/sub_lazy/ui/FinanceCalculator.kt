@@ -13,7 +13,7 @@ is strictly prohibited without the express written permission of the author.
 package com.gbao86.sub_lazy.ui
 
 import com.gbao86.sub_lazy.data.Subscription
-import java.text.SimpleDateFormat
+import com.gbao86.sub_lazy.data.model.BillingCycle
 import java.util.Calendar
 import java.util.Locale
 
@@ -32,15 +32,8 @@ object FinanceCalculator {
      * Calculates the monthly equivalent cost of a subscription, converted to VND.
      */
     fun calculateMonthlyEquivalentCostInVnd(sub: Subscription): Double {
-        val costInVnd = CurrencyFormatter.convert(sub.amount, sub.currency, "VND")
-        return when (sub.cycle) {
-            "Daily"          -> costInVnd * 30.0
-            "Weekly"         -> costInVnd * (30.0 / 7.0)
-            "Monthly"        -> costInVnd
-            "Every 3 Months" -> costInVnd / 3.0
-            "Every 6 Months" -> costInVnd / 6.0
-            else             -> costInVnd
-        }
+        val costInVnd = CurrencyFormatter.convert(sub.amount, sub.currency.code, "VND")
+        return costInVnd * sub.cycle.monthlyMultiplier
     }
 
     /**
@@ -87,7 +80,7 @@ object FinanceCalculator {
 
         val now = System.currentTimeMillis()
         val activeSubs = subscriptions.filter {
-            it.cycle != "One-time" && it.cycle != "Yearly"
+            it.cycle != BillingCycle.ONE_TIME && it.cycle != BillingCycle.YEARLY
         }
         if (activeSubs.isEmpty()) return BankruptcyRunwayResult.Infinite
 
@@ -150,7 +143,7 @@ object FinanceCalculator {
         var bankruptTime: Long? = null
 
         for (instance in list) {
-            val costInVnd = CurrencyFormatter.convert(instance.sub.amount, instance.sub.currency, "VND")
+            val costInVnd = CurrencyFormatter.convert(instance.sub.amount, instance.sub.currency.code, "VND")
             currentBalance -= costInVnd
             if (currentBalance < 0) {
                 bankruptTime = instance.time
@@ -179,7 +172,8 @@ object FinanceCalculator {
             val cal = Calendar.getInstance().apply { add(Calendar.MONTH, offset) }
             val monthNum = cal.get(Calendar.MONTH) + 1
             val monthLabel = if (locale.language == "vi") "T$monthNum" else {
-                SimpleDateFormat("MMM", locale).format(cal.time)
+                java.time.format.DateTimeFormatter.ofPattern("MMM", locale)
+                    .format(java.time.Instant.ofEpochMilli(cal.timeInMillis).atZone(java.time.ZoneId.systemDefault()))
             }
             val startCal = Calendar.getInstance().apply {
                 timeInMillis = cal.timeInMillis
@@ -200,7 +194,7 @@ object FinanceCalculator {
         val monthlyAmounts = DoubleArray(6)
         val maxSimTime = months[5].third
 
-        val filteredSubs = subscriptions.filter { it.cycle != "One-time" && it.cycle != "Yearly" }
+        val filteredSubs = subscriptions.filter { it.cycle != BillingCycle.ONE_TIME && it.cycle != BillingCycle.YEARLY }
 
         filteredSubs.forEach { sub ->
             var currentBillingDate = sub.nextBillingDate
@@ -210,7 +204,7 @@ object FinanceCalculator {
                 for (i in 0 until 6) {
                     val (_, start, end) = months[i]
                     if (currentBillingDate in start..end) {
-                        monthlyAmounts[i] += CurrencyFormatter.convert(sub.amount, sub.currency, "VND")
+                        monthlyAmounts[i] += CurrencyFormatter.convert(sub.amount, sub.currency.code, "VND")
                     }
                 }
 

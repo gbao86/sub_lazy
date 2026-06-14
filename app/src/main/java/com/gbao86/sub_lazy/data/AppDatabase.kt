@@ -16,8 +16,10 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
-@Database(entities = [Subscription::class, PaymentHistory::class], version = 6, exportSchema = false)
+@Database(entities = [Subscription::class, PaymentHistory::class], version = 7, exportSchema = true)
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun subscriptionDao(): SubscriptionDao
 
@@ -79,6 +81,31 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                // Recreate payment_history to add foreign key constraint and index
+                db.execSQL("ALTER TABLE payment_history RENAME TO temp_payment_history")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `payment_history` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `subscriptionId` INTEGER NOT NULL, 
+                        `subscriptionName` TEXT NOT NULL, 
+                        `amount` REAL NOT NULL, 
+                        `currency` TEXT NOT NULL, 
+                        `paymentDate` INTEGER NOT NULL, 
+                        `cycle` TEXT NOT NULL,
+                        FOREIGN KEY(`subscriptionId`) REFERENCES `subscriptions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO payment_history (`id`, `subscriptionId`, `subscriptionName`, `amount`, `currency`, `paymentDate`, `cycle`)
+                    SELECT `id`, `subscriptionId`, `subscriptionName`, `amount`, `currency`, `paymentDate`, `cycle` FROM temp_payment_history
+                """.trimIndent())
+                db.execSQL("DROP TABLE temp_payment_history")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_payment_history_subscriptionId` ON `payment_history` (`subscriptionId`)")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -86,7 +113,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "subscription_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .build()
                 INSTANCE = instance
                 instance

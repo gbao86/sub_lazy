@@ -25,8 +25,12 @@ import com.gbao86.sub_lazy.data.AppDatabase
 import com.gbao86.sub_lazy.data.PaymentHistory
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.DateUtils
+import com.gbao86.sub_lazy.data.model.BillingCycle
+import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -35,9 +39,29 @@ import java.util.regex.Pattern
 
 class BillNotificationListener : NotificationListenerService() {
 
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private val BANKING_PACKAGES = setOf(
+        "com.VCB",                    // Vietcombank
+        "com.mbmobile",               // MB Bank
+        "com.vnpay.hdbank",           // HD Bank
+        "vn.com.techcombank.bb.app",  // Techcombank
+        "com.tpb.mb.gprsandroid",     // TPBank
+        "com.VietinBank",             // VietinBank
+        "com.ftOS.momo",              // MoMo
+        "com.zalopay",                // ZaloPay
+        "vn.momo.platform"            // MoMo alternate
+    )
+
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceScope.cancel()
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
         if (sbn == null) return
+        if (sbn.packageName !in BANKING_PACKAGES) return
 
         val extras = sbn.notification.extras
         val title = extras.getString("android.title") ?: ""
@@ -48,7 +72,10 @@ class BillNotificationListener : NotificationListenerService() {
         val detectedBalance = detectBalance(combinedText)
         if (detectedBalance != null) {
             val sharedPref = applicationContext.getSharedPreferences("app_prefs", MODE_PRIVATE)
-            sharedPref.edit().putFloat("user_balance", detectedBalance.toFloat()).apply()
+            sharedPref.edit()
+                .putFloat("user_balance", detectedBalance.toFloat())
+                .putString("user_balance_str", detectedBalance.toString())
+                .apply()
         }
 
         // Check for payment-related keywords
@@ -75,7 +102,7 @@ class BillNotificationListener : NotificationListenerService() {
         val db = AppDatabase.getDatabase(applicationContext)
         val dao = db.subscriptionDao()
 
-        CoroutineScope(Dispatchers.IO).launch {
+        serviceScope.launch {
             try {
                 val subs = dao.getAllSubscriptions().first()
                 val matchedSub = subs.find { it.name.equals(serviceName, ignoreCase = true) }
@@ -93,7 +120,7 @@ class BillNotificationListener : NotificationListenerService() {
                     dao.insertPaymentHistory(record)
 
                     // Rollover renewal date
-                    if (matchedSub.cycle == "One-time") {
+                    if (matchedSub.cycle == BillingCycle.ONE_TIME) {
                         dao.deleteSubscription(matchedSub)
                         NotificationScheduler(applicationContext).cancelNotification(matchedSub.id)
                     } else {
@@ -120,7 +147,7 @@ class BillNotificationListener : NotificationListenerService() {
                             NotificationScheduler(applicationContext).scheduleNotification(currentSub)
                         }
                     }
-                    showAutoPaidNotification(matchedSub.name, amount, matchedSub.currency)
+                    showAutoPaidNotification(matchedSub.name, amount, matchedSub.currency.code)
                 } else {
                     // Pre-fill screen if it's a new subscription
                     showDetectedNotification(serviceName, amount)
@@ -132,14 +159,39 @@ class BillNotificationListener : NotificationListenerService() {
     }
 
     private fun detectService(text: String): String? {
-        val services = listOf(
+        val rawServices = listOf(
+            "github copilot", "chatgpt plus", "youtube premium", "fpt telecom", "fpt play", 
+            "google one", "microsoft 365", "apple services", "grab subscription", "momo billing",
             "netflix", "spotify", "youtube", "icloud", "google", "microsoft", "office", "apple",
-            "fpt play", "vieon", "k+", "netnam", "viettel", "vnpt", "fpt telecom", "aws", "github",
-            "copilot", "chatgpt", "openai", "momo", "grab", "mobi", "vina"
+            "vieon", "k+", "netnam", "viettel", "vnpt", "aws", "github", "copilot", "chatgpt", 
+            "openai", "momo", "grab", "mobi", "vina", "zalo", "shopee", "tiki", "canva", "capcut",
+            "zoom", "medium", "notion", "galaxy play", "clip tv", "vtvcab on", "danet", "fpt camera",
+            "kplus", "beamin", "be app", "gojek", "tinder gold", "tinder platinum", "spotify premium",
+            "adobe creative cloud", "dropbox", "canva pro", "duolingo plus", "grammarly", "babbel",
+            "elsa speak", "monkey stories"
         )
-        for (service in services) {
-            if (text.contains(service)) {
+        val sortedServices = rawServices.sortedByDescending { it.length }
+
+        for (service in sortedServices) {
+            val pattern = Pattern.compile("\\b${Pattern.quote(service)}\\b")
+            if (pattern.matcher(text).find()) {
                 return when (service) {
+                    "galaxy play" -> "Galaxy Play"
+                    "clip tv" -> "Clip TV"
+                    "vtvcab on" -> "VTVcab ON"
+                    "danet" -> "Danet"
+                    "fpt camera" -> "FPT Camera"
+                    "kplus" -> "K+"
+                    "beamin" -> "Baemin"
+                    "be app" -> "Be"
+                    "gojek" -> "Gojek"
+                    "tinder gold" -> "Tinder Gold"
+                    "tinder platinum" -> "Tinder Platinum"
+                    "adobe creative cloud" -> "Adobe CC"
+                    "canva pro" -> "Canva Pro"
+                    "duolingo plus" -> "Duolingo Plus"
+                    "elsa speak" -> "ELSA Speak"
+                    "monkey stories" -> "Monkey Stories"
                     "fpt play" -> "FPT Play"
                     "vieon" -> "VieON"
                     "k+" -> "K+"
@@ -149,21 +201,28 @@ class BillNotificationListener : NotificationListenerService() {
                     "fpt telecom" -> "FPT Telecom"
                     "aws" -> "AWS"
                     "github" -> "GitHub"
-                    "copilot" -> "GitHub Copilot"
-                    "chatgpt" -> "ChatGPT Plus"
+                    "github copilot", "copilot" -> "GitHub Copilot"
+                    "chatgpt plus", "chatgpt" -> "ChatGPT Plus"
                     "openai" -> "OpenAI API"
                     "netflix" -> "Netflix"
-                    "spotify" -> "Spotify"
-                    "youtube" -> "YouTube Premium"
+                    "spotify", "spotify premium" -> "Spotify"
+                    "youtube premium", "youtube" -> "YouTube Premium"
                     "icloud" -> "iCloud"
-                    "google" -> "Google One"
-                    "microsoft" -> "Microsoft 365"
-                    "office" -> "Microsoft 365"
-                    "apple" -> "Apple Services"
-                    "momo" -> "MoMo Billing"
-                    "grab" -> "Grab Subscription"
+                    "google one", "google" -> "Google One"
+                    "microsoft 365", "microsoft", "office" -> "Microsoft 365"
+                    "apple services", "apple" -> "Apple Services"
+                    "momo billing", "momo" -> "MoMo Billing"
+                    "grab subscription", "grab" -> "Grab Subscription"
                     "mobi" -> "Mobifone"
                     "vina" -> "Vinaphone"
+                    "zalo" -> "ZaloPay"
+                    "shopee" -> "ShopeePay"
+                    "tiki" -> "Tiki"
+                    "canva" -> "Canva"
+                    "capcut" -> "CapCut"
+                    "zoom" -> "Zoom"
+                    "medium" -> "Medium"
+                    "notion" -> "Notion"
                     else -> service.replaceFirstChar { it.uppercase() }
                 }
             }
@@ -246,7 +305,8 @@ class BillNotificationListener : NotificationListenerService() {
             .setContentIntent(pendingIntent)
             .build()
 
-        notificationManager.notify(200, notification)
+        val notificationId = serviceName.hashCode()
+        notificationManager.notify(notificationId, notification)
     }
 
 
@@ -282,7 +342,8 @@ class BillNotificationListener : NotificationListenerService() {
             .setContentIntent(pendingIntent)
             .build()
 
-        notificationManager.notify(201, notification)
+        val notificationId = serviceName.hashCode() + 1
+        notificationManager.notify(notificationId, notification)
     }
 
     private fun detectBalance(text: String): Double? {

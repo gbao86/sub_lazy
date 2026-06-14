@@ -12,25 +12,31 @@ is strictly prohibited without the express written permission of the author.
 
 package com.gbao86.sub_lazy.ui
 
-import java.util.concurrent.TimeUnit
+import com.gbao86.sub_lazy.data.model.BillingCycle
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 object DateUtils {
     fun getDaysLeft(nextBillingDate: Long): Long {
-        val diff = nextBillingDate - System.currentTimeMillis()
-        return if (diff < 0) 0L else TimeUnit.MILLISECONDS.toDays(diff)
+        val nextDate = Instant.ofEpochMilli(nextBillingDate).atZone(ZoneId.systemDefault()).toLocalDate()
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val diff = ChronoUnit.DAYS.between(today, nextDate)
+        return if (diff < 0) 0L else diff
     }
 
-    fun getNextBillingDate(currentDate: Long, cycle: String): Long {
-        val cal = java.util.Calendar.getInstance().apply { timeInMillis = currentDate }
-        when (cycle) {
-            "Daily"          -> cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
-            "Weekly"         -> cal.add(java.util.Calendar.WEEK_OF_YEAR, 1)
-            "Monthly"        -> cal.add(java.util.Calendar.MONTH, 1)
-            "Every 3 Months" -> cal.add(java.util.Calendar.MONTH, 3)
-            "Every 6 Months" -> cal.add(java.util.Calendar.MONTH, 6)
-            "Yearly"         -> cal.add(java.util.Calendar.YEAR, 1)
-            else             -> cal.add(java.util.Calendar.MONTH, 1)
+    fun getNextBillingDate(currentDate: Long, cycle: BillingCycle): Long {
+        val zonedDateTime = Instant.ofEpochMilli(currentDate).atZone(ZoneId.systemDefault())
+        val nextZonedDateTime = when (cycle) {
+            BillingCycle.DAILY          -> zonedDateTime.plusDays(1)
+            BillingCycle.WEEKLY         -> zonedDateTime.plusWeeks(1)
+            BillingCycle.MONTHLY        -> zonedDateTime.plusMonths(1)
+            BillingCycle.EVERY_3_MONTHS -> zonedDateTime.plusMonths(3)
+            BillingCycle.EVERY_6_MONTHS -> zonedDateTime.plusMonths(6)
+            BillingCycle.YEARLY         -> zonedDateTime.plusYears(1)
+            else                        -> zonedDateTime.plusMonths(1)
         }
-        return cal.timeInMillis
+        return nextZonedDateTime.toInstant().toEpochMilli()
     }
 }

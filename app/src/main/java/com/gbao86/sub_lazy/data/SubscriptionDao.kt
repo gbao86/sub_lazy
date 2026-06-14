@@ -14,9 +14,10 @@ package com.gbao86.sub_lazy.data
 
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
+import com.gbao86.sub_lazy.data.model.SubscriptionCategory
 
 data class CategorySpending(
-    val category: String,
+    val category: SubscriptionCategory,
     val totalAmount: Double
 )
 
@@ -37,14 +38,17 @@ interface SubscriptionDao {
     @Delete
     suspend fun deleteSubscription(subscription: Subscription)
 
-    @Query("SELECT SUM(CASE WHEN cycle = 'Daily' THEN amount * 365.0 / 12.0 WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Every 3 Months' THEN amount / 3.0 WHEN cycle = 'Every 6 Months' THEN amount / 6.0 ELSE 0.0 END) FROM subscriptions WHERE cycle != 'Yearly' AND cycle != 'One-time'")
+    @Query("SELECT SUM(CASE WHEN cycle = 'Daily' THEN amount * 365.25 / 12.0 WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Every 3 Months' THEN amount / 3.0 WHEN cycle = 'Every 6 Months' THEN amount / 6.0 WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) FROM subscriptions WHERE cycle != 'One-time'")
     fun getTotalMonthlyCost(): Flow<Double?>
 
-    @Query("SELECT category, SUM(CASE WHEN cycle = 'Daily' THEN amount * 365.0 / 12.0 WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Every 3 Months' THEN amount / 3.0 WHEN cycle = 'Every 6 Months' THEN amount / 6.0 ELSE 0.0 END) as totalAmount FROM subscriptions WHERE cycle != 'Yearly' AND cycle != 'One-time' GROUP BY category")
+    @Query("SELECT category, SUM(CASE WHEN cycle = 'Daily' THEN amount * 365.25 / 12.0 WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Every 3 Months' THEN amount / 3.0 WHEN cycle = 'Every 6 Months' THEN amount / 6.0 WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) as totalAmount FROM subscriptions WHERE cycle != 'One-time' GROUP BY category")
     fun getSpendingByCategory(): Flow<List<CategorySpending>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPaymentHistory(record: PaymentHistory): Long
+
+    @Query("DELETE FROM payment_history WHERE subscriptionId = :subscriptionId")
+    suspend fun deletePaymentHistoryBySubscriptionId(subscriptionId: Long)
 
     @Query("SELECT * FROM payment_history ORDER BY paymentDate DESC")
     fun getAllPaymentHistory(): Flow<List<PaymentHistory>>

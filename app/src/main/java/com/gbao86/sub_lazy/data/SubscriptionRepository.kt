@@ -12,34 +12,63 @@ is strictly prohibited without the express written permission of the author.
 
 package com.gbao86.sub_lazy.data
 
+import android.util.Log
 import kotlinx.coroutines.flow.Flow
 
-class SubscriptionRepository(private val subscriptionDao: SubscriptionDao) {
-    val allSubscriptions: Flow<List<Subscription>> = subscriptionDao.getAllSubscriptions()
-    val totalMonthlyCost: Flow<Double?> = subscriptionDao.getTotalMonthlyCost()
-    val allPaymentHistory: Flow<List<PaymentHistory>> = subscriptionDao.getAllPaymentHistory()
+interface ISubscriptionRepository {
+    val allSubscriptions: Flow<List<Subscription>>
+    val totalMonthlyCost: Flow<Double?>
+    val spendingByCategory: Flow<List<CategorySpending>>
+    val allPaymentHistory: Flow<List<PaymentHistory>>
 
-    suspend fun insert(subscription: Subscription): Long {
-        return subscriptionDao.insertSubscription(subscription)
+    suspend fun insert(subscription: Subscription): Result<Long>
+    suspend fun update(subscription: Subscription): Result<Unit>
+    suspend fun delete(subscription: Subscription): Result<Unit>
+    suspend fun getSubscriptionById(id: Long): Result<Subscription?>
+    suspend fun insertPaymentHistory(record: PaymentHistory): Result<Long>
+    fun getPaymentHistoryForSubscription(subId: Long): Flow<List<PaymentHistory>>
+}
+
+class SubscriptionRepository(private val subscriptionDao: SubscriptionDao) : ISubscriptionRepository {
+    private val TAG = "SubscriptionRepository"
+
+    override val allSubscriptions: Flow<List<Subscription>> = subscriptionDao.getAllSubscriptions()
+    override val totalMonthlyCost: Flow<Double?> = subscriptionDao.getTotalMonthlyCost()
+    override val spendingByCategory: Flow<List<CategorySpending>> = subscriptionDao.getSpendingByCategory()
+    override val allPaymentHistory: Flow<List<PaymentHistory>> = subscriptionDao.getAllPaymentHistory()
+
+    override suspend fun insert(subscription: Subscription): Result<Long> = runCatching {
+        subscriptionDao.insertSubscription(subscription)
+    }.onFailure {
+        Log.e(TAG, "Error inserting subscription", it)
     }
 
-    suspend fun update(subscription: Subscription) {
+    override suspend fun update(subscription: Subscription): Result<Unit> = runCatching {
         subscriptionDao.updateSubscription(subscription)
+    }.onFailure {
+        Log.e(TAG, "Error updating subscription", it)
     }
 
-    suspend fun delete(subscription: Subscription) {
+    override suspend fun delete(subscription: Subscription): Result<Unit> = runCatching {
+        subscriptionDao.deletePaymentHistoryBySubscriptionId(subscription.id)
         subscriptionDao.deleteSubscription(subscription)
+    }.onFailure {
+        Log.e(TAG, "Error deleting subscription", it)
     }
 
-    suspend fun getSubscriptionById(id: Long): Subscription? {
-        return subscriptionDao.getSubscriptionById(id)
+    override suspend fun getSubscriptionById(id: Long): Result<Subscription?> = runCatching {
+        subscriptionDao.getSubscriptionById(id)
+    }.onFailure {
+        Log.e(TAG, "Error getting subscription by id: $id", it)
     }
 
-    suspend fun insertPaymentHistory(record: PaymentHistory): Long {
-        return subscriptionDao.insertPaymentHistory(record)
+    override suspend fun insertPaymentHistory(record: PaymentHistory): Result<Long> = runCatching {
+        subscriptionDao.insertPaymentHistory(record)
+    }.onFailure {
+        Log.e(TAG, "Error inserting payment history", it)
     }
 
-    fun getPaymentHistoryForSubscription(subId: Long): Flow<List<PaymentHistory>> {
+    override fun getPaymentHistoryForSubscription(subId: Long): Flow<List<PaymentHistory>> {
         return subscriptionDao.getPaymentHistoryForSubscription(subId)
     }
 }

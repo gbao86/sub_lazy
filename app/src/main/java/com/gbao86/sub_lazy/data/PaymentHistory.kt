@@ -13,16 +13,33 @@ is strictly prohibited without the express written permission of the author.
 package com.gbao86.sub_lazy.data
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.gbao86.sub_lazy.data.model.BillingCycle
+import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
 
-@Entity(tableName = "payment_history")
+@Entity(
+    tableName = "payment_history",
+    foreignKeys = [
+        ForeignKey(
+            entity = Subscription::class,
+            parentColumns = ["id"],
+            childColumns = ["subscriptionId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [
+        Index(value = ["subscriptionId"])
+    ]
+)
 data class PaymentHistory(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val subscriptionId: Long,
     val subscriptionName: String,
     val amount: Double,
-    val currency: String,
+    val currency: SubscriptionCurrency,
     val paymentDate: Long,
-    val cycle: String
+    val cycle: BillingCycle
 )
