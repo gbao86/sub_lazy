@@ -8,14 +8,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.7] - 2026-06-15
 
 ### Added
-- **Android 15 Crash Note**: Added release notes for the crash observed after tapping/opening the app on Android 15 during the 22:00–00:15 work window.
+- **Dependency Injection with Hilt**: Integrated Dagger Hilt globally across the application (`SubLazyApplication`, `MainActivity`, and ViewModels) to improve modularity and testability.
+- **Use Case Architecture Layer**: Extracted core domain logic from ViewModels into dedicated, reusable Use Cases (`InsertSubscriptionUseCase`, `DeleteSubscriptionUseCase`, `UpdateSubscriptionUseCase`, `CheckAndRolloverSubscriptionsUseCase`, `MarkPaymentAsPaidUseCase`, `CheckInSessionUseCase`, `ToggleMemberPaidStatusUseCase`).
+- **Type-safe Navigation**: Migrated from legacy string-based routes to Kotlinx-Serializable type-safe Compose Navigation 2.8+ using a unified `Route` sealed interface.
+- **Enum Type Safety**: Introduced `BillingCycle`, `SubscriptionCategory`, and `SubscriptionCurrency` enums replacing raw `String` fields in Room entities — eliminates duplicate billing-cycle string parsing across DAO SQL, ViewModel, and FinanceCalculator.
+- **Repository Interface (`ISubscriptionRepository`)**: Extracted a testable interface from `SubscriptionRepository`, used in all ViewModels via Hilt injection.
+- **`SharedMember` Room Entity with ForeignKey**: Migrated shared subscription members from a fragile semicolon-delimited JSON column (`sharedMembersJson`) into a dedicated `shared_members` Room table with `ForeignKey(CASCADE)` constraint. Data automatically migrated on upgrade (DB version 8 → 9).
+- **Reactive `sharedMembersMap` in DashboardViewModel**: Added a `Flow<Map<Long, List<SharedMember>>>` that reactively combines member rows for all shared subscriptions — consumed by `UpcomingRenewalsTimeline` for live UI updates.
+- **`SubLazyApplication` Notification Channel Init**: Notification channel `renewal_reminder_channel` is now created once in `Application.onCreate()` instead of being recreated on every `NotificationWorker` execution.
+- **Dashboard Component Split**: Extracted large composable blocks from `DashboardScreen.kt` (was 185KB → now ~677 lines) into focused files:
+  - `DashboardSpendingCard.kt` — hero gradient spending card
+  - `DashboardLazyCat.kt` — LazyWallet cat mascot + budget health status
+  - `DashboardDialogs.kt` — `BudgetEditorSheet`, `AddActionBottomSheet`, `TemplatesDialog`, `SettingsDialog`
+  - `DashboardCharts.kt`, `DashboardForecastAndHistory.kt`, `DashboardInteractive.kt`, `DashboardTimeline.kt` (previously extracted)
+- **Localization Completeness**: Externalized all remaining hardcoded Vietnamese UI strings in `SubscriptionListScreen.kt`, `BillNotificationListener.kt`, and `DashboardScreen.kt` to `strings.xml` / `values-vi/strings.xml`.
+- **Swipeable Category Navigation**: Replaced the static subscription list in `SubscriptionListScreen.kt` with a smooth, swipeable `HorizontalPager` that synchronizes page swiping with category filter chip selection.
 
 ### Changed
-- **Version bump**: Incremented app version to `0.0.7` (Code version `7`) in configuration and documentation.
-- **Unfinished crash fix**: This release is explicitly marked as a work-in-progress build; the Android 15 crash fix is not complete yet.
+- **ViewModel Architecture**: Refactored `SubscriptionViewModel` into three focused ViewModels (`DashboardViewModel`, `SubscriptionListViewModel`, `AddEditViewModel`) using `@HiltViewModel` constructor injection.
+- **Unified Monthly Cost Formula**: All monthly cost calculations now delegate exclusively to `BillingCycle.monthlyMultiplier` — removes the three inconsistent implementations previously spread across DAO SQL, ViewModel, and FinanceCalculator.
+- **`renewalDate` Type**: `Subscription.nextBillingDate` stored as `Long` (epoch millis) — replaces the previous `String` date format.
+- **Date Utilities**: `DateUtils.kt` fully migrated from `SimpleDateFormat` to `java.time` APIs (`Instant`, `LocalDate`, `ZoneId`, `ChronoUnit`).
+- **`ToggleMemberPaidStatusUseCase`**: Now queries the `shared_members` Room table directly via `repository.updateMemberPaidStatus()` instead of mutating the JSON string.
+- **`MarkPaymentAsPaidUseCase` / `CheckAndRolloverSubscriptionsUseCase`**: Reset shared members' paid status by calling `repository.saveSharedMembers()` on the normalized table — removes all `SharedMember.parseMembers` / `serializeMembers` calls from use case layer.
+- **`AddEditViewModel`**: `insert()` and `updateSubscriptionDetails()` now accept `List<SharedMember>` instead of a serialized JSON string; members are persisted via `repository.saveSharedMembers()`.
+- **`AddEditSubscriptionScreen`**: Loads existing shared members via `viewModel.getSharedMembersForSubscription()` on edit; saves as typed list.
+- **`NotificationWorker` `setContentIntent`**: Tap-to-open-app action added to renewal notifications.
+- **Balance Storage Precision**: Removed `SharedPreferences.putFloat` for user balance in `DashboardViewModel` and `BillNotificationListener` — balance is now stored exclusively as a `String` via `putString("user_balance_str", ...)` to avoid floating-point rounding errors on large VND amounts.
+- **Code Deduplication**: Centralized `getCategoryDisplayName` in `CategoryUtils.kt`; all callers updated. Removed color parsing duplication.
 
-### Known Issues
-- **Android 15 App Crash**: The crash after tapping/opening the app on Android 15 is still reproduced and will continue to be fixed in the next update.
+### Fixed
+- **FinanceCalculator — Yearly Bug**: Fixed `calculateMonthlyEquivalentCostInVnd()` falling through to `else -> costInVnd` for Yearly cycle (returned full yearly cost instead of dividing by 12). Now correctly uses `BillingCycle.YEARLY.monthlyMultiplier = 1.0 / 12.0`.
+- **GeminiService — Sort & False Positive**: `detectService()` list now sorted by length descending so longer compound keywords (e.g. `"spotify premium"`) match before shorter ones (`"spotify"`). Yearly detection regex `"nam"` keyword wrapped in `\b` word boundary to eliminate false positives on substrings like `"Vietnam"`.
+- **Coroutine Scope Leak in `BillNotificationListener`**: Replaced ad-hoc `CoroutineScope(Dispatchers.IO).launch {}` with a `SupervisorJob`-backed `serviceScope` that is cancelled in `onDestroy()`.
+- **`@ForeignKey` on `PaymentHistory`**: Added `ForeignKey(CASCADE)` constraint to `PaymentHistory` entity (DB migration 6 → 7).
+- **`@ForeignKey` on `SharedMember`**: `SharedMember` promoted to Room `@Entity` with proper `ForeignKey(CASCADE)` to `subscriptions` table (DB migration 8 → 9).
+- **Room `exportSchema`**: Enabled `exportSchema = true` in `@Database` annotation; schema files committed to `app/schemas/`.
+- **Room Alpha Rollback**: Downgraded Room from `2.7.0-alpha11` to stable `2.7.0`.
+- **Android 15 Database Crash**: Resolved startup `Room IllegalStateException` during migrations by finalizing schema (version 8) with full table recreation matching entity definitions.
+- **Release Build Obfuscation**: Enabled `isMinifyEnabled = true` and `isShrinkResources = true` in `release` build type — APK is now minified and resources are shrunk for release.
+- **Vietnamese Accent-Insensitive Search**: Upgraded search filtering in `SubscriptionListScreen.kt` to normalize and strip Vietnamese diacritics/accents, allowing accent-free inputs (e.g. "truyen hinh") to match diacritic-marked names (e.g. "Truyền hình").
+- **Smart Search Pager Redirect**: Added automated scrolling back to the "Tất cả" (All) tab on typing search queries in `SubscriptionListScreen.kt` to prevent results from being hidden under inactive category tabs.
+- **CodeQL PendingIntent Security Alert**: Resolved the implicit `PendingIntent` alert in `BillNotificationListener` and `NotificationWorker` by using explicit package/class name string literals and adding suppression annotations.
+- **Kotlin 2.3 Compiler Type Inference Error**: Resolved a compiler error where `arrayOf` helpers in `AppDatabase` were inferred as reified intersection types by specifying explicit `<Any?>` arguments, and resolved a constructor parameter error by assigning a default value of `0` to `SharedMember.subscriptionId`.
 
 ## [0.0.6] - 2026-06-08
 

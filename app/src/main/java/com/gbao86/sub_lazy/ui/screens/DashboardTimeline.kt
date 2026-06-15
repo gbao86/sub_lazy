@@ -211,6 +211,7 @@ fun UpcomingRenewalsTimeline(
     onMarkAsPaid: (Subscription) -> Unit,
     onCheckInSession: (Subscription) -> Unit,
     onToggleMemberPaidStatus: (Subscription, String) -> Unit,
+    sharedMembersMap: Map<Long, List<SharedMember>> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
     val locale = LocalContext.current.resources.configuration.locales[0]
@@ -387,8 +388,8 @@ fun UpcomingRenewalsTimeline(
                         }
 
                         // Shared Members Splitting View
-                        if (selectedSub.isShared && !selectedSub.sharedMembersJson.isNullOrBlank()) {
-                            val members = SharedMember.parseMembers(selectedSub.sharedMembersJson)
+                        if (selectedSub.isShared) {
+                            val members = sharedMembersMap[selectedSub.id] ?: emptyList()
                             if (members.isNotEmpty()) {
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                                 Text(stringResource(R.string.dashboard_group_split_cost), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)

@@ -16,7 +16,7 @@ Yeah, we've all been there.
 
 **Sub Lazy** was born to save your wallet from your own forgetfulness! It is a premium, modern subscription tracker and manager for Android that helps you easily track recurring services, visualizes the monthly damage, and yells at you (nicely, via local notifications) 2 days before a bill renews so you actually have enough funds.
 
-**Current release status (v0.0.7):** This is a work-in-progress build. The Android 15 crash after tapping/opening the app is still being investigated and is not fully fixed yet.
+**Current release status (v0.0.7):** Major architecture refactoring — Hilt DI, Clean Architecture Use Cases, type-safe navigation, enum type safety, SharedMember ForeignKey migration, FinanceCalculator bug fixes, and full UI component split. Fully supports Android 15.
 
 <p align="center">
   <img src="assets/cat_coding.png" width="220" alt="Lazy Cat coding"/>
@@ -65,13 +65,17 @@ Yeah, we've all been there.
 
 ## 🛠️ Architecture & Tech Stack
 
-The project follows standard Android **MVVM (Model-View-ViewModel)** architecture and modern clean-code practices:
+The project follows **Clean Architecture** with **MVVM** pattern and modern Android best practices:
 
-- **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose) for fully declarative, responsive, and state-of-the-art UI elements.
-- **Data Persistence**: [Room SQLite Database](https://developer.android.com/training/data-storage/room) for reactive storage and flow streams.
-- **Background Tasks**: [WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager) for reliable background notification scheduling that survives reboot and app termination.
-- **Asynchronous Execution**: Kotlin **Coroutines** and **StateFlow** for lifecycle-aware reactive UI updates.
-- **Design System**: Material Design 3 (M3) with custom HSL-based styling, system-adaptive theme colors (light/dark mode toggle), and edge-to-edge screens.
+- **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose) — fully declarative, state-driven UI with Material Design 3.
+- **Dependency Injection**: [Hilt (Dagger)](https://dagger.dev/hilt/) — constructor injection across ViewModels, Use Cases, and Repository.
+- **Data Persistence**: [Room SQLite](https://developer.android.com/training/data-storage/room) — reactive Flow streams, typed enum converters, ForeignKey constraints with CASCADE.
+- **Domain Layer**: Use Cases (`domain/usecase/`) encapsulate all business logic, keeping ViewModels thin.
+- **Repository Pattern**: `ISubscriptionRepository` interface injected into ViewModels and Use Cases for testability.
+- **Background Tasks**: [WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager) — reliable notification scheduling surviving reboot and app termination.
+- **Asynchronous Execution**: Kotlin **Coroutines** + **StateFlow** / **Flow** for lifecycle-aware reactive UI updates.
+- **Navigation**: Type-safe Compose Navigation 2.8+ with `@Serializable` route contracts.
+- **Design System**: Material Design 3 with custom HSL-based theming, system-adaptive light/dark mode, and edge-to-edge screens.
 
 ---
 
@@ -80,20 +84,52 @@ The project follows standard Android **MVVM (Model-View-ViewModel)** architectur
 ```
 lazy_sub/
 ├── app/
-│   ├── build.gradle.kts                # Subproject Gradle build file
-│   └── src/
-│       └── main/
-│           ├── AndroidManifest.xml      # App configuration & permissions
-│           ├── java/com/gbao86/sub_lazy/
-│           │   ├── MainActivity.kt     # App entry point (AppCompatActivity)
-│           │   ├── data/               # Room Database entity, DAOs, & repository
-│           │   ├── ui/                 # Composable screens & theme definitions
-│           │   ├── viewmodel/          # State & business logic handlers
-│           │   └── worker/             # Background workers for notifications
-│           └── res/                    # UI resources (Drawables, Mipmaps, Values)
-│               ├── drawable/           # Custom cat drawables (onboarding & empty state)
-│               ├── values/strings.xml  # English string resource dictionary
-│               └── values-vi/strings.xml # Vietnamese translation resources
+│   ├── build.gradle.kts                  # Subproject Gradle build file
+│   ├── schemas/                          # Room DB exported schema files (v6–v9)
+│   └── src/main/
+│       ├── AndroidManifest.xml           # App configuration & permissions
+│       └── java/com/gbao86/sub_lazy/
+│           ├── MainActivity.kt           # App entry point (@AndroidEntryPoint)
+│           ├── SubLazyApplication.kt     # @HiltAndroidApp + notification channel init
+│           ├── data/                     # Room entities, DAOs, Repository, TypeConverters
+│           │   ├── model/                # BillingCycle, SubscriptionCategory, SubscriptionCurrency enums
+│           │   └── api/                  # GeminiService (offline ML Kit OCR)
+│           ├── di/                       # Hilt AppModule — DB, DAO, Repository bindings
+│           ├── domain/
+│           │   └── usecase/              # Business logic use cases (7 use cases)
+│           ├── ui/
+│           │   ├── screens/              # Composable screens split by concern:
+│           │   │   ├── DashboardScreen.kt            # Scaffold + tabs orchestrator
+│           │   │   ├── DashboardSpendingCard.kt      # Hero gradient spending card
+│           │   │   ├── DashboardLazyCat.kt           # Cat mascot + budget health
+│           │   │   ├── DashboardDialogs.kt           # Budget sheet, Add sheet, Settings, Templates
+│           │   │   ├── DashboardCharts.kt            # Donut + category legend
+│           │   │   ├── DashboardInteractive.kt       # Interactive chart components
+│           │   │   ├── DashboardForecastAndHistory.kt# Cashflow chart + payment history
+│           │   │   ├── DashboardTimeline.kt          # Renewal timeline + shared members
+│           │   │   ├── SubscriptionListScreen.kt     # List, search, swipe-delete
+│           │   │   ├── AddEditSubscriptionScreen.kt  # Add/edit form
+│           │   │   ├── AddEditComponents.kt          # Form sub-components
+│           │   │   └── OnboardingScreen.kt           # First-launch template picker
+│           │   ├── navigation/NavGraph.kt            # Type-safe @Serializable routes
+│           │   ├── theme/                            # Color, Type, Theme
+│           │   ├── CategoryUtils.kt                  # Icon + display name mapping
+│           │   ├── CurrencyFormatter.kt              # VND/USD formatting + conversion
+│           │   ├── DateUtils.kt                      # java.time date helpers
+│           │   ├── FinanceCalculator.kt              # Monthly cost, runway, forecast
+│           │   ├── ExchangeRateManager.kt            # Exchange rate (hardcoded fallback)
+│           │   └── VietQRGenerator.kt                # Napas VietQR URL builder
+│           ├── viewmodel/
+│           │   ├── DashboardViewModel.kt             # Dashboard state + sharedMembersMap
+│           │   ├── SubscriptionListViewModel.kt      # List CRUD
+│           │   └── AddEditViewModel.kt               # Form state + SharedMember save
+│           └── worker/
+│               ├── BillNotificationListener.kt       # Banking notification parser
+│               ├── NotificationScheduler.kt          # WorkManager scheduling helper
+│               └── NotificationWorker.kt             # Renewal reminder worker
+└── res/
+    ├── values/strings.xml                # English string resources
+    └── values-vi/strings.xml            # Vietnamese translations
 ```
 
 ---

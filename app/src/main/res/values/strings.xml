@@ -272,4 +272,24 @@
     <string name="onboarding_automation">Automation</string>
     <string name="onboarding_reminders">Reminders</string>
     <string name="onboarding_security">Security</string>
+
+    <!-- Auto-paid notification (BillNotificationListener) -->
+    <string name="notification_auto_paid_title">Auto payment confirmed!</string>
+    <string name="notification_auto_paid_message">Auto-confirmed payment for %1$s (%2$s). Enjoy being lazy! 🐱</string>
+
+    <!-- Subscription List Screen (hardcoded strings) -->
+    <string name="list_services_tracked">%1$d services being tracked</string>
+    <string name="list_btn_add_new">Add New</string>
+    <string name="list_empty_hint">Add your first service\nusing the button below 👇</string>
+    <string name="list_search_hint">Search services...</string>
+    <string name="list_filter_all">All</string>
+    <string name="list_search_no_results">No results found</string>
+    <string name="list_search_no_results_hint">Try a different keyword or clear filters</string>
+    <string name="list_deleted_name">Deleted %1$s</string>
+    <string name="list_undo">Undo</string>
+    <string name="list_swipe_delete">Delete</string>
+    <string name="list_tag_installment">Installment · %1$d periods left</string>
+    <string name="list_tag_session">Sessions · %1$d/%2$d left</string>
+    <string name="list_tag_shared">Shared Plan</string>
+    <string name="list_tag_trial">Trial Plan</string>
 </resources>

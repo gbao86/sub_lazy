@@ -65,9 +65,11 @@ data class Subscription(
     val isInstallment: Boolean = false,
     val totalInstallmentPeriods: Int? = null,
 
-    // Shared subscription splitting
+    // Shared subscription splitting — members now stored in shared_members table (ForeignKey CASCADE)
+    // sharedMembersJson kept for migration purposes only; cleared after MIGRATION_8_9
     @ColumnInfo(defaultValue = "0")
     val isShared: Boolean = false,
-    val sharedMembersJson: String? = null // Format: "Name:Amount:HasPaid:Phone;..."
+    @Deprecated("Use shared_members table via SubscriptionRepository.getSharedMembersForSubscription()")
+    val sharedMembersJson: String? = null
 )
 

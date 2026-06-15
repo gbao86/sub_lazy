@@ -226,4 +226,24 @@
     <string name="onboarding_automation">Tự động hóa</string>
     <string name="onboarding_reminders">Nhắc nhở</string>
     <string name="onboarding_security">Bảo mật</string>
+
+    <!-- Auto-paid notification (BillNotificationListener) -->
+    <string name="notification_auto_paid_title">Tự động thanh toán thành công!</string>
+    <string name="notification_auto_paid_message">Đã tự động xác nhận thanh toán hóa đơn %1$s (%2$s). Chúc bạn lười vui vẻ! 🐱</string>
+
+    <!-- Subscription List Screen (hardcoded strings) -->
+    <string name="list_services_tracked">%1$d dịch vụ đang theo dõi</string>
+    <string name="list_btn_add_new">Thêm mới</string>
+    <string name="list_empty_hint">Thêm dịch vụ đầu tiên của bạn\nbằng nút bên dưới 👇</string>
+    <string name="list_search_hint">Tìm kiếm dịch vụ...</string>
+    <string name="list_filter_all">Tất cả</string>
+    <string name="list_search_no_results">Không tìm thấy kết quả</string>
+    <string name="list_search_no_results_hint">Hãy thử nhập từ khóa khác hoặc xóa bộ lọc</string>
+    <string name="list_deleted_name">Đã xóa %1$s</string>
+    <string name="list_undo">Hoàn tác</string>
+    <string name="list_swipe_delete">Xóa</string>
+    <string name="list_tag_installment">Trả góp · Còn %1$d kỳ</string>
+    <string name="list_tag_session">Số buổi · Còn %1$d/%2$d buổi</string>
+    <string name="list_tag_shared">Gói dùng chung</string>
+    <string name="list_tag_trial">Gói dùng thử</string>
 </resources>

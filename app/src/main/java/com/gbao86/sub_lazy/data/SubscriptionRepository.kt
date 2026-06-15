@@ -27,6 +27,12 @@ interface ISubscriptionRepository {
     suspend fun getSubscriptionById(id: Long): Result<Subscription?>
     suspend fun insertPaymentHistory(record: PaymentHistory): Result<Long>
     fun getPaymentHistoryForSubscription(subId: Long): Flow<List<PaymentHistory>>
+
+    // SharedMember operations
+    fun getSharedMembersForSubscription(subscriptionId: Long): Flow<List<SharedMember>>
+    suspend fun getSharedMembersForSubscriptionOnce(subscriptionId: Long): Result<List<SharedMember>>
+    suspend fun saveSharedMembers(subscriptionId: Long, members: List<SharedMember>): Result<Unit>
+    suspend fun updateMemberPaidStatus(subscriptionId: Long, memberName: String, hasPaid: Boolean): Result<Unit>
 }
 
 class SubscriptionRepository(private val subscriptionDao: SubscriptionDao) : ISubscriptionRepository {
@@ -70,5 +76,29 @@ class SubscriptionRepository(private val subscriptionDao: SubscriptionDao) : ISu
 
     override fun getPaymentHistoryForSubscription(subId: Long): Flow<List<PaymentHistory>> {
         return subscriptionDao.getPaymentHistoryForSubscription(subId)
+    }
+
+    override fun getSharedMembersForSubscription(subscriptionId: Long): Flow<List<SharedMember>> {
+        return subscriptionDao.getSharedMembersForSubscription(subscriptionId)
+    }
+
+    override suspend fun getSharedMembersForSubscriptionOnce(subscriptionId: Long): Result<List<SharedMember>> = runCatching {
+        subscriptionDao.getSharedMembersForSubscriptionOnce(subscriptionId)
+    }.onFailure {
+        Log.e(TAG, "Error getting shared members for subscription: $subscriptionId", it)
+    }
+
+    override suspend fun saveSharedMembers(subscriptionId: Long, members: List<SharedMember>): Result<Unit> = runCatching {
+        subscriptionDao.deleteSharedMembersForSubscription(subscriptionId)
+        val membersWithSubId = members.map { it.copy(subscriptionId = subscriptionId, id = 0) }
+        subscriptionDao.insertSharedMembers(membersWithSubId)
+    }.onFailure {
+        Log.e(TAG, "Error saving shared members for subscription: $subscriptionId", it)
+    }
+
+    override suspend fun updateMemberPaidStatus(subscriptionId: Long, memberName: String, hasPaid: Boolean): Result<Unit> = runCatching {
+        subscriptionDao.updateMemberPaidStatus(subscriptionId, memberName, hasPaid)
+    }.onFailure {
+        Log.e(TAG, "Error updating member paid status: $memberName for subscription: $subscriptionId", it)
     }
 }

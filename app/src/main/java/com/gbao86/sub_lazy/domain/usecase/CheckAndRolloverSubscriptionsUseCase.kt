@@ -58,10 +58,12 @@ class CheckAndRolloverSubscriptionsUseCase @Inject constructor(
                         notificationScheduler.cancelNotification(sub.id)
                     }
                 } else {
-                    if (currentSub.isShared && !currentSub.sharedMembersJson.isNullOrBlank()) {
-                        val members = com.gbao86.sub_lazy.data.SharedMember.parseMembers(currentSub.sharedMembersJson)
-                        val resetMembers = members.map { it.copy(hasPaid = false) }
-                        currentSub = currentSub.copy(sharedMembersJson = com.gbao86.sub_lazy.data.SharedMember.serializeMembers(resetMembers))
+                    if (currentSub.isShared) {
+                        // Reset all shared members' paid status for the new billing cycle
+                        repository.getSharedMembersForSubscriptionOnce(currentSub.id).onSuccess { members ->
+                            val resetMembers = members.map { it.copy(hasPaid = false) }
+                            repository.saveSharedMembers(currentSub.id, resetMembers)
+                        }
                     }
                     repository.update(currentSub).onSuccess {
                         notificationScheduler.scheduleNotification(currentSub)

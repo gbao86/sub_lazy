@@ -15,24 +15,15 @@ is strictly prohibited without the express written permission of the author.
 package com.gbao86.sub_lazy.ui.screens
 
 import android.widget.Toast
-import android.graphics.Paint
-import android.graphics.Typeface
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import com.gbao86.sub_lazy.data.PaymentHistory
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -81,18 +72,13 @@ import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.CategoryUtils
 import com.gbao86.sub_lazy.ui.DateUtils
-import com.gbao86.sub_lazy.ui.VietQRGenerator
 import com.gbao86.sub_lazy.ui.FinanceCalculator
 import com.gbao86.sub_lazy.ui.BankruptcyRunwayResult
-import com.gbao86.sub_lazy.ui.MonthlyForecast
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 import com.gbao86.sub_lazy.viewmodel.DashboardViewModel
 import java.util.*
-import kotlin.math.sqrt
-import kotlin.math.atan2
 import kotlin.math.sin
 import kotlin.math.cos
-import kotlin.math.PI
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -106,8 +92,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.content.Context
-import coil.compose.AsyncImage
-import com.gbao86.sub_lazy.data.SubscriptionTemplates
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,6 +106,7 @@ fun DashboardScreen(
     val paymentHistory by viewModel.allPaymentHistory.collectAsStateWithLifecycle(initialValue = emptyList())
     val userBalance by viewModel.userBalance.collectAsStateWithLifecycle(initialValue = 2000000.0)
     val budgetResetDay by viewModel.budgetResetDay.collectAsStateWithLifecycle(initialValue = 1)
+    val sharedMembersMap by viewModel.sharedMembersMap.collectAsStateWithLifecycle(initialValue = emptyMap())
 
     DashboardContent(
         totalMonthlyCost = totalMonthlyCost,
@@ -130,6 +115,7 @@ fun DashboardScreen(
         paymentHistory = paymentHistory,
         userBalance = userBalance,
         budgetResetDay = budgetResetDay,
+        sharedMembersMap = sharedMembersMap,
         onUpdateUserBalance = { viewModel.updateUserBalance(it) },
         onUpdateBudgetResetDay = { viewModel.updateBudgetResetDay(it) },
         onMarkAsPaid = { viewModel.markAsPaid(it) },
@@ -149,6 +135,7 @@ fun DashboardContent(
     paymentHistory: List<PaymentHistory>,
     userBalance: Double,
     budgetResetDay: Int,
+    sharedMembersMap: Map<Long, List<com.gbao86.sub_lazy.data.SharedMember>> = emptyMap(),
     onUpdateUserBalance: (Double) -> Unit,
     onUpdateBudgetResetDay: (Int) -> Unit,
     onMarkAsPaid: (Subscription) -> Unit,
@@ -170,99 +157,17 @@ fun DashboardContent(
     }
 
     if (showBalanceEditDialog) {
-        var inputVal by remember {
-            mutableStateOf(
-                java.text.NumberFormat.getNumberInstance(locale).format(userBalance.toLong())
-            )
-        }
-        var resetDayInput by remember { mutableStateOf(budgetResetDay.toString()) }
-        ModalBottomSheet(
-            onDismissRequest = { showBalanceEditDialog = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            containerColor = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.budget_update_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-
-                OutlinedTextField(
-                    value = inputVal,
-                    onValueChange = { text ->
-                        val cleanDigits = text.replace("[^\\d]".toRegex(), "")
-                        if (cleanDigits.isEmpty()) {
-                            inputVal = ""
-                        } else {
-                            val parsed = cleanDigits.toLongOrNull()
-                            if (parsed != null) {
-                                inputVal = java.text.NumberFormat.getNumberInstance(locale).format(parsed)
-                            }
-                        }
-                    },
-                    label = { Text(stringResource(R.string.budget_monthly_label)) },
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                    singleLine = true
-                )
-                
-                OutlinedTextField(
-                    value = resetDayInput,
-                    onValueChange = { text ->
-                        val cleanDigits = text.replace("[^\\d]".toRegex(), "")
-                        if (cleanDigits.isEmpty()) {
-                            resetDayInput = ""
-                        } else {
-                            val parsed = cleanDigits.toIntOrNull()
-                            if (parsed != null && parsed in 1..31) {
-                                resetDayInput = parsed.toString()
-                            }
-                        }
-                    },
-                    label = { Text(stringResource(R.string.budget_reset_day_label)) },
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                    singleLine = true
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    TextButton(
-                        onClick = { showBalanceEditDialog = false },
-                        modifier = Modifier.weight(1f).height(50.dp)
-                    ) {
-                        Text(stringResource(R.string.btn_cancel), fontWeight = FontWeight.SemiBold)
-                    }
-                    Button(
-                        onClick = {
-                            val cleanDigits = inputVal.replace("[^\\d]".toRegex(), "")
-                            val newBalance = cleanDigits.toDoubleOrNull() ?: 0.0
-                            val newResetDay = resetDayInput.toIntOrNull() ?: 1
-                            onUpdateUserBalance(newBalance)
-                            onUpdateBudgetResetDay(newResetDay)
-                            showBalanceEditDialog = false
-                        },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text(stringResource(R.string.btn_save), fontWeight = FontWeight.Bold)
-                    }
-                }
+        BudgetEditorSheet(
+            userBalance = userBalance,
+            budgetResetDay = budgetResetDay,
+            locale = locale,
+            onDismiss = { showBalanceEditDialog = false },
+            onSave = { newBalance, newResetDay ->
+                onUpdateUserBalance(newBalance)
+                onUpdateBudgetResetDay(newResetDay)
+                showBalanceEditDialog = false
             }
-        }
+        )
     }
 
     var selectedCategory by remember { mutableStateOf<CategorySpending?>(null) }
@@ -454,365 +359,26 @@ fun DashboardContent(
                         ) {
                             // ── Hero Spending Card ───────────────────────────────────────
                             item {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(32.dp),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .background(
-                                                Brush.linearGradient(
-                                                    listOf(
-                                                        MaterialTheme.colorScheme.primary,
-                                                        MaterialTheme.colorScheme.primary.copy(red = 0.5f),
-                                                        MaterialTheme.colorScheme.secondary
-                                                    )
-                                                )
-                                            )
-                                            .padding(horizontal = 24.dp, vertical = 24.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(120.dp)
-                                                .align(Alignment.TopEnd)
-                                                .offset(x = 20.dp, y = (-20).dp)
-                                                .clip(CircleShape)
-                                                .background(Color.White.copy(alpha = 0.06f))
-                                        )
-                                        Box(
-                                            modifier = Modifier
-                                                .size(80.dp)
-                                                .align(Alignment.BottomStart)
-                                                .offset(x = (-16).dp, y = 16.dp)
-                                                .clip(CircleShape)
-                                                .background(Color.White.copy(alpha = 0.04f))
-                                        )
-                                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(32.dp)
-                                                        .clip(RoundedCornerShape(10.dp))
-                                                        .background(Color.White.copy(alpha = 0.15f)),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        Icons.AutoMirrored.Rounded.TrendingUp,
-                                                        contentDescription = null,
-                                                        tint = Color.White,
-                                                        modifier = Modifier.size(18.dp)
-                                                    )
-                                                }
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    stringResource(R.string.dashboard_monthly_spending),
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    color = Color.White.copy(alpha = 0.85f),
-                                                    fontWeight = FontWeight.SemiBold
-                                                )
-                                            }
-                                            Text(
-                                                text = CurrencyFormatter.format(totalMonthlyCost ?: 0.0, "VND", locale),
-                                                style = MaterialTheme.typography.displaySmall,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = Color.White,
-                                                softWrap = false,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Visible
-                                            )
-                                            Surface(
-                                                shape = RoundedCornerShape(10.dp),
-                                                color = Color.White.copy(alpha = 0.15f)
-                                            ) {
-                                                Text(
-                                                    text = if (subscriptions.size == 1) {
-                                                        stringResource(R.string.dashboard_services_tracked_single)
-                                                    } else {
-                                                        stringResource(R.string.dashboard_services_tracked, subscriptions.size)
-                                                    },
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    color = Color.White.copy(alpha = 0.9f),
-                                                    fontWeight = FontWeight.Medium,
-                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                                )
-                                            }
-
-                                            // Budget usage progress bar
-                                            if (userBalance > 0.0) {
-                                                val progress = ((totalMonthlyCost ?: 0.0) / userBalance).toFloat().coerceIn(0f, 1f)
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween
-                                                    ) {
-                                                        Text(
-                                                            text = stringResource(R.string.budget_percent_used, (progress * 100).toInt()),
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            color = Color.White.copy(alpha = 0.8f)
-                                                        )
-                                                        Text(
-                                                            text = stringResource(R.string.budget_remaining, CurrencyFormatter.format(userBalance - (totalMonthlyCost ?: 0.0), "VND", locale)),
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            color = Color.White.copy(alpha = 0.8f)
-                                                        )
-                                                    }
-                                                    LinearProgressIndicator(
-                                                        progress = { progress },
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .height(6.dp)
-                                                            .clip(RoundedCornerShape(3.dp)),
-                                                        color = Color.White,
-                                                        trackColor = Color.White.copy(alpha = 0.25f)
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                HeroSpendingCard(
+                                    totalMonthlyCost = totalMonthlyCost,
+                                    subscriptions = subscriptions,
+                                    userBalance = userBalance,
+                                    locale = locale,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
 
                             // ── Lazy Wallet Pet & Financial Health Card ────────────────
                             item {
-                                val runwayResult = remember(userBalance, subscriptions, budgetResetDay, tickTrigger) {
-                                    FinanceCalculator.calculateBankruptcyRunway(userBalance, subscriptions, budgetResetDay)
-                                }
-                                val activeSubs = remember(subscriptions) {
-                                    subscriptions.filter { it.cycle != BillingCycle.ONE_TIME && it.cycle != BillingCycle.YEARLY }
-                                }
-                                val nextNearestBillDate = remember(activeSubs) {
-                                    activeSubs.minOfOrNull { it.nextBillingDate }
-                                }
-                                val totalMonthlyCost = remember(activeSubs) {
-                                    activeSubs.sumOf { FinanceCalculator.calculateMonthlyEquivalentCostInVnd(it) }
-                                }
-                                val isPanicked = runwayResult is BankruptcyRunwayResult.AlreadyBankrupt ||
-                                        totalMonthlyCost > userBalance ||
-                                        (runwayResult is BankruptcyRunwayResult.DaysLeft && (
-                                            runwayResult.diffMillis < 86400000L * 7 ||
-                                            (nextNearestBillDate != null && runwayResult.targetTime <= nextNearestBillDate)
-                                        ))
-                                
-                                val hasTrialExpiringSoon = remember(subscriptions) {
-                                    subscriptions.any { it.category == SubscriptionCategory.TRIAL && (it.nextBillingDate - System.currentTimeMillis() <= 86400000L * 3) && (it.nextBillingDate >= System.currentTimeMillis()) }
-                                }
-                                
-                                val catState = when {
-                                    isPanicked || hasTrialExpiringSoon -> CatState.PANICKED
-                                    totalMonthlyCost == 0.0 || (runwayResult is BankruptcyRunwayResult.DaysLeft && runwayResult.diffMillis >= 86400000L * 180) -> CatState.HAPPY
-                                    else -> CatState.SLEEPING
-                                }
-
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(28.dp),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(16.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                                    ) {
-                                        LazyWalletCatSection(
-                                            catState = catState,
-                                            runwayResult = runwayResult,
-                                            subscriptions = subscriptions,
-                                            userBalance = userBalance,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-
-                                        Row(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(16.dp))
-                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                                .clickable { showBalanceEditDialog = true }
-                                                .heightIn(min = 48.dp)
-                                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center
-                                        ) {
-                                            Icon(
-                                                Icons.Rounded.AccountBalanceWallet,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = stringResource(R.string.budget_monthly_spending_title),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = CurrencyFormatter.format(userBalance, "VND", locale),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Icon(
-                                                Icons.Rounded.Edit,
-                                                contentDescription = "Edit Balance",
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-
-                                        when (runwayResult) {
-                                            is BankruptcyRunwayResult.Infinite -> {
-                                                Text(
-                                                    stringResource(R.string.budget_empty_services_hint),
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    textAlign = TextAlign.Center
-                                                )
-                                            }
-                                            is BankruptcyRunwayResult.Safe -> {
-                                                if (totalMonthlyCost > userBalance) {
-                                                    val pulseTransition = rememberInfiniteTransition(label = "pulse_deficit")
-                                                    val pulseAlpha by pulseTransition.animateFloat(
-                                                        initialValue = 0.6f,
-                                                        targetValue = 1f,
-                                                        animationSpec = infiniteRepeatable(
-                                                            animation = tween(1000, easing = EaseInOutSine),
-                                                            repeatMode = RepeatMode.Reverse
-                                                        ),
-                                                        label = "pulse"
-                                                    )
-                                                    Surface(
-                                                        shape = RoundedCornerShape(12.dp),
-                                                        color = Color(0xFFFFEBEE).copy(alpha = pulseAlpha),
-                                                        border = BorderStroke(1.5.dp, Color(0xFFC62828)),
-                                                        modifier = Modifier.fillMaxWidth()
-                                                    ) {
-                                                        Row(
-                                                            modifier = Modifier.padding(12.dp),
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                        ) {
-                                                            Icon(Icons.Rounded.Dangerous, contentDescription = null, tint = Color(0xFFC62828))
-                                                            Column {
-                                                                Text(stringResource(R.string.budget_deficit_title), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFC62828))
-                                                                Text(stringResource(R.string.budget_deficit_desc), style = MaterialTheme.typography.labelMedium, color = Color(0xFFC62828))
-                                                            }
-                                                        }
-                                                    }
-                                                } else {
-                                                    Surface(
-                                                        shape = RoundedCornerShape(12.dp),
-                                                        color = Color(0xFFE8F5E9),
-                                                        modifier = Modifier.fillMaxWidth()
-                                                     ) {
-                                                        Row(
-                                                            modifier = Modifier.padding(12.dp),
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                        ) {
-                                                            Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32))
-                                                            Column {
-                                                                Text(stringResource(R.string.budget_safe_title), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF2E7D32))
-                                                                Text(stringResource(R.string.budget_safe_desc), style = MaterialTheme.typography.labelMedium, color = Color(0xFF2E7D32))
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            is BankruptcyRunwayResult.AlreadyBankrupt -> {
-                                                val pulseTransition = rememberInfiniteTransition(label = "pulse_bankrupt")
-                                                val pulseAlpha by pulseTransition.animateFloat(
-                                                    initialValue = 0.4f,
-                                                    targetValue = 1f,
-                                                    animationSpec = infiniteRepeatable(
-                                                        animation = tween(800, easing = EaseInOutSine),
-                                                        repeatMode = RepeatMode.Reverse
-                                                    ),
-                                                    label = "pulse"
-                                                )
-                                                Surface(
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    color = Color(0xFFFFEBEE).copy(alpha = pulseAlpha),
-                                                    border = BorderStroke(1.5.dp, Color(0xFFC62828)),
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier.padding(12.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                    ) {
-                                                        Icon(Icons.Rounded.Warning, contentDescription = null, tint = Color(0xFFC62828))
-                                                        Column {
-                                                            Text(stringResource(R.string.budget_exhausted_title), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFC62828))
-                                                            Text(stringResource(R.string.budget_exhausted_desc), style = MaterialTheme.typography.labelMedium, color = Color(0xFFC62828))
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            is BankruptcyRunwayResult.DaysLeft -> {
-                                                val days = runwayResult.diffMillis / (24 * 3600 * 1000)
-                                                val hours = (runwayResult.diffMillis % (24 * 3600 * 1000)) / (3600 * 1000)
-                                                val minutes = (runwayResult.diffMillis % (3600 * 1000)) / (60 * 1000)
-                                                val calendarTarget = Calendar.getInstance().apply { timeInMillis = runwayResult.targetTime }
-                                                val formattedTargetDate = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(calendarTarget.time)
-
-                                                Surface(
-                                                    shape = RoundedCornerShape(16.dp),
-                                                    color = if (isPanicked) Color(0xFFFFEBEE) else Color(0xFFFFF8E1),
-                                                    border = BorderStroke(
-                                                        width = 1.5.dp,
-                                                        color = if (isPanicked) Color(0xFFD32F2F) else Color(0xFFFBC02D)
-                                                    ),
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Column(
-                                                        modifier = Modifier.padding(16.dp),
-                                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                                        horizontalAlignment = Alignment.CenterHorizontally
-                                                    ) {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = if (isPanicked) Icons.Rounded.Dangerous else Icons.Rounded.ReportProblem,
-                                                                contentDescription = null,
-                                                                tint = if (isPanicked) Color(0xFFD32F2F) else Color(0xFFFBC02D)
-                                                            )
-                                                            Text(
-                                                                text = if (isPanicked) stringResource(R.string.budget_running_out_title) else stringResource(R.string.budget_running_out_warning),
-                                                                fontWeight = FontWeight.Bold,
-                                                                style = MaterialTheme.typography.bodyMedium,
-                                                                color = if (isPanicked) Color(0xFFD32F2F) else Color(0xFFFBC02D)
-                                                            )
-                                                        }
-                                                        Surface(
-                                                            shape = RoundedCornerShape(8.dp),
-                                                            color = Color.Black.copy(alpha = 0.9f),
-                                                            modifier = Modifier.padding(vertical = 4.dp)
-                                                        ) {
-                                                            Text(
-                                                                text = stringResource(R.string.budget_countdown_pattern, days, hours, minutes),
-                                                                style = MaterialTheme.typography.titleMedium,
-                                                                fontWeight = FontWeight.Bold,
-                                                                color = if (isPanicked) Color(0xFFFF3333) else Color(0xFFFFD700),
-                                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                                            )
-                                                        }
-                                                        Text(
-                                                            text = stringResource(R.string.budget_depleted_on_date, formattedTargetDate),
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                            textAlign = TextAlign.Center
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                LazyWalletHealthCard(
+                                    subscriptions = subscriptions,
+                                    userBalance = userBalance,
+                                    budgetResetDay = budgetResetDay,
+                                    tickTrigger = tickTrigger,
+                                    locale = locale,
+                                    onEditBudgetClick = { showBalanceEditDialog = true },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
 
                             // ── Manage Subscriptions Button ──────────────────────────────
@@ -864,6 +430,7 @@ fun DashboardContent(
                                             onMarkAsPaid = onMarkAsPaid,
                                             onCheckInSession = onCheckInSession,
                                             onToggleMemberPaidStatus = onToggleMemberPaidStatus,
+                                            sharedMembersMap = sharedMembersMap,
                                             modifier = Modifier.fillMaxWidth()
                                         )
                                     }
@@ -1047,177 +614,32 @@ fun DashboardContent(
     }
 
     if (showAddBottomSheet.value) {
-        ModalBottomSheet(onDismissRequest = { showAddBottomSheet.value = false }) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-                    .navigationBarsPadding(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.action_add_manually)) },
-                    leadingContent = { Icon(Icons.Rounded.Edit, null) },
-                    modifier = Modifier.clickable {
-                        showAddBottomSheet.value = false
-                        onNavigateToAdd(null, null, null, null, null, null, null, null)
-                    }
-                )
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.action_scan_screenshot)) },
-                    leadingContent = { Icon(Icons.Rounded.PhotoCamera, null) },
-                    modifier = Modifier.clickable {
-                        showAddBottomSheet.value = false
-                        imagePickerLauncher.launch("image/*")
-                    }
-                )
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.action_add_from_template)) },
-                    leadingContent = { Icon(Icons.Rounded.Bookmarks, null) },
-                    modifier = Modifier.clickable {
-                        showAddBottomSheet.value = false
-                        showTemplatesDialog.value = true
-                    }
-                )
-            }
-        }
+        AddActionBottomSheet(
+            onDismiss = { showAddBottomSheet.value = false },
+            onAddManually = { onNavigateToAdd(null, null, null, null, null, null, null, null) },
+            onScanScreenshot = { imagePickerLauncher.launch("image/*") },
+            onAddFromTemplate = { showTemplatesDialog.value = true }
+        )
     }
 
     if (showTemplatesDialog.value) {
-        var selectedTab by remember { mutableIntStateOf(0) }
-        AlertDialog(
-            onDismissRequest = { showTemplatesDialog.value = false },
-            title = { Text(stringResource(R.string.template_dialog_title), fontWeight = FontWeight.Bold) },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    TabRow(selectedTabIndex = selectedTab) {
-                        Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
-                            Text(stringResource(R.string.template_tab_digital), modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
-                        }
-                        Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
-                            Text(stringResource(R.string.template_tab_lifestyle), modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    val templates = if (selectedTab == 0) {
-                        SubscriptionTemplates.digitalTemplates
-                    } else {
-                        SubscriptionTemplates.lifestyleTemplates
-                    }
-
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 300.dp)
-                    ) {
-                        items(templates, key = { it.name }) { template ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        showTemplatesDialog.value = false
-                                        onNavigateToAdd(
-                                            template.name,
-                                            template.amount,
-                                            template.cycle.displayName,
-                                            template.category.displayName,
-                                            template.colorHex,
-                                            template.bankName,
-                                            template.bankAccount,
-                                            template.bankAccountHolder
-                                        )
-                                    },
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .padding(12.dp)
-                                        .fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .background(template.colorHex.toComposeColor().copy(alpha = 0.2f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = CategoryUtils.getIconForName(template.name, template.category),
-                                            contentDescription = null,
-                                            tint = template.colorHex.toComposeColor(),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(template.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(
-                                            text = CurrencyFormatter.format(template.amount, "VND", locale),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showTemplatesDialog.value = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
+        TemplatesDialog(
+            locale = locale,
+            onDismiss = { showTemplatesDialog.value = false },
+            onTemplateSelected = { name, amount, cycle, category, colorHex, bankName, bankAccount, bankHolder ->
+                onNavigateToAdd(name, amount, cycle, category, colorHex, bankName, bankAccount, bankHolder)
             }
         )
     }
 
     if (showSettingsDialog.value) {
-        AlertDialog(
-            onDismissRequest = { showSettingsDialog.value = false },
-            title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    val accountName = linkedAccountEmail
-                    Text(
-                        text = if (accountName != null)
-                            stringResource(R.string.settings_gmail_linked, accountName)
-                        else
-                            stringResource(R.string.settings_gmail_not_linked)
-                    )
-                    Button(onClick = {
-                        if (accountName != null) {
-                            googleSignInClient.signOut().addOnCompleteListener {
-                                context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).edit {
-                                    remove("gmail_account")
-                                }
-                                linkedAccountEmail = null
-                            }
-                        } else {
-                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                        }
-                    }) {
-                        Text(
-                            if (accountName != null)
-                                stringResource(R.string.settings_gmail_btn_unlink)
-                            else
-                                stringResource(R.string.settings_gmail_btn_link)
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showSettingsDialog.value = false }) {
-                    Text(stringResource(R.string.ok))
-                }
-            }
+        SettingsDialog(
+            context = context,
+            linkedAccountEmail = linkedAccountEmail,
+            googleSignInClient = googleSignInClient,
+            onDismiss = { showSettingsDialog.value = false },
+            onEmailChanged = { linkedAccountEmail = it },
+            onGoogleSignIn = { googleSignInLauncher.launch(googleSignInClient.signInIntent) }
         )
     }
 }

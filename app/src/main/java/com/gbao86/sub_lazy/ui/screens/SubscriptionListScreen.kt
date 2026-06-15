@@ -16,11 +16,15 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -58,7 +62,9 @@ import com.gbao86.sub_lazy.ui.DateUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.core.graphics.toColorInt
+import java.text.Normalizer
 import java.util.Calendar
+import java.util.regex.Pattern
 import java.time.Year
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,6 +75,7 @@ fun SubscriptionListScreen(
     onNavigateBack: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
     val subscriptions by viewModel.allSubscriptions.collectAsStateWithLifecycle(initialValue = emptyList())
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -86,7 +93,7 @@ fun SubscriptionListScreen(
                         )
                         if (subscriptions.isNotEmpty()) {
                             Text(
-                                "${subscriptions.size} dịch vụ đang theo dõi",
+                                stringResource(R.string.list_services_tracked, subscriptions.size),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -117,7 +124,7 @@ fun SubscriptionListScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(20.dp),
                 icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                text = { Text("Thêm mới", fontWeight = FontWeight.SemiBold) }
+                text = { Text(stringResource(R.string.list_btn_add_new), fontWeight = FontWeight.SemiBold) }
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -166,7 +173,7 @@ fun SubscriptionListScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Thêm dịch vụ đầu tiên của bạn\nbằng nút bên dưới 👇",
+                        stringResource(R.string.list_empty_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -177,12 +184,46 @@ fun SubscriptionListScreen(
             var searchQuery by remember { mutableStateOf("") }
             var selectedCategoryFilter by remember { mutableStateOf<SubscriptionCategory?>(null) }
 
-            val filteredSubs = remember(subscriptions, searchQuery, selectedCategoryFilter) {
-                subscriptions.filter { sub ->
-                    val matchesSearch = sub.name.contains(searchQuery, ignoreCase = true)
-                    val matchesCategory = selectedCategoryFilter == null || sub.category == selectedCategoryFilter
-                    matchesSearch && matchesCategory
+            // Category Filter Chips — scrollable row with auto-scroll to selected chip
+            val uniqueCategories = remember(subscriptions) {
+                subscriptions.map { it.category }.distinct()
+            }
+
+            val pagerState = rememberPagerState(
+                initialPage = 0,
+                pageCount = { uniqueCategories.size + 1 }
+            )
+
+            // When page changes in the pager (via swipe), update the filter selection
+            LaunchedEffect(pagerState.currentPage) {
+                selectedCategoryFilter = if (pagerState.currentPage == 0) {
+                    null
+                } else {
+                    uniqueCategories.getOrNull(pagerState.currentPage - 1)
                 }
+            }
+
+            // Auto-scroll pager to page 0 ("Tất cả") when user starts typing a search query
+            LaunchedEffect(searchQuery) {
+                if (searchQuery.isNotEmpty() && pagerState.currentPage != 0) {
+                    pagerState.animateScrollToPage(0)
+                }
+            }
+
+            val chipListState = rememberLazyListState()
+
+            // Auto-scroll selected chip into center view when selection changes
+            LaunchedEffect(selectedCategoryFilter) {
+                val targetIndex = if (selectedCategoryFilter == null) {
+                    0 // "All" chip is always at index 0
+                } else {
+                    val categoryIndex = uniqueCategories.indexOf(selectedCategoryFilter)
+                    if (categoryIndex >= 0) categoryIndex + 1 else return@LaunchedEffect
+                }
+                chipListState.animateScrollToItem(
+                    index = targetIndex,
+                    scrollOffset = -40 // slight offset so chip isn't flush at edge
+                )
             }
 
             Column(
@@ -194,7 +235,7 @@ fun SubscriptionListScreen(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Tìm kiếm dịch vụ...") },
+                    placeholder = { Text(stringResource(R.string.list_search_hint)) },
                     leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
@@ -216,21 +257,22 @@ fun SubscriptionListScreen(
                     )
                 )
 
-                // Category Filter Chips
-                val uniqueCategories = remember(subscriptions) {
-                    subscriptions.map { it.category }.distinct()
-                }
-
                 LazyRow(
+                    state = chipListState,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    flingBehavior = ScrollableDefaults.flingBehavior(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     item {
                         FilterChip(
                             selected = selectedCategoryFilter == null,
-                            onClick = { selectedCategoryFilter = null },
-                            label = { Text("Tất cả") },
+                            onClick = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                }
+                            },
+                            label = { Text(stringResource(R.string.list_filter_all)) },
                             shape = RoundedCornerShape(10.dp),
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
@@ -246,11 +288,16 @@ fun SubscriptionListScreen(
                         )
                     }
 
-                    items(uniqueCategories) { category ->
+                    items(uniqueCategories, key = { it.name }) { category ->
                         val isSelected = selectedCategoryFilter == category
                         FilterChip(
                             selected = isSelected,
-                            onClick = { selectedCategoryFilter = if (isSelected) null else category },
+                            onClick = {
+                                coroutineScope.launch {
+                                    val targetPage = uniqueCategories.indexOf(category) + 1
+                                    pagerState.animateScrollToPage(targetPage)
+                                }
+                            },
                             label = { Text(CategoryUtils.getCategoryDisplayName(category)) },
                             shape = RoundedCornerShape(10.dp),
                             colors = FilterChipDefaults.filterChipColors(
@@ -270,86 +317,100 @@ fun SubscriptionListScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                if (filteredSubs.isEmpty()) {
-                    // Search Empty State
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(40.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.Search,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                "Không tìm thấy kết quả",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "Hãy thử nhập từ khóa khác hoặc xóa bộ lọc",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                ) { pageIndex ->
+                    val pageCategory = if (pageIndex == 0) null else uniqueCategories.getOrNull(pageIndex - 1)
+                    val pageSubs = remember(subscriptions, searchQuery, pageCategory) {
+                        subscriptions.filter { sub ->
+                            val normalizedName = sub.name.removeDiacritics().lowercase()
+                            val normalizedQuery = searchQuery.removeDiacritics().lowercase()
+                            val matchesSearch = normalizedName.contains(normalizedQuery)
+                            val matchesCategory = pageCategory == null || sub.category == pageCategory
+                            matchesSearch && matchesCategory
                         }
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f),
-                        contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp, top = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        itemsIndexed(
-                            items = filteredSubs,
-                            key = { _, sub -> sub.id }
-                        ) { index, subscription ->
-                            // Staggered entrance animation
-                            var visible by remember { mutableStateOf(false) }
-                            LaunchedEffect(subscription.id) {
-                                visible = true
-                            }
-                            AnimatedVisibility(
-                                visible = visible,
-                                enter = fadeIn(tween(200)) + slideInVertically(
-                                    initialOffsetY = { it / 6 },
-                                    animationSpec = tween(200, easing = FastOutSlowInEasing)
-                                )
+
+                    if (pageSubs.isEmpty()) {
+                        // Search Empty State
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(40.dp)
                             ) {
-                                SwipeToDeleteItem(
-                                    onDelete = {
-                                        val backup = subscription
-                                        viewModel.delete(subscription)
-                                        coroutineScope.launch {
-                                            snackbarHostState.currentSnackbarData?.dismiss()
-                                            val result = snackbarHostState.showSnackbar(
-                                                message = "Đã xóa ${backup.name}",
-                                                actionLabel = "Hoàn tác",
-                                                duration = SnackbarDuration.Short
-                                            )
-                                            if (result == SnackbarResult.ActionPerformed) {
-                                                viewModel.insert(backup)
+                                Icon(
+                                    Icons.Rounded.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    stringResource(R.string.list_search_no_results),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    stringResource(R.string.list_search_no_results_hint),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp, top = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            itemsIndexed(
+                                items = pageSubs,
+                                key = { _, sub -> sub.id }
+                            ) { index, subscription ->
+                                // Staggered entrance animation
+                                var visible by remember { mutableStateOf(false) }
+                                LaunchedEffect(subscription.id) {
+                                    visible = true
+                                }
+                                AnimatedVisibility(
+                                    visible = visible,
+                                    enter = fadeIn(tween(200)) + slideInVertically(
+                                        initialOffsetY = { it / 6 },
+                                        animationSpec = tween(200, easing = FastOutSlowInEasing)
+                                    )
+                                ) {
+                                    SwipeToDeleteItem(
+                                        onDelete = {
+                                            val backup = subscription
+                                            viewModel.delete(subscription)
+                                            coroutineScope.launch {
+                                                snackbarHostState.currentSnackbarData?.dismiss()
+                                                val result = snackbarHostState.showSnackbar(
+                                                    message = context.getString(R.string.list_deleted_name, backup.name),
+                                                    actionLabel = context.getString(R.string.list_undo),
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                                if (result == SnackbarResult.ActionPerformed) {
+                                                    viewModel.insert(backup)
+                                                }
                                             }
                                         }
+                                    ) {
+                                        SubscriptionItem(
+                                            subscription = subscription,
+                                            onClick = { onNavigateToDetail(subscription.id) }
+                                        )
                                     }
-                                ) {
-                                    SubscriptionItem(
-                                        subscription = subscription,
-                                        onClick = { onNavigateToDetail(subscription.id) }
-                                    )
                                 }
                             }
                         }
@@ -404,7 +465,7 @@ fun SwipeToDeleteItem(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Xóa",
+                            stringResource(R.string.list_swipe_delete),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             fontWeight = FontWeight.SemiBold
@@ -513,10 +574,10 @@ fun SubscriptionItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 val tagText = when {
-                    subscription.isInstallment -> "Trả góp · Còn ${subscription.remainingTimes} kỳ"
-                    subscription.isSessionBased -> "Số buổi · Còn ${subscription.remainingSessions ?: 0}/${subscription.totalSessions ?: 0} buổi"
-                    subscription.isShared -> "Gói dùng chung"
-                    subscription.category == SubscriptionCategory.TRIAL -> "Gói dùng thử"
+                    subscription.isInstallment -> stringResource(R.string.list_tag_installment, subscription.remainingTimes ?: 0)
+                    subscription.isSessionBased -> stringResource(R.string.list_tag_session, subscription.remainingSessions ?: 0, subscription.totalSessions ?: 0)
+                    subscription.isShared -> stringResource(R.string.list_tag_shared)
+                    subscription.category == SubscriptionCategory.TRIAL -> stringResource(R.string.list_tag_trial)
                     subscription.remainingTimes != null && subscription.remainingTimes > 0 -> 
                         stringResource(R.string.list_remaining_times, subscription.remainingTimes)
                     else -> null
@@ -592,5 +653,11 @@ fun SubscriptionListPreview() {
             onNavigateBack = {}
         )
     }
+}
+
+private fun String.removeDiacritics(): String {
+    val temp = Normalizer.normalize(this, Normalizer.Form.NFD)
+    val pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+")
+    return pattern.matcher(temp).replaceAll("").replace("đ", "d").replace("Đ", "D")
 }
 

@@ -73,7 +73,6 @@ class BillNotificationListener : NotificationListenerService() {
         if (detectedBalance != null) {
             val sharedPref = applicationContext.getSharedPreferences("app_prefs", MODE_PRIVATE)
             sharedPref.edit()
-                .putFloat("user_balance", detectedBalance.toFloat())
                 .putString("user_balance_str", detectedBalance.toString())
                 .apply()
         }
@@ -281,7 +280,8 @@ class BillNotificationListener : NotificationListenerService() {
 
         // PendingIntent to launch MainActivity with pre-fill parameters
         val intent = Intent(this, MainActivity::class.java).apply {
-            setClassName(this@BillNotificationListener, "com.gbao86.sub_lazy.MainActivity")
+            setPackage("com.gbao86.sub_lazy")
+            setClassName("com.gbao86.sub_lazy", "com.gbao86.sub_lazy.MainActivity")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("is_prefilled", true)
             putExtra("prefill_name", serviceName)
@@ -306,6 +306,7 @@ class BillNotificationListener : NotificationListenerService() {
             .build()
 
         val notificationId = serviceName.hashCode()
+        // codeql[java/android/implicit-pendingintents]
         notificationManager.notify(notificationId, notification)
     }
 
@@ -318,10 +319,11 @@ class BillNotificationListener : NotificationListenerService() {
         val locale = resources.configuration.locales[0]
         val amountFormatted = CurrencyFormatter.format(amount, currency, locale)
 
-        val message = "Đã tự động xác nhận thanh toán hóa đơn $serviceName ($amountFormatted). Chúc bạn lười vui vẻ! 🐱"
+        val message = getString(R.string.notification_auto_paid_message, serviceName, amountFormatted)
 
         val intent = Intent(this, MainActivity::class.java).apply {
-            setClassName(this@BillNotificationListener, "com.gbao86.sub_lazy.MainActivity")
+            setPackage("com.gbao86.sub_lazy")
+            setClassName("com.gbao86.sub_lazy", "com.gbao86.sub_lazy.MainActivity")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
 
@@ -334,7 +336,7 @@ class BillNotificationListener : NotificationListenerService() {
 
         val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Tự động thanh toán thành công!")
+            .setContentTitle(getString(R.string.notification_auto_paid_title))
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -343,6 +345,7 @@ class BillNotificationListener : NotificationListenerService() {
             .build()
 
         val notificationId = serviceName.hashCode() + 1
+        // codeql[java/android/implicit-pendingintents]
         notificationManager.notify(notificationId, notification)
     }
 

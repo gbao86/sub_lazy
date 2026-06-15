@@ -18,7 +18,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [Subscription::class, PaymentHistory::class], version = 8, exportSchema = true)
+@Database(entities = [Subscription::class, PaymentHistory::class, SharedMember::class], version = 9, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun subscriptionDao(): SubscriptionDao
@@ -186,6 +186,58 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * MIGRATION_8_9: Extract shared_members from JSON string into a proper Room Entity.
+         *
+         * Creates the shared_members table with ForeignKey CASCADE to subscriptions.
+         * Data migration is handled at app startup via MigrateSharedMembersUseCase
+         * (reads sharedMembersJson, inserts rows, clears the JSON column).
+         * The sharedMembersJson column is kept for now and nulled out after migration.
+         */
+        val MIGRATION_8_9 = object : androidx.room.migration.Migration(8, 9) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `shared_members` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `subscriptionId` INTEGER NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `amount` REAL NOT NULL,
+                        `hasPaid` INTEGER NOT NULL DEFAULT 0,
+                        `phone` TEXT,
+                        FOREIGN KEY(`subscriptionId`) REFERENCES `subscriptions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_shared_members_subscriptionId` ON `shared_members` (`subscriptionId`)")
+
+                // Migrate existing JSON data into the new table
+                val cursor = db.query("SELECT id, sharedMembersJson FROM subscriptions WHERE isShared = 1 AND sharedMembersJson IS NOT NULL AND sharedMembersJson != ''")
+                try {
+                    while (cursor.moveToNext()) {
+                        val subId = cursor.getLong(0)
+                        val json = cursor.getString(1) ?: continue
+                        // Parse semicolon-delimited format: "EncodedName:amount:hasPaid:EncodedPhone;..."
+                        val entries = json.split(";").filter { it.isNotBlank() }
+                        for (entry in entries) {
+                            val parts = entry.split(":")
+                            if (parts.isEmpty()) continue
+                            val name = android.net.Uri.decode(parts[0])
+                            val amount = parts.getOrNull(1)?.toDoubleOrNull() ?: 0.0
+                            val hasPaid = if (parts.getOrNull(2)?.toBoolean() == true) 1 else 0
+                            val phone = parts.getOrNull(3)?.let { android.net.Uri.decode(it) }?.takeIf { it.isNotBlank() }
+                            db.execSQL(
+                                "INSERT INTO shared_members (subscriptionId, name, amount, hasPaid, phone) VALUES (?, ?, ?, ?, ?)",
+                                arrayOf<Any?>(subId, name, amount, hasPaid, phone)
+                            )
+                        }
+                        // Clear the JSON column after migration
+                        db.execSQL("UPDATE subscriptions SET sharedMembersJson = NULL WHERE id = ?", arrayOf(subId))
+                    }
+                } finally {
+                    cursor.close()
+                }
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -193,7 +245,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "subscription_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                 .build()
                 INSTANCE = instance
                 instance

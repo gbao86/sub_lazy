@@ -17,6 +17,7 @@ import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gbao86.sub_lazy.data.CategorySpending
+import com.gbao86.sub_lazy.data.SharedMember
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.data.ISubscriptionRepository
 import com.gbao86.sub_lazy.data.PaymentHistory
@@ -25,6 +26,9 @@ import com.gbao86.sub_lazy.ui.FinanceCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,7 +52,13 @@ class DashboardViewModel @Inject constructor(
 
     private fun getStoredBalance(): Double {
         val strVal = sharedPref.getString("user_balance_str", null)
-        return strVal?.toDoubleOrNull() ?: sharedPref.getFloat("user_balance", 2000000f).toDouble()
+        if (strVal != null) {
+            val parsed = strVal.toDoubleOrNull()
+            if (parsed != null) return parsed
+        }
+        // Migrate legacy Float value (stored as string for precision)
+        val legacyStr = sharedPref.getString("user_balance_long", null)
+        return legacyStr?.toDoubleOrNull() ?: 2000000.0
     }
 
     private val _userBalance = MutableStateFlow(getStoredBalance())
@@ -73,9 +83,25 @@ class DashboardViewModel @Inject constructor(
     val spendingByCategory: Flow<List<CategorySpending>>
     val allPaymentHistory: Flow<List<PaymentHistory>> = repository.allPaymentHistory
 
+    /**
+     * Reactive map of subscriptionId -> List<SharedMember> for all shared subscriptions.
+     * Updates whenever subscriptions list or any member row changes.
+     */
+    val sharedMembersMap: Flow<Map<Long, List<SharedMember>>> = repository.allSubscriptions
+        .flatMapLatest { subs ->
+            val sharedSubs = subs.filter { it.isShared }
+            if (sharedSubs.isEmpty()) {
+                flowOf(emptyMap())
+            } else {
+                val memberFlows = sharedSubs.map { sub ->
+                    repository.getSharedMembersForSubscription(sub.id).map { members -> sub.id to members }
+                }
+                combine(memberFlows) { pairs -> pairs.toMap() }
+            }
+        }
+
     fun updateUserBalance(balance: Double) {
         sharedPref.edit()
-            .putFloat("user_balance", balance.toFloat())
             .putString("user_balance_str", balance.toString())
             .apply()
         _userBalance.value = balance

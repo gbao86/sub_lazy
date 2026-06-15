@@ -14,6 +14,7 @@ package com.gbao86.sub_lazy.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gbao86.sub_lazy.data.SharedMember
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.data.ISubscriptionRepository
 import com.gbao86.sub_lazy.data.model.BillingCycle
@@ -32,8 +33,13 @@ class AddEditViewModel @Inject constructor(
     private val updateSubscriptionUseCase: UpdateSubscriptionUseCase
 ) : ViewModel() {
 
-    fun insert(subscription: Subscription) = viewModelScope.launch {
-        insertSubscriptionUseCase(subscription)
+    fun insert(subscription: Subscription, sharedMembers: List<SharedMember> = emptyList()) = viewModelScope.launch {
+        val result = insertSubscriptionUseCase(subscription)
+        result.onSuccess { newId ->
+            if (subscription.isShared && sharedMembers.isNotEmpty()) {
+                repository.saveSharedMembers(newId, sharedMembers)
+            }
+        }
     }
 
     fun updateSubscriptionDetails(
@@ -54,7 +60,7 @@ class AddEditViewModel @Inject constructor(
         remainingSessions: Int?,
         isInstallment: Boolean,
         isShared: Boolean,
-        sharedMembersJson: String?
+        sharedMembers: List<SharedMember> = emptyList()
     ) = viewModelScope.launch {
         repository.getSubscriptionById(id).onSuccess { existing ->
             if (existing != null) {
@@ -74,15 +80,25 @@ class AddEditViewModel @Inject constructor(
                     totalSessions = totalSessions,
                     remainingSessions = remainingSessions,
                     isInstallment = isInstallment,
-                    isShared = isShared,
-                    sharedMembersJson = sharedMembersJson
+                    isShared = isShared
                 )
                 updateSubscriptionUseCase(updated)
+                // Save shared members to dedicated table
+                if (isShared) {
+                    repository.saveSharedMembers(id, sharedMembers)
+                } else {
+                    // Clear members if shared is turned off
+                    repository.saveSharedMembers(id, emptyList())
+                }
             }
         }
     }
 
     suspend fun getSubscriptionById(id: Long): Subscription? {
         return repository.getSubscriptionById(id).getOrNull()
+    }
+
+    suspend fun getSharedMembersForSubscription(subscriptionId: Long): List<SharedMember> {
+        return repository.getSharedMembersForSubscriptionOnce(subscriptionId).getOrDefault(emptyList())
     }
 }

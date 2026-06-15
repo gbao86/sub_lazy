@@ -55,4 +55,30 @@ interface SubscriptionDao {
 
     @Query("SELECT * FROM payment_history WHERE subscriptionId = :subId ORDER BY paymentDate DESC")
     fun getPaymentHistoryForSubscription(subId: Long): Flow<List<PaymentHistory>>
+
+    // --- SharedMember queries ---
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSharedMember(member: SharedMember): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSharedMembers(members: List<SharedMember>)
+
+    @Update
+    suspend fun updateSharedMember(member: SharedMember)
+
+    @Delete
+    suspend fun deleteSharedMember(member: SharedMember)
+
+    @Query("SELECT * FROM shared_members WHERE subscriptionId = :subscriptionId ORDER BY name ASC")
+    fun getSharedMembersForSubscription(subscriptionId: Long): Flow<List<SharedMember>>
+
+    @Query("SELECT * FROM shared_members WHERE subscriptionId = :subscriptionId ORDER BY name ASC")
+    suspend fun getSharedMembersForSubscriptionOnce(subscriptionId: Long): List<SharedMember>
+
+    @Query("DELETE FROM shared_members WHERE subscriptionId = :subscriptionId")
+    suspend fun deleteSharedMembersForSubscription(subscriptionId: Long)
+
+    @Query("UPDATE shared_members SET hasPaid = :hasPaid WHERE subscriptionId = :subscriptionId AND name = :name")
+    suspend fun updateMemberPaidStatus(subscriptionId: Long, name: String, hasPaid: Boolean)
 }

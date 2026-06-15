@@ -208,7 +208,7 @@ fun AddEditSubscriptionScreen(
                 totalInstallmentPeriods = it.totalInstallmentPeriods?.toString() ?: ""
                 isShared = it.isShared
                 isSharedExpanded = it.isShared
-                sharedMembersList = SharedMember.parseMembers(it.sharedMembersJson)
+                sharedMembersList = viewModel.getSharedMembersForSubscription(it.id)
                 serviceType = when {
                     it.isInstallment -> "installment"
                     it.isSessionBased -> "session"
@@ -678,7 +678,7 @@ fun AddEditSubscriptionScreen(
                         val finalTotalInstallmentPeriods = if (finalIsInstallment) totalInstallmentPeriods.toIntOrNull() else null
                         
                         val finalIsShared = isShared
-                        val finalSharedMembersJson = if (finalIsShared) SharedMember.serializeMembers(sharedMembersList) else null
+                        val finalSharedMembers = if (finalIsShared) sharedMembersList else emptyList()
 
                         if (isEditMode) {
                             viewModel.updateSubscriptionDetails(
@@ -699,7 +699,7 @@ fun AddEditSubscriptionScreen(
                                 remainingSessions = finalRemainingSessions,
                                 isInstallment = finalIsInstallment,
                                 isShared = finalIsShared,
-                                sharedMembersJson = finalSharedMembersJson
+                                sharedMembers = finalSharedMembers
                             )
                         } else {
                             val sub = Subscription(
@@ -719,10 +719,9 @@ fun AddEditSubscriptionScreen(
                                 remainingSessions = finalRemainingSessions,
                                 isInstallment = finalIsInstallment,
                                 totalInstallmentPeriods = finalTotalInstallmentPeriods,
-                                isShared = finalIsShared,
-                                sharedMembersJson = finalSharedMembersJson
+                                isShared = finalIsShared
                             )
-                            viewModel.insert(sub)
+                            viewModel.insert(sub, finalSharedMembers)
                         }
                         onNavigateBack()
                     }

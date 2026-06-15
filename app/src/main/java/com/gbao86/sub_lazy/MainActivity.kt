@@ -31,7 +31,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.gbao86.sub_lazy.ui.navigation.NavGraph
-import com.gbao86.sub_lazy.ui.navigation.Screen
+import com.gbao86.sub_lazy.ui.navigation.Route
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -59,16 +59,16 @@ class MainActivity : AppCompatActivity() {
         val prefillName = intent.getStringExtra("prefill_name")
         val prefillAmount = intent.getDoubleExtra("prefill_amount", -1.0)
 
-        val startDestination = if (isPrefilled) {
-            Screen.AddEditSubscription.createRoute(
+        val startDestination: Any = if (isPrefilled) {
+            Route.AddEditSubscription(
                 id = null,
                 prefillName = prefillName,
                 prefillAmount = if (prefillAmount != -1.0) prefillAmount else null
             )
         } else if (isOnboardingCompleted) {
-            Screen.Dashboard.route
+            Route.Dashboard
         } else {
-            Screen.Onboarding.route
+            Route.Onboarding
         }
 
         setContent {

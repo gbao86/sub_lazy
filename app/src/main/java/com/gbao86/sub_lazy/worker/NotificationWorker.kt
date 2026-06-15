@@ -105,6 +105,8 @@ class NotificationWorker(
         notificationManager.createNotificationChannel(channel)
 
         val intent = Intent(applicationContext, MainActivity::class.java).apply {
+            setPackage("com.gbao86.sub_lazy")
+            setClassName("com.gbao86.sub_lazy", "com.gbao86.sub_lazy.MainActivity")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent = PendingIntent.getActivity(
@@ -124,6 +126,7 @@ class NotificationWorker(
             .setAutoCancel(true)
             .build()
 
+        // codeql[java/android/implicit-pendingintents]
         notificationManager.notify(notificationId, notification)
     }
 }
