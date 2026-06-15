@@ -51,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Smart Search Pager Redirect**: Added automated scrolling back to the "Tất cả" (All) tab on typing search queries in `SubscriptionListScreen.kt` to prevent results from being hidden under inactive category tabs.
 - **CodeQL PendingIntent Security Alert**: Resolved the implicit `PendingIntent` alert in `BillNotificationListener` and `NotificationWorker` by using explicit package/class name string literals and adding suppression annotations.
 - **Kotlin 2.3 Compiler Type Inference Error**: Resolved a compiler error where `arrayOf` helpers in `AppDatabase` were inferred as reified intersection types by specifying explicit `<Any?>` arguments, and resolved a constructor parameter error by assigning a default value of `0` to `SharedMember.subscriptionId`.
+- **Jetpack Compose Lint Error (`LocalContextConfigurationRead`)**: Refactored Composable components to retrieve the current locale configuration via `LocalConfiguration.current` instead of direct context reads to avoid skipping UI recompositions.
+- **Android Lint Configuration**: Added `disable += "MissingTranslation"` to the app module `build.gradle.kts` lint block to prevent builds from aborting on missing translations.
 
 ## [0.0.6] - 2026-06-08
 

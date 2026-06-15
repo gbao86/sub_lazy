@@ -44,6 +44,7 @@ import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 import com.gbao86.sub_lazy.viewmodel.AddEditViewModel
 import java.util.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.DateUtils
 import com.gbao86.sub_lazy.data.SubscriptionTemplate
@@ -365,7 +366,7 @@ fun TemplateItem(
     onToggle: () -> Unit
 ) {
     val context = LocalContext.current
-    val locale = context.resources.configuration.locales[0]
+    val locale = LocalConfiguration.current.locales[0]
 
     val accentColor = remember(template.colorHex) {
         template.colorHex.toComposeColor(Color(0xFF6366F1))

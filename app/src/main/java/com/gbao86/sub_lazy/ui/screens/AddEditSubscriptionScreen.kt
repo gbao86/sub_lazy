@@ -95,6 +95,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -132,7 +133,7 @@ fun AddEditSubscriptionScreen(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val locale = context.resources.configuration.locales[0]
+    val locale = LocalConfiguration.current.locales[0]
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var nextBillingDate by remember { mutableLongStateOf(System.currentTimeMillis()) }

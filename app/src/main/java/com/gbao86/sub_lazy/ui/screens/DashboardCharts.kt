@@ -32,6 +32,7 @@ import com.gbao86.sub_lazy.data.model.SubscriptionCategory
 import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -63,7 +64,7 @@ fun InteractiveDonutChart(
         Color(0xFF6366F1), Color(0xFF06B6D4), Color(0xFFF43F5E),
         Color(0xFFF59E0B), Color(0xFF10B981), Color(0xFF8B5CF6)
     )
-    val locale = LocalContext.current.resources.configuration.locales[0]
+    val locale = LocalConfiguration.current.locales[0]
     val animateSweep = remember { Animatable(0f) }
     val animateScale = remember { Animatable(0.8f) }
     
@@ -210,7 +211,7 @@ fun InteractiveCategoryRow(
     categorySubs: List<Subscription>,
     onClick: () -> Unit
 ) {
-    val locale = LocalContext.current.resources.configuration.locales[0]
+    val locale = LocalConfiguration.current.locales[0]
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),

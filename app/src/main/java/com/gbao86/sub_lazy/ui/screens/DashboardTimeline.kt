@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import com.gbao86.sub_lazy.ui.toComposeColor
 import androidx.compose.ui.text.AnnotatedString
@@ -65,7 +66,7 @@ import java.util.Calendar
 
 @Composable
 fun BillingCycleChart(subscriptions: List<Subscription>, modifier: Modifier = Modifier) {
-    val locale = LocalContext.current.resources.configuration.locales[0]
+    val locale = LocalConfiguration.current.locales[0]
     val currentYear = Calendar.getInstance().get(Calendar.YEAR)
     val daysInYear = if (java.time.Year.isLeap(currentYear.toLong())) 366.0 else 365.0
     val dailyMultiplier = daysInYear / 12.0
@@ -214,7 +215,7 @@ fun UpcomingRenewalsTimeline(
     sharedMembersMap: Map<Long, List<SharedMember>> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
-    val locale = LocalContext.current.resources.configuration.locales[0]
+    val locale = LocalConfiguration.current.locales[0]
     val upcoming = subscriptions.sortedBy { it.nextBillingDate }.take(6)
     var showQrDialog by remember { mutableStateOf(false) }
 

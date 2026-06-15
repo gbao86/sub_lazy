@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,7 +51,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun CashflowForecastingChart(subscriptions: List<Subscription>, modifier: Modifier = Modifier) {
-    val locale = LocalContext.current.resources.configuration.locales[0]
+    val locale = LocalConfiguration.current.locales[0]
     val forecasts = FinanceCalculator.getForecastingData(subscriptions, locale)
     val maxForecast = forecasts.maxByOrNull { it.amount }
     val maxVal = forecasts.maxOfOrNull { it.amount } ?: 0.0
@@ -231,7 +232,7 @@ fun CashflowForecastingChart(subscriptions: List<Subscription>, modifier: Modifi
 
 @Composable
 fun PaymentHistorySection(paymentHistory: List<PaymentHistory>, modifier: Modifier = Modifier) {
-    val locale = LocalContext.current.resources.configuration.locales[0]
+    val locale = LocalConfiguration.current.locales[0]
     val dateFormat = remember { java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", locale) }
 
     Column(
