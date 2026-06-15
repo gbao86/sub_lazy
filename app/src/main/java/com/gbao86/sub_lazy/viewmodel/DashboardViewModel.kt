@@ -12,37 +12,39 @@ is strictly prohibited without the express written permission of the author.
 
 package com.gbao86.sub_lazy.viewmodel
 
-import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gbao86.sub_lazy.data.AppDatabase
 import com.gbao86.sub_lazy.data.CategorySpending
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.data.ISubscriptionRepository
-import com.gbao86.sub_lazy.data.SubscriptionRepository
 import com.gbao86.sub_lazy.data.PaymentHistory
-import com.gbao86.sub_lazy.worker.NotificationScheduler
-import com.gbao86.sub_lazy.ui.CurrencyFormatter
-import com.gbao86.sub_lazy.ui.DateUtils
+import com.gbao86.sub_lazy.domain.usecase.*
+import com.gbao86.sub_lazy.ui.FinanceCalculator
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
-import com.gbao86.sub_lazy.data.model.BillingCycle
-import com.gbao86.sub_lazy.data.model.SubscriptionCategory
-import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
-import com.gbao86.sub_lazy.ui.FinanceCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class DashboardViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository: ISubscriptionRepository
-    private val notificationScheduler = NotificationScheduler(application)
-    
-    private val sharedPref = application.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+@HiltViewModel
+class DashboardViewModel @Inject constructor(
+    private val repository: ISubscriptionRepository,
+    private val checkAndRolloverSubscriptionsUseCase: CheckAndRolloverSubscriptionsUseCase,
+    private val deleteSubscriptionUseCase: DeleteSubscriptionUseCase,
+    private val markPaymentAsPaidUseCase: MarkPaymentAsPaidUseCase,
+    private val checkInSessionUseCase: CheckInSessionUseCase,
+    private val toggleMemberPaidStatusUseCase: ToggleMemberPaidStatusUseCase,
+    @param:ApplicationContext private val context: Context
+) : ViewModel() {
+
+    private val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
     private fun getStoredBalance(): Double {
         val strVal = sharedPref.getString("user_balance_str", null)
@@ -66,10 +68,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    val allSubscriptions: Flow<List<Subscription>>
+    val allSubscriptions: Flow<List<Subscription>> = repository.allSubscriptions
     val totalMonthlyCost: Flow<Double?>
     val spendingByCategory: Flow<List<CategorySpending>>
-    val allPaymentHistory: Flow<List<PaymentHistory>>
+    val allPaymentHistory: Flow<List<PaymentHistory>> = repository.allPaymentHistory
 
     fun updateUserBalance(balance: Double) {
         sharedPref.edit()
@@ -91,16 +93,12 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         sharedPref.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
-        val dao = AppDatabase.getDatabase(application).subscriptionDao()
-        repository = SubscriptionRepository(dao)
-        allSubscriptions = repository.allSubscriptions
-        allPaymentHistory = repository.allPaymentHistory
 
         // Rollover or delete past subscriptions on startup
         viewModelScope.launch {
             try {
                 val list = allSubscriptions.first()
-                checkAndRolloverSubscriptions(list)
+                checkAndRolloverSubscriptionsUseCase(list)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -122,129 +120,19 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    private fun checkAndRolloverSubscriptions(list: List<Subscription>) = viewModelScope.launch {
-        val now = System.currentTimeMillis()
-        list.forEach { sub ->
-            if (sub.nextBillingDate < now) {
-                var currentSub = sub
-                var shouldDelete = false
-                while (currentSub.nextBillingDate < now) {
-                    if (currentSub.cycle == BillingCycle.ONE_TIME) {
-                        shouldDelete = true
-                        break
-                    }
-
-                    val limit = currentSub.remainingTimes
-                    if (limit != null && limit > 0) {
-                        val newLimit = limit - 1
-                        if (newLimit <= 0) {
-                            shouldDelete = true
-                            break
-                        }
-                        currentSub = currentSub.copy(remainingTimes = newLimit)
-                    }
-
-                    val nextDate = DateUtils.getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
-                    if (nextDate <= currentSub.nextBillingDate) {
-                        shouldDelete = true
-                        break
-                    }
-                    currentSub = currentSub.copy(nextBillingDate = nextDate)
-                }
-
-                if (shouldDelete) {
-                    repository.delete(sub).onSuccess {
-                        notificationScheduler.cancelNotification(sub.id)
-                    }
-                } else {
-                    if (currentSub.isShared && !currentSub.sharedMembersJson.isNullOrBlank()) {
-                        val members = com.gbao86.sub_lazy.data.SharedMember.parseMembers(currentSub.sharedMembersJson)
-                        val resetMembers = members.map { it.copy(hasPaid = false) }
-                        currentSub = currentSub.copy(sharedMembersJson = com.gbao86.sub_lazy.data.SharedMember.serializeMembers(resetMembers))
-                    }
-                    repository.update(currentSub).onSuccess {
-                        notificationScheduler.scheduleNotification(currentSub)
-                    }
-                }
-            }
-        }
-    }
-
     fun delete(subscription: Subscription) = viewModelScope.launch {
-        repository.delete(subscription).onSuccess {
-            notificationScheduler.cancelNotification(subscription.id)
-        }
+        deleteSubscriptionUseCase(subscription)
     }
 
     fun markAsPaid(subscription: Subscription) = viewModelScope.launch {
-        val record = PaymentHistory(
-            subscriptionId = subscription.id,
-            subscriptionName = subscription.name,
-            amount = subscription.amount,
-            currency = subscription.currency,
-            paymentDate = System.currentTimeMillis(),
-            cycle = subscription.cycle
-        )
-        repository.insertPaymentHistory(record).onSuccess {
-            if (subscription.cycle == BillingCycle.ONE_TIME) {
-                repository.delete(subscription).onSuccess {
-                    notificationScheduler.cancelNotification(subscription.id)
-                }
-            } else {
-                var shouldDelete = false
-                var currentSub = subscription
-
-                val limit = currentSub.remainingTimes
-                if (limit != null && limit > 0) {
-                    val newLimit = limit - 1
-                    if (newLimit <= 0) {
-                        shouldDelete = true
-                    } else {
-                        currentSub = currentSub.copy(remainingTimes = newLimit)
-                    }
-                }
-
-                if (shouldDelete) {
-                    repository.delete(subscription).onSuccess {
-                        notificationScheduler.cancelNotification(subscription.id)
-                    }
-                } else {
-                    val finalNextDate = DateUtils.getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
-                    currentSub = currentSub.copy(nextBillingDate = finalNextDate)
-                    
-                    if (currentSub.isShared && !currentSub.sharedMembersJson.isNullOrBlank()) {
-                        val members = com.gbao86.sub_lazy.data.SharedMember.parseMembers(currentSub.sharedMembersJson)
-                        val resetMembers = members.map { it.copy(hasPaid = false) }
-                        currentSub = currentSub.copy(sharedMembersJson = com.gbao86.sub_lazy.data.SharedMember.serializeMembers(resetMembers))
-                    }
-                    
-                    repository.update(currentSub).onSuccess {
-                        notificationScheduler.scheduleNotification(currentSub)
-                    }
-                }
-            }
-        }
+        markPaymentAsPaidUseCase(subscription)
     }
 
     fun checkInSession(subscription: Subscription) = viewModelScope.launch {
-        val rem = subscription.remainingSessions ?: return@launch
-        if (rem > 0) {
-            val updated = subscription.copy(remainingSessions = rem - 1)
-            repository.update(updated)
-        }
+        checkInSessionUseCase(subscription)
     }
 
     fun toggleMemberPaidStatus(subscription: Subscription, memberName: String) = viewModelScope.launch {
-        val json = subscription.sharedMembersJson ?: return@launch
-        val members = com.gbao86.sub_lazy.data.SharedMember.parseMembers(json)
-        val updatedMembers = members.map {
-            if (it.name == memberName) {
-                it.copy(hasPaid = !it.hasPaid)
-            } else {
-                it
-            }
-        }
-        val updated = subscription.copy(sharedMembersJson = com.gbao86.sub_lazy.data.SharedMember.serializeMembers(updatedMembers))
-        repository.update(updated)
+        toggleMemberPaidStatusUseCase(subscription, memberName)
     }
 }

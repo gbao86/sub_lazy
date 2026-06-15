@@ -18,7 +18,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [Subscription::class, PaymentHistory::class], version = 7, exportSchema = true)
+@Database(entities = [Subscription::class, PaymentHistory::class], version = 8, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun subscriptionDao(): SubscriptionDao
@@ -106,6 +106,86 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * MIGRATION_7_8: Recreate subscriptions table to fix schema mismatches.
+         *
+         * Previous migrations used ALTER TABLE which leaves behind DEFAULT values
+         * in SQLite metadata (e.g. DEFAULT 0, DEFAULT NULL) that don't match what
+         * Room expects ('undefined'). Also adds missing indices on category and cycle.
+         *
+         * Fix: recreate the table from scratch without column-level defaults
+         * (except for columns with @ColumnInfo(defaultValue)) and add indices.
+         */
+        val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                // 1. Rename old table
+                db.execSQL("ALTER TABLE subscriptions RENAME TO temp_subscriptions")
+
+                // 2. Create new table matching the entity definition exactly
+                //    - Columns with @ColumnInfo(defaultValue = "0"): isKmBased, isSessionBased, isInstallment, isShared
+                //    - Column with @ColumnInfo(defaultValue = "VND"): currency
+                //    - All other columns: no DEFAULT (Room expects 'undefined')
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `subscriptions` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `amount` REAL NOT NULL,
+                        `nextBillingDate` INTEGER NOT NULL,
+                        `cycle` TEXT NOT NULL,
+                        `category` TEXT NOT NULL,
+                        `colorHex` TEXT NOT NULL,
+                        `iconName` TEXT,
+                        `currency` TEXT NOT NULL DEFAULT 'VND',
+                        `remainingTimes` INTEGER,
+                        `isKmBased` INTEGER NOT NULL DEFAULT 0,
+                        `lastOdometer` REAL,
+                        `targetIntervalKm` REAL,
+                        `dailyAverageKm` REAL,
+                        `lastOdometerUpdateDate` INTEGER,
+                        `bankAccount` TEXT,
+                        `bankName` TEXT,
+                        `bankAccountHolder` TEXT,
+                        `isSessionBased` INTEGER NOT NULL DEFAULT 0,
+                        `totalSessions` INTEGER,
+                        `remainingSessions` INTEGER,
+                        `isInstallment` INTEGER NOT NULL DEFAULT 0,
+                        `totalInstallmentPeriods` INTEGER,
+                        `isShared` INTEGER NOT NULL DEFAULT 0,
+                        `sharedMembersJson` TEXT
+                    )
+                """.trimIndent())
+
+                // 3. Copy data from old table
+                db.execSQL("""
+                    INSERT INTO `subscriptions` (
+                        `id`, `name`, `amount`, `nextBillingDate`, `cycle`, `category`,
+                        `colorHex`, `iconName`, `currency`, `remainingTimes`,
+                        `isKmBased`, `lastOdometer`, `targetIntervalKm`, `dailyAverageKm`,
+                        `lastOdometerUpdateDate`, `bankAccount`, `bankName`, `bankAccountHolder`,
+                        `isSessionBased`, `totalSessions`, `remainingSessions`,
+                        `isInstallment`, `totalInstallmentPeriods`,
+                        `isShared`, `sharedMembersJson`
+                    )
+                    SELECT
+                        `id`, `name`, `amount`, `nextBillingDate`, `cycle`, `category`,
+                        `colorHex`, `iconName`, `currency`, `remainingTimes`,
+                        `isKmBased`, `lastOdometer`, `targetIntervalKm`, `dailyAverageKm`,
+                        `lastOdometerUpdateDate`, `bankAccount`, `bankName`, `bankAccountHolder`,
+                        `isSessionBased`, `totalSessions`, `remainingSessions`,
+                        `isInstallment`, `totalInstallmentPeriods`,
+                        `isShared`, `sharedMembersJson`
+                    FROM `temp_subscriptions`
+                """.trimIndent())
+
+                // 4. Drop old table
+                db.execSQL("DROP TABLE `temp_subscriptions`")
+
+                // 5. Create indices matching entity definition
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_subscriptions_category` ON `subscriptions` (`category`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_subscriptions_cycle` ON `subscriptions` (`cycle`)")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -113,7 +193,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "subscription_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .build()
                 INSTANCE = instance
                 instance

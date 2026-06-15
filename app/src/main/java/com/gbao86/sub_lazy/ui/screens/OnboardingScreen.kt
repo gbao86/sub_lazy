@@ -49,6 +49,7 @@ import com.gbao86.sub_lazy.ui.DateUtils
 import com.gbao86.sub_lazy.data.SubscriptionTemplate
 import com.gbao86.sub_lazy.data.SubscriptionTemplates
 import androidx.compose.ui.res.stringResource
+import com.gbao86.sub_lazy.ui.toComposeColor
 import com.gbao86.sub_lazy.R
 import kotlinx.coroutines.delay
 import androidx.core.graphics.toColorInt
@@ -242,17 +243,17 @@ fun OnboardingScreen(
                         ) {
                             OnboardingStatChip(
                                 emoji = "⚡",
-                                label = "Tự động hóa",
+                                label = stringResource(R.string.onboarding_automation),
                                 modifier = Modifier.weight(1f)
                             )
                             OnboardingStatChip(
                                 emoji = "🔔",
-                                label = "Nhắc nhở",
+                                label = stringResource(R.string.onboarding_reminders),
                                 modifier = Modifier.weight(1f)
                             )
                             OnboardingStatChip(
                                 emoji = "🛡️",
-                                label = "Bảo mật",
+                                label = stringResource(R.string.onboarding_security),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -367,8 +368,7 @@ fun TemplateItem(
     val locale = context.resources.configuration.locales[0]
 
     val accentColor = remember(template.colorHex) {
-        try { Color(template.colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFF6366F1) }
+        template.colorHex.toComposeColor(Color(0xFF6366F1))
     }
 
     val cardBackground = animateColorAsState(

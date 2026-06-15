@@ -70,7 +70,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.gbao86.sub_lazy.ui.toComposeColor
 import com.gbao86.sub_lazy.R
 import com.gbao86.sub_lazy.data.CategorySpending
 import com.gbao86.sub_lazy.data.Subscription
@@ -111,7 +112,7 @@ import com.gbao86.sub_lazy.data.SubscriptionTemplates
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    viewModel: DashboardViewModel = viewModel(),
+    viewModel: DashboardViewModel = hiltViewModel(),
     onNavigateToAdd: (String?, Double?, String?, String?, String?, String?, String?, String?) -> Unit,
     onNavigateToList: () -> Unit
 ) {
@@ -400,7 +401,7 @@ fun DashboardContent(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(20.dp),
                 icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                text = { Text("Thêm", fontWeight = FontWeight.SemiBold) }
+                text = { Text(stringResource(R.string.action_add), fontWeight = FontWeight.SemiBold) }
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -548,12 +549,12 @@ fun DashboardContent(
                                                         horizontalArrangement = Arrangement.SpaceBetween
                                                     ) {
                                                         Text(
-                                                            text = "Ngốn ${(progress * 100).toInt()}% ngân sách tháng",
+                                                            text = stringResource(R.string.budget_percent_used, (progress * 100).toInt()),
                                                             style = MaterialTheme.typography.labelSmall,
                                                             color = Color.White.copy(alpha = 0.8f)
                                                         )
                                                         Text(
-                                                            text = "${CurrencyFormatter.format(userBalance - (totalMonthlyCost ?: 0.0), "VND", locale)} còn lại",
+                                                            text = stringResource(R.string.budget_remaining, CurrencyFormatter.format(userBalance - (totalMonthlyCost ?: 0.0), "VND", locale)),
                                                             style = MaterialTheme.typography.labelSmall,
                                                             color = Color.White.copy(alpha = 0.8f)
                                                         )
@@ -1144,13 +1145,13 @@ fun DashboardContent(
                                         modifier = Modifier
                                             .size(36.dp)
                                             .clip(CircleShape)
-                                            .background(Color(template.colorHex.toColorInt()).copy(alpha = 0.2f)),
+                                            .background(template.colorHex.toComposeColor().copy(alpha = 0.2f)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = CategoryUtils.getIconForName(template.name, template.category),
                                             contentDescription = null,
-                                            tint = Color(template.colorHex.toColorInt()),
+                                            tint = template.colorHex.toComposeColor(),
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }

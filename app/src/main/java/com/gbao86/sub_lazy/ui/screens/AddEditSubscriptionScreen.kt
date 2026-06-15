@@ -103,7 +103,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.gbao86.sub_lazy.R
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.data.SharedMember
@@ -127,7 +127,7 @@ fun AddEditSubscriptionScreen(
     prefillBankName: String? = null,
     prefillBankAccount: String? = null,
     prefillBankAccountHolder: String? = null,
-    viewModel: AddEditViewModel = viewModel(),
+    viewModel: AddEditViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current

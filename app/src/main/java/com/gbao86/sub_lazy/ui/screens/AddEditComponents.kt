@@ -417,7 +417,7 @@ fun SharedMemberSection(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Kích hoạt chia sẻ chi phí", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.add_edit_shared_title), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         Switch(checked = isShared, onCheckedChange = onIsSharedChange)
                     }
 
@@ -626,7 +626,7 @@ fun VietQRBankSection(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Nhập thông tin VietQR", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.add_edit_bank_title), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         Switch(checked = hasBankInfo, onCheckedChange = onHasBankInfoChange)
                     }
 

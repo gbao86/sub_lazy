@@ -12,12 +12,14 @@ is strictly prohibited without the express written permission of the author.
 
 package com.gbao86.sub_lazy.ui
 
+import com.gbao86.sub_lazy.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import com.gbao86.sub_lazy.R
+import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import com.gbao86.sub_lazy.data.model.SubscriptionCategory
 
 object CategoryUtils {
@@ -86,5 +88,13 @@ object CategoryUtils {
             // Fallback to Category Icon
             else -> getCategoryIcon(category)
         }
+    }
+}
+
+fun String.toComposeColor(fallback: Color = Color.Gray): Color {
+    return try {
+        Color(this.toColorInt())
+    } catch (e: Exception) {
+        fallback
     }
 }

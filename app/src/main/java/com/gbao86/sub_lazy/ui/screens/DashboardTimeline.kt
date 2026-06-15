@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import com.gbao86.sub_lazy.ui.toComposeColor
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -233,8 +234,7 @@ fun UpcomingRenewalsTimeline(
                 val days = DateUtils.getDaysLeft(sub.nextBillingDate)
                 val isSelected = selectedSub?.id == sub.id
                 val subColor = remember(sub.colorHex) {
-                    try { Color(sub.colorHex.toColorInt()) }
-                    catch (_: Exception) { Color(0xFF6366F1) }
+                    sub.colorHex.toComposeColor(Color(0xFF6366F1))
                 }
                 val urgencyColor = when {
                     days <= 0 -> Color(0xFFF43F5E)
@@ -285,7 +285,7 @@ fun UpcomingRenewalsTimeline(
                         color = urgencyColor.copy(alpha = 0.12f)
                     ) {
                         Text(
-                            text = if (days <= 0) "Hôm nay" else "${days}d",
+                            text = if (days <= 0) stringResource(R.string.list_days_left_today) else "${days}d",
                             style = MaterialTheme.typography.labelSmall,
                             color = urgencyColor,
                             fontWeight = FontWeight.Bold,
@@ -336,10 +336,9 @@ fun UpcomingRenewalsTimeline(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            val accentColor = remember(selectedSub.colorHex) {
-                                try { Color(selectedSub.colorHex.toColorInt()) }
-                                catch (_: Exception) { Color(0xFF6366F1) }
-                            }
+                             val accentColor = remember(selectedSub.colorHex) {
+                                 selectedSub.colorHex.toComposeColor(Color(0xFF6366F1))
+                             }
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)

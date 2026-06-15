@@ -39,7 +39,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.gbao86.sub_lazy.ui.toComposeColor
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.ui.CategoryUtils
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
@@ -63,7 +64,7 @@ import java.time.Year
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubscriptionListScreen(
-    viewModel: SubscriptionListViewModel = viewModel(),
+    viewModel: SubscriptionListViewModel = hiltViewModel(),
     onNavigateToDetail: (Long) -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -427,8 +428,7 @@ fun SubscriptionItem(
     val locale = context.resources.configuration.locales[0]
     val daysLeft = DateUtils.getDaysLeft(subscription.nextBillingDate)
     val accentColor = remember(subscription.colorHex) {
-        try { Color(subscription.colorHex.toColorInt()) }
-        catch (_: Exception) { Color(0xFF6366F1) }
+        subscription.colorHex.toComposeColor(Color(0xFF6366F1))
     }
 
     val cycleSuffix = when (subscription.cycle) {

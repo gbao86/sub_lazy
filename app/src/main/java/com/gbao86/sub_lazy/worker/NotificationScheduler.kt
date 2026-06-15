@@ -19,7 +19,10 @@ import com.gbao86.sub_lazy.data.model.SubscriptionCategory
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class NotificationScheduler(private val context: Context) {
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+
+class NotificationScheduler @Inject constructor(@param:ApplicationContext private val context: Context) {
 
     fun scheduleNotification(subscription: Subscription) {
         val workManager = WorkManager.getInstance(context)

@@ -12,33 +12,28 @@ is strictly prohibited without the express written permission of the author.
 
 package com.gbao86.sub_lazy.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gbao86.sub_lazy.data.AppDatabase
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.data.ISubscriptionRepository
-import com.gbao86.sub_lazy.data.SubscriptionRepository
-import com.gbao86.sub_lazy.worker.NotificationScheduler
 import com.gbao86.sub_lazy.data.model.BillingCycle
 import com.gbao86.sub_lazy.data.model.SubscriptionCategory
 import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
+import com.gbao86.sub_lazy.domain.usecase.InsertSubscriptionUseCase
+import com.gbao86.sub_lazy.domain.usecase.UpdateSubscriptionUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class AddEditViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository: ISubscriptionRepository
-    private val notificationScheduler = NotificationScheduler(application)
-
-    init {
-        val dao = AppDatabase.getDatabase(application).subscriptionDao()
-        repository = SubscriptionRepository(dao)
-    }
+@HiltViewModel
+class AddEditViewModel @Inject constructor(
+    private val repository: ISubscriptionRepository,
+    private val insertSubscriptionUseCase: InsertSubscriptionUseCase,
+    private val updateSubscriptionUseCase: UpdateSubscriptionUseCase
+) : ViewModel() {
 
     fun insert(subscription: Subscription) = viewModelScope.launch {
-        repository.insert(subscription).onSuccess { id ->
-            val newSub = subscription.copy(id = id)
-            notificationScheduler.scheduleNotification(newSub)
-        }
+        insertSubscriptionUseCase(subscription)
     }
 
     fun updateSubscriptionDetails(
@@ -82,9 +77,7 @@ class AddEditViewModel(application: Application) : AndroidViewModel(application)
                     isShared = isShared,
                     sharedMembersJson = sharedMembersJson
                 )
-                repository.update(updated).onSuccess {
-                    notificationScheduler.scheduleNotification(updated)
-                }
+                updateSubscriptionUseCase(updated)
             }
         }
     }

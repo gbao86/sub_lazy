@@ -12,100 +12,37 @@ is strictly prohibited without the express written permission of the author.
 
 package com.gbao86.sub_lazy.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gbao86.sub_lazy.data.AppDatabase
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.data.ISubscriptionRepository
-import com.gbao86.sub_lazy.data.SubscriptionRepository
-import com.gbao86.sub_lazy.data.PaymentHistory
-import com.gbao86.sub_lazy.worker.NotificationScheduler
-import com.gbao86.sub_lazy.ui.DateUtils
-import com.gbao86.sub_lazy.data.model.BillingCycle
+import com.gbao86.sub_lazy.domain.usecase.DeleteSubscriptionUseCase
+import com.gbao86.sub_lazy.domain.usecase.InsertSubscriptionUseCase
+import com.gbao86.sub_lazy.domain.usecase.MarkPaymentAsPaidUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class SubscriptionListViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository: ISubscriptionRepository
-    private val notificationScheduler = NotificationScheduler(application)
+@HiltViewModel
+class SubscriptionListViewModel @Inject constructor(
+    private val repository: ISubscriptionRepository,
+    private val insertSubscriptionUseCase: InsertSubscriptionUseCase,
+    private val deleteSubscriptionUseCase: DeleteSubscriptionUseCase,
+    private val markPaymentAsPaidUseCase: MarkPaymentAsPaidUseCase
+) : ViewModel() {
 
-    val allSubscriptions: Flow<List<Subscription>>
-
-    init {
-        val dao = AppDatabase.getDatabase(application).subscriptionDao()
-        repository = SubscriptionRepository(dao)
-        allSubscriptions = repository.allSubscriptions
-    }
+    val allSubscriptions: Flow<List<Subscription>> = repository.allSubscriptions
 
     fun insert(subscription: Subscription) = viewModelScope.launch {
-        repository.insert(subscription).onSuccess { id ->
-            val newSub = subscription.copy(id = id)
-            notificationScheduler.scheduleNotification(newSub)
-        }
+        insertSubscriptionUseCase(subscription)
     }
 
     fun delete(subscription: Subscription) = viewModelScope.launch {
-        repository.delete(subscription).onSuccess {
-            notificationScheduler.cancelNotification(subscription.id)
-        }
+        deleteSubscriptionUseCase(subscription)
     }
 
     fun markAsPaid(subscription: Subscription) = viewModelScope.launch {
-        val record = PaymentHistory(
-            subscriptionId = subscription.id,
-            subscriptionName = subscription.name,
-            amount = subscription.amount,
-            currency = subscription.currency,
-            paymentDate = System.currentTimeMillis(),
-            cycle = subscription.cycle
-        )
-        repository.insertPaymentHistory(record).onSuccess {
-            if (subscription.cycle == BillingCycle.ONE_TIME) {
-                repository.delete(subscription).onSuccess {
-                    notificationScheduler.cancelNotification(subscription.id)
-                }
-            } else {
-                var shouldDelete = false
-                var currentSub = subscription
-
-                val limit = currentSub.remainingTimes
-                if (limit != null && limit > 0) {
-                    val newLimit = limit - 1
-                    if (newLimit <= 0) {
-                        shouldDelete = true
-                    } else {
-                        currentSub = currentSub.copy(remainingTimes = newLimit)
-                    }
-                }
-
-                if (shouldDelete) {
-                    repository.delete(subscription).onSuccess {
-                        notificationScheduler.cancelNotification(subscription.id)
-                    }
-                } else {
-                    val finalNextDate = DateUtils.getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
-                    currentSub = currentSub.copy(nextBillingDate = finalNextDate)
-                    
-                    if (currentSub.isShared && !currentSub.sharedMembersJson.isNullOrBlank()) {
-                        val members = com.gbao86.sub_lazy.data.SharedMember.parseMembers(currentSub.sharedMembersJson)
-                        val resetMembers = members.map { it.copy(hasPaid = false) }
-                        currentSub = currentSub.copy(sharedMembersJson = com.gbao86.sub_lazy.data.SharedMember.serializeMembers(resetMembers))
-                    }
-                    
-                    repository.update(currentSub).onSuccess {
-                        notificationScheduler.scheduleNotification(currentSub)
-                    }
-                }
-            }
-        }
-    }
-
-    fun checkInSession(subscription: Subscription) = viewModelScope.launch {
-        val rem = subscription.remainingSessions ?: return@launch
-        if (rem > 0) {
-            val updated = subscription.copy(remainingSessions = rem - 1)
-            repository.update(updated)
-        }
+        markPaymentAsPaidUseCase(subscription)
     }
 }

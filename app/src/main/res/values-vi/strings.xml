@@ -220,4 +220,10 @@
     <string name="add_edit_bank_name">Tên ngân hàng (ví dụ: VCB, MB)</string>
     <string name="add_edit_bank_account">Số tài khoản</string>
     <string name="add_edit_bank_account_holder">Tên chủ tài khoản (Không dấu)</string>
+    <string name="action_add">Thêm</string>
+    <string name="budget_percent_used">Ngốn %1$d%% ngân sách tháng</string>
+    <string name="budget_remaining">%1$s còn lại</string>
+    <string name="onboarding_automation">Tự động hóa</string>
+    <string name="onboarding_reminders">Nhắc nhở</string>
+    <string name="onboarding_security">Bảo mật</string>
 </resources>

@@ -266,4 +266,10 @@
     <string name="add_edit_bank_name">Bank Name (e.g., VCB, MB)</string>
     <string name="add_edit_bank_account">Account Number</string>
     <string name="add_edit_bank_account_holder">Account Holder Name (No accents)</string>
+    <string name="action_add">Add</string>
+    <string name="budget_percent_used">Uses %1$d%% of monthly budget</string>
+    <string name="budget_remaining">%1$s remaining</string>
+    <string name="onboarding_automation">Automation</string>
+    <string name="onboarding_reminders">Reminders</string>
+    <string name="onboarding_security">Security</string>
 </resources>

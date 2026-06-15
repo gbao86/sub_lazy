@@ -33,7 +33,9 @@ import kotlinx.coroutines.launch
 import com.gbao86.sub_lazy.ui.navigation.NavGraph
 import com.gbao86.sub_lazy.ui.navigation.Screen
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
