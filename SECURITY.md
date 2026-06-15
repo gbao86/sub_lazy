@@ -6,8 +6,8 @@ As the app is currently in active development, security updates are applied to t
 
 | Version | Supported |
 | ------- | --------- |
-| < 0.0.5 | No        |
-| 0.0.5   | Yes       |
+| < 0.0.7 | No        |
+| 0.0.7   | Yes       |
 
 ## Security Architecture
 
