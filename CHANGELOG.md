@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.8] - 2026-06-17
+
+### Added
+- **VietQR Callback API Feasibility Study**: Conducted full assessment of official VietQR callback generation API (`/vqr/api/qr/generate-customer`) vs. lightweight client-side QR image builder (`img.vietqr.io`).
+- **Security & Offline Architecture Validation**: Verified and documented that using client-side API tokens for VietQR Callback is insecure for client-only offline apps. Validated that local notification interception (`BillNotificationListener`) is the optimal privacy-first mechanism for transaction reconciliation.
+
 ## [0.0.7] - 2026-06-15
 
 ### Added
