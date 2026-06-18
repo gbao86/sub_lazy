@@ -14,10 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unit Tests for Utils**: Established robust testing suite for `CurrencyFormatter` and `DateUtils` to guarantee accuracy of financial and temporal calculations across locales.
 
 ### Changed
+- **Backup Architecture Refactor**: Refactored `importData` and `exportData` to return a strongly-typed `sealed interface BackupResult`, allowing the UI to handle and display specific, localized error messages (e.g. `InvalidBackupFile`, `PermissionDenied`) instead of swallowing exceptions.
+- **Compose State Management**: Moved `isProcessing` state from UI (`DashboardScreen.kt`) to `DashboardViewModel` via `StateFlow` to survive configuration changes and maintain single source of truth. Prevented double-click / rapid tapping on import/export actions.
+- **Compose Performance & Recomposition Optimizations**:
+  - Replaced `Modifier.offset(y = floatOffset.dp)` with lambda-based `Modifier.offset { IntOffset(...) }` in `DashboardInteractive.kt` to prevent layout recomposition every frame during floating animations.
+  - Replaced `.background(Brush.radialGradient(alpha = pulsAlpha))` with `.drawBehind { drawRect(...) }` in `DashboardScreen.kt` to prevent layout recomposition every frame during pulsing animations.
+  - Replaced `mutableStateOf(0)` with `mutableIntStateOf(0)` to prevent primitive autoboxing memory overhead.
 - **Subscription Templates Refactoring**: Decoupled hardcoded presets in `SubscriptionTemplate.kt` by moving them into an externalized `assets/templates.json` and parsing via Moshi for easier maintenance.
 - **Global Accessibility (A11y)**: Fixed all `contentDescription = null` warnings across the UI (100% components) by providing localized content descriptions, drastically improving screen reader support.
 
 ### Fixed
+- **Infinite Loading Bug**: Wrapped `_isProcessing.value = false` inside `finally` blocks in `DashboardViewModel` to ensure loading overlays are safely dismissed even if JSON parsing or Room transactions throw unexpected exceptions.
+- **Compose Loading Overlay UX**: Replaced the hacky `.pointerInput(Unit)` full-screen block with a proper Compose `Dialog` (with `dismissOnBackPress = false`) for the loading indicator during backup/restore.
+- **Modifier Parameter Order**: Fixed lint warning by placing `modifier: Modifier = Modifier` as the first optional parameter in `DashboardTimeline.kt`'s `UpcomingRenewalsTimeline`.
 - **Dummy Secret Security**: Restored dummy `client_secret_xyz.json` file in root directory with explicit `.gitignore` exclusion for `.log` files to prevent credential leakage.
 - **Scope Context Bug**: Resolved a `LocalContext` scope-resolution bug in `OnboardingScreen` during JSON parsing.
 

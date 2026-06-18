@@ -212,8 +212,8 @@ fun UpcomingRenewalsTimeline(
     onMarkAsPaid: (Subscription) -> Unit,
     onCheckInSession: (Subscription) -> Unit,
     onToggleMemberPaidStatus: (Subscription, String) -> Unit,
-    sharedMembersMap: Map<Long, List<SharedMember>> = emptyMap(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sharedMembersMap: Map<Long, List<SharedMember>> = emptyMap()
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val upcoming = subscriptions.sortedBy { it.nextBillingDate }.take(6)

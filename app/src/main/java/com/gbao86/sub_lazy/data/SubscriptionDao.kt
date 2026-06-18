@@ -32,7 +32,7 @@ interface SubscriptionDao {
     @Query("SELECT * FROM subscriptions WHERE id = :id")
     suspend fun getSubscriptionById(id: Long): Subscription?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertSubscription(subscription: Subscription): Long
 
     @Update
@@ -41,13 +41,16 @@ interface SubscriptionDao {
     @Delete
     suspend fun deleteSubscription(subscription: Subscription)
 
+    @Query("DELETE FROM subscriptions")
+    suspend fun deleteAllSubscriptions()
+
     @Query("SELECT SUM(CASE WHEN cycle = 'Daily' THEN amount * 365.25 / 12.0 WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Every 3 Months' THEN amount / 3.0 WHEN cycle = 'Every 6 Months' THEN amount / 6.0 WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) FROM subscriptions WHERE cycle != 'One-time'")
     fun getTotalMonthlyCost(): Flow<Double?>
 
     @Query("SELECT category, SUM(CASE WHEN cycle = 'Daily' THEN amount * 365.25 / 12.0 WHEN cycle = 'Weekly' THEN amount * 52.0 / 12.0 WHEN cycle = 'Monthly' THEN amount WHEN cycle = 'Every 3 Months' THEN amount / 3.0 WHEN cycle = 'Every 6 Months' THEN amount / 6.0 WHEN cycle = 'Yearly' THEN amount / 12.0 ELSE 0.0 END) as totalAmount FROM subscriptions WHERE cycle != 'One-time' GROUP BY category")
     fun getSpendingByCategory(): Flow<List<CategorySpending>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertPaymentHistory(record: PaymentHistory): Long
 
     @Query("DELETE FROM payment_history WHERE subscriptionId = :subscriptionId")
@@ -64,10 +67,10 @@ interface SubscriptionDao {
 
     // --- SharedMember queries ---
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertSharedMember(member: SharedMember): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertSharedMembers(members: List<SharedMember>)
 
     @Update

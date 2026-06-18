@@ -110,13 +110,16 @@ fun DashboardScreen(
     val sharedMembersMap by viewModel.sharedMembersMap.collectAsStateWithLifecycle(initialValue = emptyMap())
     val context = LocalContext.current
 
+    val isProcessing by viewModel.isProcessing.collectAsStateWithLifecycle()
+
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
-            viewModel.exportData(uri) { success ->
-                if (success) {
-                    android.widget.Toast.makeText(context, "Export thành công!", android.widget.Toast.LENGTH_SHORT).show()
-                } else {
-                    android.widget.Toast.makeText(context, "Lỗi Export", android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.exportData(uri) { result ->
+                when (result) {
+                    is com.gbao86.sub_lazy.data.BackupResult.Success -> android.widget.Toast.makeText(context, "Export thành công!", android.widget.Toast.LENGTH_SHORT).show()
+                    is com.gbao86.sub_lazy.data.BackupResult.InvalidBackupFile -> android.widget.Toast.makeText(context, "Tệp xuất không hợp lệ. Vui lòng thử lại.", android.widget.Toast.LENGTH_SHORT).show()
+                    is com.gbao86.sub_lazy.data.BackupResult.PermissionDenied -> android.widget.Toast.makeText(context, "Không có quyền lưu file. Vui lòng cấp quyền bộ nhớ.", android.widget.Toast.LENGTH_SHORT).show()
+                    else -> android.widget.Toast.makeText(context, "Đã xảy ra lỗi không xác định khi xuất file.", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -124,43 +127,65 @@ fun DashboardScreen(
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            viewModel.importData(uri) { success ->
-                if (success) {
-                    android.widget.Toast.makeText(context, "Import thành công!", android.widget.Toast.LENGTH_SHORT).show()
-                } else {
-                    android.widget.Toast.makeText(context, "Lỗi Import", android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.importData(uri) { result ->
+                when (result) {
+                    is com.gbao86.sub_lazy.data.BackupResult.Success -> android.widget.Toast.makeText(context, "Khôi phục dữ liệu thành công!", android.widget.Toast.LENGTH_SHORT).show()
+                    is com.gbao86.sub_lazy.data.BackupResult.InvalidBackupFile -> android.widget.Toast.makeText(context, "Tệp sao lưu không hợp lệ hoặc đã bị hỏng.", android.widget.Toast.LENGTH_LONG).show()
+                    is com.gbao86.sub_lazy.data.BackupResult.PermissionDenied -> android.widget.Toast.makeText(context, "Không thể đọc tệp. Vui lòng kiểm tra lại quyền truy cập.", android.widget.Toast.LENGTH_SHORT).show()
+                    else -> android.widget.Toast.makeText(context, "Khôi phục thất bại. Vui lòng thử lại sau.", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
-    DashboardContent(
-        totalMonthlyCost = totalMonthlyCost,
-        spendingByCategory = spendingByCategory,
-        subscriptions = subscriptions,
-        paymentHistory = paymentHistory,
-        userBalance = userBalance,
-        budgetResetDay = budgetResetDay,
-        sharedMembersMap = sharedMembersMap,
-        onUpdateUserBalance = { viewModel.updateUserBalance(it) },
-        onUpdateBudgetResetDay = { viewModel.updateBudgetResetDay(it) },
-        onMarkAsPaid = { viewModel.markAsPaid(it) },
-        onCheckInSession = { viewModel.checkInSession(it) },
-        onToggleMemberPaidStatus = { sub, name -> viewModel.toggleMemberPaidStatus(sub, name) },
-        onNavigateToAdd = onNavigateToAdd,
-        onNavigateToList = onNavigateToList,
-        onExport = { exportLauncher.launch("sub_lazy_backup.json") },
-        onImport = { importLauncher.launch(arrayOf("application/json")) },
-        onSyncToDrive = {
-            viewModel.syncToDrive { success ->
-                if (success) {
-                    android.widget.Toast.makeText(context, "Đồng bộ Drive thành công!", android.widget.Toast.LENGTH_SHORT).show()
-                } else {
-                    android.widget.Toast.makeText(context, "Đồng bộ thất bại. Vui lòng kiểm tra quyền.", android.widget.Toast.LENGTH_SHORT).show()
+    Box(modifier = Modifier.fillMaxSize()) {
+        DashboardContent(
+            totalMonthlyCost = totalMonthlyCost,
+            spendingByCategory = spendingByCategory,
+            subscriptions = subscriptions,
+            paymentHistory = paymentHistory,
+            userBalance = userBalance,
+            budgetResetDay = budgetResetDay,
+            sharedMembersMap = sharedMembersMap,
+            onUpdateUserBalance = { viewModel.updateUserBalance(it) },
+            onUpdateBudgetResetDay = { viewModel.updateBudgetResetDay(it) },
+            onMarkAsPaid = { viewModel.markAsPaid(it) },
+            onCheckInSession = { viewModel.checkInSession(it) },
+            onToggleMemberPaidStatus = { sub, name -> viewModel.toggleMemberPaidStatus(sub, name) },
+            onNavigateToAdd = onNavigateToAdd,
+            onNavigateToList = onNavigateToList,
+            onExport = { exportLauncher.launch("sub_lazy_backup.json") },
+            onImport = { importLauncher.launch(arrayOf("application/json")) },
+            onSyncToDrive = {
+                viewModel.syncToDrive { success ->
+                    if (success) {
+                        android.widget.Toast.makeText(context, "Đồng bộ Drive thành công!", android.widget.Toast.LENGTH_SHORT).show()
+                    } else {
+                        android.widget.Toast.makeText(context, "Đồng bộ thất bại. Vui lòng kiểm tra quyền.", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
+        
+        if (isProcessing) {
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = { /* Do nothing */ },
+                properties = androidx.compose.ui.window.DialogProperties(
+                    dismissOnBackPress = false,
+                    dismissOnClickOutside = false
+                )
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+                ) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
-    )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -188,7 +213,7 @@ fun DashboardContent(
     val locale = LocalConfiguration.current.locales[0]
 
     var showBalanceEditDialog by remember { mutableStateOf(false) }
-    var tickTrigger by remember { mutableStateOf(0) }
+    var tickTrigger by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(60000)
@@ -602,18 +627,21 @@ fun DashboardContent(
                                                     RepeatMode.Reverse
                                                 ), label = "pulse_alpha"
                                             )
+                                            val primaryContainer = MaterialTheme.colorScheme.primaryContainer
                                             Box(
                                                 modifier = Modifier
                                                     .size(88.dp)
                                                     .clip(RoundedCornerShape(28.dp))
-                                                    .background(
-                                                        Brush.radialGradient(
-                                                            listOf(
-                                                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = pulsAlpha),
-                                                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                                                    .drawBehind {
+                                                        drawRect(
+                                                            brush = Brush.radialGradient(
+                                                                listOf(
+                                                                    primaryContainer.copy(alpha = pulsAlpha),
+                                                                    primaryContainer.copy(alpha = 0.1f)
+                                                                )
                                                             )
                                                         )
-                                                    ),
+                                                    },
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(

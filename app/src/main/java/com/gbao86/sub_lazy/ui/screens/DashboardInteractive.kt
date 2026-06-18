@@ -102,7 +102,7 @@ fun LazyWalletCatSection(
         
         Column(
             modifier = Modifier
-                .offset(y = floatOffset.dp)
+                .offset { androidx.compose.ui.unit.IntOffset(0, floatOffset.dp.roundToPx()) }
                 .padding(bottom = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

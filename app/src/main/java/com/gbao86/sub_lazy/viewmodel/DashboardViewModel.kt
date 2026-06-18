@@ -88,6 +88,7 @@ class DashboardViewModel @Inject constructor(
      * Reactive map of subscriptionId -> List<SharedMember> for all shared subscriptions.
      * Updates whenever subscriptions list or any member row changes.
      */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val sharedMembersMap: Flow<Map<Long, List<SharedMember>>> = repository.allSubscriptions
         .flatMapLatest { subs ->
             val sharedSubs = subs.filter { it.isShared }
@@ -123,12 +124,10 @@ class DashboardViewModel @Inject constructor(
 
         // Rollover or delete past subscriptions on startup
         viewModelScope.launch {
-            try {
+            runCatching {
                 val list = allSubscriptions.first()
                 checkAndRolloverSubscriptionsUseCase(list)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            }.onFailure { it.printStackTrace() }
         }
 
         // Calculate total monthly cost reactively
@@ -163,24 +162,50 @@ class DashboardViewModel @Inject constructor(
         toggleMemberPaidStatusUseCase(subscription, memberName)
     }
 
-    fun exportData(uri: android.net.Uri, onComplete: (Boolean) -> Unit) = viewModelScope.launch {
-        val result = backupRestoreManager.exportData(context, uri)
-        onComplete(result.isSuccess)
+    private val _isProcessing = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val isProcessing: kotlinx.coroutines.flow.StateFlow<Boolean> = kotlinx.coroutines.flow.asStateFlow(_isProcessing)
+
+    fun exportData(uri: android.net.Uri, onComplete: (com.gbao86.sub_lazy.data.BackupResult) -> Unit) {
+        if (_isProcessing.value) return
+        viewModelScope.launch {
+            _isProcessing.value = true
+            try {
+                val result = backupRestoreManager.exportData(context, uri)
+                onComplete(result)
+            } finally {
+                _isProcessing.value = false
+            }
+        }
     }
 
-    fun importData(uri: android.net.Uri, onComplete: (Boolean) -> Unit) = viewModelScope.launch {
-        val result = backupRestoreManager.importData(context, uri)
-        onComplete(result.isSuccess)
+    fun importData(uri: android.net.Uri, onComplete: (com.gbao86.sub_lazy.data.BackupResult) -> Unit) {
+        if (_isProcessing.value) return
+        viewModelScope.launch {
+            _isProcessing.value = true
+            try {
+                val result = backupRestoreManager.importData(context, uri)
+                onComplete(result)
+            } finally {
+                _isProcessing.value = false
+            }
+        }
     }
 
-    fun syncToDrive(onComplete: (Boolean) -> Unit) = viewModelScope.launch {
-        try {
-            val json = backupRestoreManager.getBackupJsonString()
-            val service = com.gbao86.sub_lazy.data.api.GoogleDriveService(context)
-            val result = service.uploadBackup(json)
-            onComplete(result.isSuccess)
-        } catch (e: Exception) {
-            onComplete(false)
+    fun syncToDrive(onComplete: (Boolean) -> Unit) {
+        if (_isProcessing.value) return
+        viewModelScope.launch {
+            _isProcessing.value = true
+            try {
+                val json = backupRestoreManager.getBackupJsonString()
+                val service = com.gbao86.sub_lazy.data.api.GoogleDriveService(context)
+                val result = service.uploadBackup(json)
+                onComplete(result.isSuccess)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                onComplete(false)
+            } finally {
+                _isProcessing.value = false
+            }
         }
     }
 }
