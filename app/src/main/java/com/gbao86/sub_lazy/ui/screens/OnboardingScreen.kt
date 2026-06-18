@@ -54,9 +54,6 @@ import com.gbao86.sub_lazy.ui.toComposeColor
 import com.gbao86.sub_lazy.R
 import kotlinx.coroutines.delay
 import androidx.core.graphics.toColorInt
-
-val popularTemplates = SubscriptionTemplates.digitalTemplates.take(5)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(
@@ -65,6 +62,7 @@ fun OnboardingScreen(
 ) {
     var selectedTemplates by remember { mutableStateOf(setOf<SubscriptionTemplate>()) }
     var selectedTemplateTab by remember { mutableIntStateOf(0) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
         bottomBar = {
@@ -119,7 +117,7 @@ fun OnboardingScreen(
                                 ) {
                                     Icon(
                                         Icons.Filled.CheckCircle,
-                                        contentDescription = null,
+                                        contentDescription = "Checkmark icon",
                                         tint = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -195,7 +193,7 @@ fun OnboardingScreen(
                             ) {
                                 Icon(
                                     Icons.Rounded.AutoAwesome,
-                                    contentDescription = null,
+                                    contentDescription = "App Icon",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -292,10 +290,11 @@ fun OnboardingScreen(
                 }
             }
 
+
             val templates = if (selectedTemplateTab == 0) {
-                SubscriptionTemplates.digitalTemplates
+                SubscriptionTemplates.getDigitalTemplates(context)
             } else {
-                SubscriptionTemplates.lifestyleTemplates
+                SubscriptionTemplates.getLifestyleTemplates(context)
             }
 
             itemsIndexed(
@@ -438,7 +437,7 @@ fun TemplateItem(
             if (checked) {
                 Icon(
                     Icons.Filled.CheckCircle,
-                    contentDescription = null,
+                    contentDescription = "Start Button Icon",
                     tint = accentColor,
                     modifier = Modifier.size(28.dp)
                 )

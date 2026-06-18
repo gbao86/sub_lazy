@@ -118,7 +118,7 @@ fun LazyWalletHealthCard(
             ) {
                 Icon(
                     Icons.Rounded.AccountBalanceWallet,
-                    contentDescription = null,
+                    contentDescription = "Edit balance icon",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(18.dp)
                 )
@@ -198,7 +198,7 @@ fun BudgetRunwayStatus(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Rounded.Dangerous, contentDescription = null, tint = Color(0xFFC62828))
+                        Icon(Icons.Rounded.Dangerous, contentDescription = "Dangerous status", tint = Color(0xFFC62828))
                         Column {
                             Text(
                                 stringResource(R.string.budget_deficit_title),
@@ -225,7 +225,7 @@ fun BudgetRunwayStatus(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32))
+                        Icon(Icons.Rounded.CheckCircle, contentDescription = "Healthy status", tint = Color(0xFF2E7D32))
                         Column {
                             Text(
                                 stringResource(R.string.budget_safe_title),
@@ -265,7 +265,7 @@ fun BudgetRunwayStatus(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Rounded.Warning, contentDescription = null, tint = Color(0xFFC62828))
+                    Icon(Icons.Rounded.Warning, contentDescription = "Warning status", tint = Color(0xFFC62828))
                     Column {
                         Text(
                             stringResource(R.string.budget_exhausted_title),
@@ -309,7 +309,7 @@ fun BudgetRunwayStatus(
                     ) {
                         Icon(
                             imageVector = if (isPanicked) Icons.Rounded.Dangerous else Icons.Rounded.ReportProblem,
-                            contentDescription = null,
+                            contentDescription = "Close dialog",
                             tint = if (isPanicked) Color(0xFFD32F2F) else Color(0xFFFBC02D)
                         )
                         Text(

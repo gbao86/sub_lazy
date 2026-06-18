@@ -45,6 +45,7 @@ class DashboardViewModel @Inject constructor(
     private val markPaymentAsPaidUseCase: MarkPaymentAsPaidUseCase,
     private val checkInSessionUseCase: CheckInSessionUseCase,
     private val toggleMemberPaidStatusUseCase: ToggleMemberPaidStatusUseCase,
+    private val backupRestoreManager: com.gbao86.sub_lazy.data.BackupRestoreManager,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -160,5 +161,26 @@ class DashboardViewModel @Inject constructor(
 
     fun toggleMemberPaidStatus(subscription: Subscription, memberName: String) = viewModelScope.launch {
         toggleMemberPaidStatusUseCase(subscription, memberName)
+    }
+
+    fun exportData(uri: android.net.Uri, onComplete: (Boolean) -> Unit) = viewModelScope.launch {
+        val result = backupRestoreManager.exportData(context, uri)
+        onComplete(result.isSuccess)
+    }
+
+    fun importData(uri: android.net.Uri, onComplete: (Boolean) -> Unit) = viewModelScope.launch {
+        val result = backupRestoreManager.importData(context, uri)
+        onComplete(result.isSuccess)
+    }
+
+    fun syncToDrive(onComplete: (Boolean) -> Unit) = viewModelScope.launch {
+        try {
+            val json = backupRestoreManager.getBackupJsonString()
+            val service = com.gbao86.sub_lazy.data.api.GoogleDriveService(context)
+            val result = service.uploadBackup(json)
+            onComplete(result.isSuccess)
+        } catch (e: Exception) {
+            onComplete(false)
+        }
     }
 }

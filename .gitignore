@@ -20,3 +20,4 @@ client_secret_*.json
 local.properties
 *.hprof
 review_report.md
+*.log

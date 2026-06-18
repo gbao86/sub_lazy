@@ -26,6 +26,9 @@ interface SubscriptionDao {
     @Query("SELECT * FROM subscriptions ORDER BY nextBillingDate ASC")
     fun getAllSubscriptions(): Flow<List<Subscription>>
 
+    @Query("SELECT * FROM subscriptions ORDER BY nextBillingDate ASC")
+    suspend fun getAllSubscriptionsOnce(): List<Subscription>
+
     @Query("SELECT * FROM subscriptions WHERE id = :id")
     suspend fun getSubscriptionById(id: Long): Subscription?
 
@@ -53,6 +56,9 @@ interface SubscriptionDao {
     @Query("SELECT * FROM payment_history ORDER BY paymentDate DESC")
     fun getAllPaymentHistory(): Flow<List<PaymentHistory>>
 
+    @Query("SELECT * FROM payment_history ORDER BY paymentDate DESC")
+    suspend fun getAllPaymentHistoryOnce(): List<PaymentHistory>
+
     @Query("SELECT * FROM payment_history WHERE subscriptionId = :subId ORDER BY paymentDate DESC")
     fun getPaymentHistoryForSubscription(subId: Long): Flow<List<PaymentHistory>>
 
@@ -72,6 +78,9 @@ interface SubscriptionDao {
 
     @Query("SELECT * FROM shared_members WHERE subscriptionId = :subscriptionId ORDER BY name ASC")
     fun getSharedMembersForSubscription(subscriptionId: Long): Flow<List<SharedMember>>
+
+    @Query("SELECT * FROM shared_members")
+    suspend fun getAllSharedMembersOnce(): List<SharedMember>
 
     @Query("SELECT * FROM shared_members WHERE subscriptionId = :subscriptionId ORDER BY name ASC")
     suspend fun getSharedMembersForSubscriptionOnce(subscriptionId: Long): List<SharedMember>

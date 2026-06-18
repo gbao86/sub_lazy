@@ -294,7 +294,7 @@ fun PaymentHistorySection(paymentHistory: List<PaymentHistory>, modifier: Modifi
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.CheckCircle,
-                                contentDescription = null,
+                                contentDescription = "Payment history icon",
                                 tint = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.size(20.dp)
                             )

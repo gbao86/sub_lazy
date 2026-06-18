@@ -20,6 +20,8 @@ import com.gbao86.sub_lazy.data.model.BillingCycle
 import com.gbao86.sub_lazy.data.model.SubscriptionCategory
 import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
 
+import com.squareup.moshi.JsonClass
+
 @Entity(
     tableName = "subscriptions",
     indices = [
@@ -27,6 +29,7 @@ import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
         Index(value = ["cycle"])
     ]
 )
+@JsonClass(generateAdapter = true)
 data class Subscription(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

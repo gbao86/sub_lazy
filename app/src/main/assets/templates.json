@@ -1,0 +1,27 @@
+{
+  "digital": [
+    { "name": "Netflix", "amount": 260000.0, "category": "ENTERTAINMENT", "colorHex": "#E50914", "cycle": "MONTHLY" },
+    { "name": "Spotify", "amount": 59000.0, "category": "MUSIC", "colorHex": "#1DB954", "cycle": "MONTHLY" },
+    { "name": "YouTube Premium", "amount": 79000.0, "category": "ENTERTAINMENT", "colorHex": "#FF0000", "cycle": "MONTHLY" },
+    { "name": "iCloud 50GB", "amount": 19000.0, "category": "CLOUD", "colorHex": "#007AFF", "cycle": "MONTHLY" },
+    { "name": "Net/Wifi", "amount": 250000.0, "category": "UTILITIES", "colorHex": "#6366F1", "cycle": "MONTHLY" },
+    { "name": "ChatGPT Plus", "amount": 490000.0, "category": "WORK", "colorHex": "#10a37f", "cycle": "MONTHLY" },
+    { "name": "Galaxy Play VIP", "amount": 100000.0, "category": "ENTERTAINMENT", "colorHex": "#22D3EE", "cycle": "MONTHLY" },
+    { "name": "VieON VIP", "amount": 49000.0, "category": "ENTERTAINMENT", "colorHex": "#10B981", "cycle": "MONTHLY" },
+    { "name": "Clip TV", "amount": 50000.0, "category": "ENTERTAINMENT", "colorHex": "#F59E0B", "cycle": "MONTHLY" },
+    { "name": "Gói cước 4G V120", "amount": 120000.0, "category": "UTILITIES", "colorHex": "#E11D48", "cycle": "MONTHLY" },
+    { "name": "Canva Pro", "amount": 149000.0, "category": "WORK", "colorHex": "#00C4CC", "cycle": "MONTHLY" },
+    { "name": "Elsa Speak", "amount": 150000.0, "category": "WORK", "colorHex": "#6366F1", "cycle": "YEARLY" }
+  ],
+  "lifestyle": [
+    { "name": "Thay dầu xe máy", "amount": 120000.0, "category": "UTILITIES", "colorHex": "#F59E0B", "cycle": "EVERY_6_MONTHS" },
+    { "name": "Tẩy giun thú cưng", "amount": 50000.0, "category": "FAMILY", "colorHex": "#8B5CF6", "cycle": "EVERY_3_MONTHS" },
+    { "name": "Thay lõi lọc nước", "amount": 300000.0, "category": "UTILITIES", "colorHex": "#06B6D4", "cycle": "EVERY_6_MONTHS" },
+    { "name": "Tiền nhà hàng tháng", "amount": 3500000.0, "category": "FINANCE", "colorHex": "#10B981", "cycle": "MONTHLY" },
+    { "name": "Đóng phí chung cư", "amount": 500000.0, "category": "FINANCE", "colorHex": "#6366F1", "cycle": "MONTHLY" },
+    { "name": "Khám răng định kỳ", "amount": 200000.0, "category": "FAMILY", "colorHex": "#F43F5E", "cycle": "EVERY_6_MONTHS" },
+    { "name": "Học phí tiếng Anh", "amount": 2500000.0, "category": "WORK", "colorHex": "#7C3AED", "cycle": "MONTHLY" },
+    { "name": "Thẻ tập Gym", "amount": 600000.0, "category": "UTILITIES", "colorHex": "#F43F5E", "cycle": "MONTHLY" },
+    { "name": "Cắt tóc định kỳ", "amount": 100000.0, "category": "OTHER", "colorHex": "#94A3B8", "cycle": "MONTHLY" }
+  ]
+}

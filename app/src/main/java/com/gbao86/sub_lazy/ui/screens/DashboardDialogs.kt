@@ -239,10 +239,11 @@ fun TemplatesDialog(
                     }
                 }
 
+                val context = androidx.compose.ui.platform.LocalContext.current
                 val templates = if (selectedTab == 0) {
-                    SubscriptionTemplates.digitalTemplates
+                    SubscriptionTemplates.getDigitalTemplates(context)
                 } else {
-                    SubscriptionTemplates.lifestyleTemplates
+                    SubscriptionTemplates.getLifestyleTemplates(context)
                 }
 
                 LazyColumn(
@@ -287,7 +288,7 @@ fun TemplatesDialog(
                                 ) {
                                     Icon(
                                         imageVector = CategoryUtils.getIconForName(template.name, template.category),
-                                        contentDescription = null,
+                                        contentDescription = "Subscription Template Icon",
                                         tint = template.colorHex.toComposeColor(),
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -332,7 +333,10 @@ fun SettingsDialog(
     googleSignInClient: GoogleSignInClient,
     onDismiss: () -> Unit,
     onEmailChanged: (String?) -> Unit,
-    onGoogleSignIn: () -> Unit
+    onGoogleSignIn: () -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
+    onSyncToDrive: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -357,13 +361,29 @@ fun SettingsDialog(
                     } else {
                         onGoogleSignIn()
                     }
-                }) {
+                }, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         if (accountName != null)
                             stringResource(R.string.settings_gmail_btn_unlink)
                         else
                             stringResource(R.string.settings_gmail_btn_link)
                     )
+                }
+                
+                HorizontalDivider()
+                Text("Backup & Khôi phục", fontWeight = FontWeight.Bold)
+                
+                Button(onClick = onSyncToDrive, modifier = Modifier.fillMaxWidth(), enabled = accountName != null) {
+                    Text("Đồng bộ lên Google Drive")
+                }
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onExport, modifier = Modifier.weight(1f)) {
+                        Text("Export JSON")
+                    }
+                    OutlinedButton(onClick = onImport, modifier = Modifier.weight(1f)) {
+                        Text("Import JSON")
+                    }
                 }
             }
         },

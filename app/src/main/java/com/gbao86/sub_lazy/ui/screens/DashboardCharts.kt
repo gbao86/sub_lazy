@@ -237,7 +237,7 @@ fun InteractiveCategoryRow(
                 ) {
                     Icon(
                         imageVector = CategoryUtils.getCategoryIcon(item.category),
-                        contentDescription = null,
+                        contentDescription = "Expand category details",
                         tint = color,
                         modifier = Modifier.size(20.dp)
                     )

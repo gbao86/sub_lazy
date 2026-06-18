@@ -267,7 +267,7 @@ fun UpcomingRenewalsTimeline(
                     ) {
                         Icon(
                             imageVector = CategoryUtils.getIconForName(sub.name, sub.category),
-                            contentDescription = null,
+                            contentDescription = "No upcoming subscriptions icon",
                             tint = Color.White,
                             modifier = Modifier.size(24.dp)
                         )
@@ -350,7 +350,7 @@ fun UpcomingRenewalsTimeline(
                             ) {
                                 Icon(
                                     imageVector = CategoryUtils.getIconForName(selectedSub.name, selectedSub.category),
-                                    contentDescription = null,
+                                    contentDescription = "Subscription icon",
                                     tint = accentColor,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -475,7 +475,7 @@ fun UpcomingRenewalsTimeline(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             imageVector = Icons.Rounded.Info,
-                                            contentDescription = null,
+                                            contentDescription = "Shared member avatar",
                                             tint = MaterialTheme.colorScheme.error,
                                             modifier = Modifier.size(16.dp)
                                         )

@@ -18,6 +18,8 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+import com.squareup.moshi.JsonClass
+
 @Entity(
     tableName = "shared_members",
     foreignKeys = [
@@ -30,6 +32,7 @@ import androidx.room.PrimaryKey
     ],
     indices = [Index(value = ["subscriptionId"])]
 )
+@JsonClass(generateAdapter = true)
 data class SharedMember(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

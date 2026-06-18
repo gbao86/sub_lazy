@@ -19,6 +19,8 @@ import androidx.room.PrimaryKey
 import com.gbao86.sub_lazy.data.model.BillingCycle
 import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
 
+import com.squareup.moshi.JsonClass
+
 @Entity(
     tableName = "payment_history",
     foreignKeys = [
@@ -33,6 +35,7 @@ import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
         Index(value = ["subscriptionId"])
     ]
 )
+@JsonClass(generateAdapter = true)
 data class PaymentHistory(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

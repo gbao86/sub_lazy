@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.9] - 2026-06-18
+
+### Added
+- **Backup & Khôi phục dữ liệu (JSON)**: Implemented data export and import using Moshi and Android Storage Access Framework (ActivityResultContracts.CreateDocument/OpenDocument).
+- **Google Drive Sync**: Integrated lightweight GoogleDriveService utilizing OkHttp to directly upload `sub_lazy_backup.json` to the user's linked Google Drive securely via REST API.
+- **Home Screen Widget (Jetpack Glance)**: Built a `SubscriptionWidget` using `androidx.glance.appwidget` to display up to 4 urgent upcoming subscriptions right on the Android home screen, integrating directly with Room DB via Hilt EntryPoints.
+- **Unit Tests for Utils**: Established robust testing suite for `CurrencyFormatter` and `DateUtils` to guarantee accuracy of financial and temporal calculations across locales.
+
+### Changed
+- **Subscription Templates Refactoring**: Decoupled hardcoded presets in `SubscriptionTemplate.kt` by moving them into an externalized `assets/templates.json` and parsing via Moshi for easier maintenance.
+- **Global Accessibility (A11y)**: Fixed all `contentDescription = null` warnings across the UI (100% components) by providing localized content descriptions, drastically improving screen reader support.
+
+### Fixed
+- **Dummy Secret Security**: Restored dummy `client_secret_xyz.json` file in root directory with explicit `.gitignore` exclusion for `.log` files to prevent credential leakage.
+- **Scope Context Bug**: Resolved a `LocalContext` scope-resolution bug in `OnboardingScreen` during JSON parsing.
+
 ## [0.0.8] - 2026-06-17
 
 ### Added

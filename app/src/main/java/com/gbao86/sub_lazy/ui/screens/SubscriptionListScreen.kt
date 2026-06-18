@@ -124,7 +124,7 @@ fun SubscriptionListScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(20.dp),
-                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                icon = { Icon(Icons.Rounded.Add, contentDescription = "Add subscription") },
                 text = { Text(stringResource(R.string.list_btn_add_new), fontWeight = FontWeight.SemiBold) }
             )
         },
@@ -159,7 +159,7 @@ fun SubscriptionListScreen(
                     ) {
                         Icon(
                             Icons.Rounded.Subscriptions,
-                            contentDescription = null,
+                            contentDescription = "Empty list icon",
                             modifier = Modifier.size(52.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -237,11 +237,11 @@ fun SubscriptionListScreen(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     placeholder = { Text(stringResource(R.string.list_search_hint)) },
-                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "Search icon") },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Rounded.Clear, contentDescription = null)
+                                Icon(Icons.Rounded.Clear, contentDescription = "Clear search text")
                             }
                         }
                     },
@@ -347,7 +347,7 @@ fun SubscriptionListScreen(
                             ) {
                                 Icon(
                                     Icons.Rounded.Search,
-                                    contentDescription = null,
+                                    contentDescription = "Subscription item icon",
                                     modifier = Modifier.size(64.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                                 )
@@ -548,7 +548,7 @@ fun SubscriptionItem(
             ) {
                 Icon(
                     imageVector = CategoryUtils.getIconForName(subscription.name, subscription.category),
-                    contentDescription = null,
+                    contentDescription = "Billing cycle info icon",
                     tint = accentColor,
                     modifier = Modifier.size(26.dp)
                 )

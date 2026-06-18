@@ -108,6 +108,31 @@ fun DashboardScreen(
     val userBalance by viewModel.userBalance.collectAsStateWithLifecycle(initialValue = 2000000.0)
     val budgetResetDay by viewModel.budgetResetDay.collectAsStateWithLifecycle(initialValue = 1)
     val sharedMembersMap by viewModel.sharedMembersMap.collectAsStateWithLifecycle(initialValue = emptyMap())
+    val context = LocalContext.current
+
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) {
+            viewModel.exportData(uri) { success ->
+                if (success) {
+                    android.widget.Toast.makeText(context, "Export thành công!", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(context, "Lỗi Export", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            viewModel.importData(uri) { success ->
+                if (success) {
+                    android.widget.Toast.makeText(context, "Import thành công!", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(context, "Lỗi Import", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     DashboardContent(
         totalMonthlyCost = totalMonthlyCost,
@@ -123,7 +148,18 @@ fun DashboardScreen(
         onCheckInSession = { viewModel.checkInSession(it) },
         onToggleMemberPaidStatus = { sub, name -> viewModel.toggleMemberPaidStatus(sub, name) },
         onNavigateToAdd = onNavigateToAdd,
-        onNavigateToList = onNavigateToList
+        onNavigateToList = onNavigateToList,
+        onExport = { exportLauncher.launch("sub_lazy_backup.json") },
+        onImport = { importLauncher.launch(arrayOf("application/json")) },
+        onSyncToDrive = {
+            viewModel.syncToDrive { success ->
+                if (success) {
+                    android.widget.Toast.makeText(context, "Đồng bộ Drive thành công!", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(context, "Đồng bộ thất bại. Vui lòng kiểm tra quyền.", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     )
 }
 
@@ -143,7 +179,10 @@ fun DashboardContent(
     onCheckInSession: (Subscription) -> Unit,
     onToggleMemberPaidStatus: (Subscription, String) -> Unit,
     onNavigateToAdd: (String?, Double?, String?, String?, String?, String?, String?, String?) -> Unit,
-    onNavigateToList: () -> Unit
+    onNavigateToList: () -> Unit,
+    onExport: () -> Unit = {},
+    onImport: () -> Unit = {},
+    onSyncToDrive: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val locale = LocalConfiguration.current.locales[0]
@@ -189,7 +228,7 @@ fun DashboardContent(
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestIdToken("64362252049-i3htibobp5vetql6h451ov3a7nbo6lii.apps.googleusercontent.com")
-            .requestScopes(Scope("https://www.googleapis.com/auth/gmail.readonly"))
+            .requestScopes(Scope("https://www.googleapis.com/auth/gmail.readonly"), Scope("https://www.googleapis.com/auth/drive.file"))
             .build()
     }
     val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
@@ -254,11 +293,11 @@ fun DashboardContent(
                 ),
                 actions = {
                     IconButton(onClick = { showSettingsDialog.value = true }) {
-                        Icon(Icons.Rounded.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     var showLangMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { showLangMenu = true }) {
-                        Icon(Icons.Rounded.Language, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.Rounded.Language, contentDescription = "Language", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     DropdownMenu(expanded = showLangMenu, onDismissRequest = { showLangMenu = false }) {
                         DropdownMenuItem(text = { Text("English") }, onClick = {
@@ -306,7 +345,7 @@ fun DashboardContent(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(20.dp),
-                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                icon = { Icon(Icons.Rounded.Add, contentDescription = "Add Subscription") },
                 text = { Text(stringResource(R.string.action_add), fontWeight = FontWeight.SemiBold) }
             )
         },
@@ -334,7 +373,7 @@ fun DashboardContent(
                             }
                         },
                         text = { Text(stringResource(R.string.dashboard_tab_overview), fontWeight = FontWeight.Bold) },
-                        icon = { Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null) }
+                        icon = { Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = "Dashboard") }
                     )
                     Tab(
                         selected = pagerState.currentPage == 1,
@@ -344,7 +383,7 @@ fun DashboardContent(
                             }
                         },
                         text = { Text(stringResource(R.string.dashboard_tab_analysis), fontWeight = FontWeight.Bold) },
-                        icon = { Icon(Icons.Rounded.Analytics, contentDescription = null) }
+                        icon = { Icon(Icons.Rounded.Analytics, contentDescription = "Analytics") }
                     )
                 }
 
@@ -395,7 +434,7 @@ fun DashboardContent(
                                 ) {
                                     Icon(
                                         Icons.AutoMirrored.Rounded.FormatListBulleted,
-                                        contentDescription = null,
+                                        contentDescription = "Manage subscriptions icon",
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -408,7 +447,7 @@ fun DashboardContent(
                                     Spacer(modifier = Modifier.weight(1f))
                                     Icon(
                                         Icons.Rounded.ChevronRight,
-                                        contentDescription = null,
+                                        contentDescription = "Navigate to list",
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -640,7 +679,10 @@ fun DashboardContent(
             googleSignInClient = googleSignInClient,
             onDismiss = { showSettingsDialog.value = false },
             onEmailChanged = { linkedAccountEmail = it },
-            onGoogleSignIn = { googleSignInLauncher.launch(googleSignInClient.signInIntent) }
+            onGoogleSignIn = { googleSignInLauncher.launch(googleSignInClient.signInIntent) },
+            onExport = onExport,
+            onImport = onImport,
+            onSyncToDrive = onSyncToDrive
         )
     }
 }

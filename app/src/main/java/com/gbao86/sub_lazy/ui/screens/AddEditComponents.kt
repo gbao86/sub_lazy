@@ -375,7 +375,7 @@ fun SharedMemberSection(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.People,
-                    contentDescription = null,
+                    contentDescription = "Search category",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
@@ -395,7 +395,7 @@ fun SharedMemberSection(
                 }
                 Icon(
                     imageVector = if (isSharedExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                    contentDescription = null,
+                    contentDescription = "Clear search",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -454,7 +454,7 @@ fun SharedMemberSection(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Delete,
-                                                contentDescription = stringResource(R.string.delete_dialog_confirm),
+                                                contentDescription = "Confirm deletion",
                                                 tint = MaterialTheme.colorScheme.error,
                                                 modifier = Modifier.size(20.dp)
                                             )
@@ -533,7 +533,7 @@ fun SharedMemberSection(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Add, contentDescription = "Add shared member", modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(stringResource(R.string.add_edit_shared_btn_add), style = MaterialTheme.typography.labelLarge)
                         }
@@ -584,7 +584,7 @@ fun VietQRBankSection(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.AccountBalance,
-                    contentDescription = null,
+                    contentDescription = "Copy Bank Account",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
@@ -604,7 +604,7 @@ fun VietQRBankSection(
                 }
                 Icon(
                     imageVector = if (isBankExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                    contentDescription = null,
+                    contentDescription = "Scan VietQR",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

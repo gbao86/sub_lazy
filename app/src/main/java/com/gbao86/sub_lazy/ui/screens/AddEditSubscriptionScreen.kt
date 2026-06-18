@@ -492,14 +492,14 @@ fun AddEditSubscriptionScreen(
                     leadingIcon = {
                         Icon(
                             imageVector = CategoryUtils.getCategoryIcon(category),
-                            contentDescription = null,
+                            contentDescription = "Color selected icon",
                             tint = MaterialTheme.colorScheme.primary
                         )
                     },
                     trailingIcon = {
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = null,
+                            contentDescription = "Select color",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
@@ -569,7 +569,7 @@ fun AddEditSubscriptionScreen(
                                     ) {
                                         Icon(
                                             imageVector = CategoryUtils.getCategoryIcon(cat),
-                                            contentDescription = null,
+                                            contentDescription = "Toggle currency",
                                             tint = if (isSelected) catColor else MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(24.dp)
                                         )

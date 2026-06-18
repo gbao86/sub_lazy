@@ -92,7 +92,7 @@ fun HeroSpendingCard(
                     ) {
                         Icon(
                             Icons.AutoMirrored.Rounded.TrendingUp,
-                            contentDescription = null,
+                            contentDescription = "Dashboard Card Illustration",
                             tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
