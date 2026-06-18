@@ -36,7 +36,8 @@ class GoogleDriveService(private val context: Context) {
 
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
-                    throw Exception("Failed to upload: ${"$response.code"}")
+                    val errorBody = response.body?.string()
+                    throw Exception("Failed to upload: ${response.code} - $errorBody")
                 }
             }
             Result.success(Unit)
