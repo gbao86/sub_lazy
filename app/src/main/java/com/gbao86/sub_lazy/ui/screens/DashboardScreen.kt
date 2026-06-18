@@ -158,11 +158,11 @@ fun DashboardScreen(
             onExport = { exportLauncher.launch("sub_lazy_backup.json") },
             onImport = { importLauncher.launch(arrayOf("application/json")) },
             onSyncToDrive = {
-                viewModel.syncToDrive { success ->
+                viewModel.syncToDrive { success, errorMessage ->
                     if (success) {
                         android.widget.Toast.makeText(context, "Đồng bộ Drive thành công!", android.widget.Toast.LENGTH_SHORT).show()
                     } else {
-                        android.widget.Toast.makeText(context, "Đồng bộ thất bại. Vui lòng kiểm tra quyền.", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(context, "Đồng bộ thất bại: ${errorMessage ?: "Lỗi không xác định"}", android.widget.Toast.LENGTH_LONG).show()
                     }
                 }
             }

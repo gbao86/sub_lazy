@@ -192,7 +192,7 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun syncToDrive(onComplete: (Boolean) -> Unit) {
+    fun syncToDrive(onComplete: (Boolean, String?) -> Unit) {
         if (_isProcessing.value) return
         viewModelScope.launch {
             _isProcessing.value = true
@@ -200,10 +200,16 @@ class DashboardViewModel @Inject constructor(
                 val json = backupRestoreManager.getBackupJsonString()
                 val service = com.gbao86.sub_lazy.data.api.GoogleDriveService(context)
                 val result = service.uploadBackup(json)
-                onComplete(result.isSuccess)
+                if (result.isSuccess) {
+                    onComplete(true, null)
+                } else {
+                    val e = result.exceptionOrNull()
+                    e?.printStackTrace()
+                    onComplete(false, e?.message ?: "Unknown error")
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                onComplete(false)
+                onComplete(false, e.message)
             } finally {
                 _isProcessing.value = false
             }
