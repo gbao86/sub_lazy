@@ -26,6 +26,7 @@ import com.gbao86.sub_lazy.ui.FinanceCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -163,7 +164,7 @@ class DashboardViewModel @Inject constructor(
     }
 
     private val _isProcessing = kotlinx.coroutines.flow.MutableStateFlow(false)
-    val isProcessing: kotlinx.coroutines.flow.StateFlow<Boolean> = kotlinx.coroutines.flow.asStateFlow(_isProcessing)
+    val isProcessing: kotlinx.coroutines.flow.StateFlow<Boolean> = _isProcessing.asStateFlow()
 
     fun exportData(uri: android.net.Uri, onComplete: (com.gbao86.sub_lazy.data.BackupResult) -> Unit) {
         if (_isProcessing.value) return
