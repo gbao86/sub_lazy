@@ -139,6 +139,20 @@ fun DashboardScreen(
         }
     }
 
+    val recoverDriveAuthLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            viewModel.syncToDrive { success, errorMessage, _ ->
+                if (success) {
+                    android.widget.Toast.makeText(context, "Đồng bộ Drive thành công!", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(context, "Đồng bộ thất bại: ${errorMessage ?: "Lỗi không xác định"}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            android.widget.Toast.makeText(context, "Bạn đã hủy cấp quyền Google Drive.", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         DashboardContent(
             totalMonthlyCost = totalMonthlyCost,
@@ -158,9 +172,11 @@ fun DashboardScreen(
             onExport = { exportLauncher.launch("sub_lazy_backup.json") },
             onImport = { importLauncher.launch(arrayOf("application/json")) },
             onSyncToDrive = {
-                viewModel.syncToDrive { success, errorMessage ->
+                viewModel.syncToDrive { success, errorMessage, intent ->
                     if (success) {
                         android.widget.Toast.makeText(context, "Đồng bộ Drive thành công!", android.widget.Toast.LENGTH_SHORT).show()
+                    } else if (intent != null) {
+                        recoverDriveAuthLauncher.launch(intent)
                     } else {
                         android.widget.Toast.makeText(context, "Đồng bộ thất bại: ${errorMessage ?: "Lỗi không xác định"}", android.widget.Toast.LENGTH_LONG).show()
                     }
