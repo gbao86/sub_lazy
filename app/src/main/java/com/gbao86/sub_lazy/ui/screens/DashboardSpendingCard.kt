@@ -12,6 +12,11 @@ is strictly prohibited without the express written permission of the author.
 
 package com.gbao86.sub_lazy.ui.screens
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -58,7 +63,7 @@ fun HeroSpendingCard(
                     Brush.linearGradient(
                         listOf(
                             MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.primary.copy(red = 0.5f),
+                            MaterialTheme.colorScheme.tertiary,
                             MaterialTheme.colorScheme.secondary
                         )
                     )
@@ -105,15 +110,27 @@ fun HeroSpendingCard(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                Text(
-                    text = CurrencyFormatter.format(totalMonthlyCost ?: 0.0, "VND", locale),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White,
-                    softWrap = false,
-                    maxLines = 1,
-                    overflow = TextOverflow.Visible
-                )
+                AnimatedContent(
+                    targetState = totalMonthlyCost ?: 0.0,
+                    transitionSpec = {
+                        if (targetState > initialState) {
+                            (slideInVertically { height -> height } + fadeIn()).togetherWith(slideOutVertically { height -> -height } + fadeOut())
+                        } else {
+                            (slideInVertically { height -> -height } + fadeIn()).togetherWith(slideOutVertically { height -> height } + fadeOut())
+                        }.using(SizeTransform(clip = false))
+                    },
+                    label = "TotalCostTicker"
+                ) { targetCost ->
+                    Text(
+                        text = CurrencyFormatter.format(targetCost, "VND", locale),
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        softWrap = false,
+                        maxLines = 1,
+                        overflow = TextOverflow.Visible
+                    )
+                }
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = Color.White.copy(alpha = 0.15f)
@@ -134,6 +151,11 @@ fun HeroSpendingCard(
                 // Budget usage progress bar
                 if (userBalance > 0.0) {
                     val progress = ((totalMonthlyCost ?: 0.0) / userBalance).toFloat().coerceIn(0f, 1f)
+                    val animatedProgress by animateFloatAsState(
+                        targetValue = progress,
+                        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+                        label = "BudgetProgress"
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(
@@ -155,7 +177,7 @@ fun HeroSpendingCard(
                             )
                         }
                         LinearProgressIndicator(
-                            progress = { progress },
+                            progress = { animatedProgress },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(6.dp)

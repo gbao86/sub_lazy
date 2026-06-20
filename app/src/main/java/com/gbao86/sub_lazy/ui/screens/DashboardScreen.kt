@@ -410,6 +410,7 @@ fun DashboardContent(
                     Tab(
                         selected = pagerState.currentPage == 0,
                         onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(0)
                             }
@@ -420,6 +421,7 @@ fun DashboardContent(
                     Tab(
                         selected = pagerState.currentPage == 1,
                         onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(1)
                             }

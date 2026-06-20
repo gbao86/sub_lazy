@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.10] - 2026-06-20
+
+### Added
+- **Haptic Feedback**: Added tactile vibrations (`HapticFeedbackType.TextHandleMove`) for interactive UI elements (Timeline items, Check-in, Mark as Paid, Tab selections) to improve physical satisfaction and UX.
+- **Empty States**: Added a new cute illustration (`cat_saving.png`) for `UpcomingRenewalsTimeline` empty states to replace generic icons and enhance app personality.
+
+### Changed
+- **Semantic Colors**: Replaced hardcoded HEX colors (`Color(0xFF...)`) with `MaterialTheme.colorScheme` across `DashboardTimeline.kt` and `DashboardSpendingCard.kt` to natively support dynamic Dark/Light modes.
+- **Animations**: Wrapped monetary values in `DashboardSpendingCard.kt` with `AnimatedContent` (SlideVertically) for smooth number ticker transitions. Applied `animateFloatAsState` for the budget progress bar to prevent abrupt UI changes.
+- **Component Modularity**: Extracted `BillingCycleChart` from the massive `DashboardTimeline.kt` into a standalone `DashboardBillingCycleChart.kt`, significantly reducing file size and complexity.
+
 ## [0.0.9] - 2026-06-18
 
 ### Added

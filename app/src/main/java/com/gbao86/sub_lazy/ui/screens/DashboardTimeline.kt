@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,12 +32,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.gbao86.sub_lazy.ui.toComposeColor
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -44,7 +47,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.toColorInt
 import coil.compose.AsyncImage
 import com.gbao86.sub_lazy.R
 import com.gbao86.sub_lazy.data.Subscription
@@ -58,147 +60,6 @@ import com.gbao86.sub_lazy.ui.DateUtils
 import com.gbao86.sub_lazy.ui.VietQRGenerator
 import kotlinx.coroutines.launch
 import java.util.Calendar
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Billing Cycle Chart
-// FIX: animations now run in parallel via separate coroutine launches
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-fun BillingCycleChart(subscriptions: List<Subscription>, modifier: Modifier = Modifier) {
-    val locale = LocalConfiguration.current.locales[0]
-    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-    val daysInYear = if (java.time.Year.isLeap(currentYear.toLong())) 366.0 else 365.0
-    val dailyMultiplier = daysInYear / 12.0
-
-    val weeklyCost = subscriptions.filter { it.cycle == BillingCycle.WEEKLY }
-        .sumOf { CurrencyFormatter.convert(it.amount, it.currency.code, "VND") } * 52.0 / 12.0 +
-            subscriptions.filter { it.cycle == BillingCycle.DAILY }
-                .sumOf { CurrencyFormatter.convert(it.amount, it.currency.code, "VND") } * dailyMultiplier
-
-    val monthlyCost = subscriptions.filter { it.cycle == BillingCycle.MONTHLY }
-        .sumOf { CurrencyFormatter.convert(it.amount, it.currency.code, "VND") } +
-            subscriptions.filter { it.cycle == BillingCycle.EVERY_3_MONTHS }
-                .sumOf { CurrencyFormatter.convert(it.amount, it.currency.code, "VND") } / 3.0 +
-            subscriptions.filter { it.cycle == BillingCycle.EVERY_6_MONTHS }
-                .sumOf { CurrencyFormatter.convert(it.amount, it.currency.code, "VND") } / 6.0
-
-    val yearlyCost = subscriptions.filter { it.cycle == BillingCycle.YEARLY }
-        .sumOf { CurrencyFormatter.convert(it.amount, it.currency.code, "VND") } / 12.0
-
-    val total = weeklyCost + monthlyCost + yearlyCost
-
-    // Declare animations outside Row to follow Compose best practices
-    val weeklyAnim = remember { Animatable(0f) }
-    val monthlyAnim = remember { Animatable(0f) }
-    val yearlyAnim = remember { Animatable(0f) }
-
-    // FIX: launch all three in parallel instead of sequential
-    LaunchedEffect(weeklyCost, monthlyCost, yearlyCost) {
-        val weeklyTarget = if (total > 0.0) (weeklyCost / total).toFloat() else 0f
-        val monthlyTarget = if (total > 0.0) (monthlyCost / total).toFloat() else 0f
-        val yearlyTarget = if (total > 0.0) (yearlyCost / total).toFloat() else 0f
-
-        launch { weeklyAnim.animateTo(weeklyTarget, tween(900, easing = FastOutSlowInEasing)) }
-        launch { monthlyAnim.animateTo(monthlyTarget, tween(900, easing = FastOutSlowInEasing)) }
-        launch { yearlyAnim.animateTo(yearlyTarget, tween(900, easing = FastOutSlowInEasing)) }
-    }
-
-    Column(modifier = modifier.padding(24.dp)) {
-        Text(
-            stringResource(R.string.chart_billing_cycle_title),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(20.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    CurrencyFormatter.format(weeklyCost, "VND", locale),
-                    style = MaterialTheme.typography.labelSmall,
-                    softWrap = false, maxLines = 1,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .width(44.dp)
-                        .height((120 * weeklyAnim.value).dp.coerceAtLeast(6.dp))
-                        .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.tertiary,
-                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-                                )
-                            )
-                        )
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(stringResource(R.string.cycle_weekly), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    CurrencyFormatter.format(monthlyCost, "VND", locale),
-                    style = MaterialTheme.typography.labelSmall,
-                    softWrap = false, maxLines = 1,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .width(44.dp)
-                        .height((120 * monthlyAnim.value).dp.coerceAtLeast(6.dp))
-                        .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                )
-                            )
-                        )
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(stringResource(R.string.cycle_monthly), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    CurrencyFormatter.format(yearlyCost, "VND", locale),
-                    style = MaterialTheme.typography.labelSmall,
-                    softWrap = false, maxLines = 1,
-                    color = MaterialTheme.colorScheme.secondary,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .width(44.dp)
-                        .height((120 * yearlyAnim.value).dp.coerceAtLeast(6.dp))
-                        .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.secondary,
-                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
-                                )
-                            )
-                        )
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(stringResource(R.string.cycle_yearly), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)
-            }
-        }
-    }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Upcoming Renewals Timeline
@@ -218,6 +79,7 @@ fun UpcomingRenewalsTimeline(
     val locale = LocalConfiguration.current.locales[0]
     val upcoming = subscriptions.sortedBy { it.nextBillingDate }.take(6)
     var showQrDialog by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
 
     Column(
         modifier = modifier.padding(24.dp),
@@ -228,20 +90,42 @@ fun UpcomingRenewalsTimeline(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 2.dp)
-        ) {
-            items(upcoming, key = { it.id ?: 0 }) { sub ->
+        if (upcoming.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.cat_saving),
+                    contentDescription = "No upcoming",
+                    modifier = Modifier.size(120.dp)
+                )
+                Text(
+                    text = "Thảnh thơi! Chưa có hoá đơn nào sắp tới.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(horizontal = 2.dp)
+            ) {
+            items(upcoming, key = { it.id }) { sub ->
                 val days = DateUtils.getDaysLeft(sub.nextBillingDate)
                 val isSelected = selectedSub?.id == sub.id
                 val subColor = remember(sub.colorHex) {
                     sub.colorHex.toComposeColor(Color(0xFF6366F1))
                 }
+                val errorColor = MaterialTheme.colorScheme.error
+                val tertiaryColor = MaterialTheme.colorScheme.tertiary
                 val urgencyColor = when {
-                    days <= 0 -> Color(0xFFF43F5E)
-                    days <= 3 -> Color(0xFFF43F5E)
-                    days <= 7 -> Color(0xFFF59E0B)
+                    days <= 0 -> errorColor
+                    days <= 3 -> errorColor
+                    days <= 7 -> tertiaryColor
                     else -> subColor
                 }
                 Column(
@@ -250,7 +134,10 @@ fun UpcomingRenewalsTimeline(
                         .width(64.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(if (isSelected) subColor.copy(alpha = 0.1f) else Color.Transparent)
-                        .clickable { onSubSelected(if (isSelected) null else sub) }
+                        .clickable { 
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSubSelected(if (isSelected) null else sub) 
+                        }
                         .padding(vertical = 8.dp, horizontal = 4.dp)
                 ) {
                     Box(
@@ -297,8 +184,9 @@ fun UpcomingRenewalsTimeline(
                 }
             }
         }
+    }
 
-        if (selectedSub != null) {
+    if (selectedSub != null) {
             val days = DateUtils.getDaysLeft(selectedSub.nextBillingDate)
             val cycleText = when (selectedSub.cycle) {
                 BillingCycle.DAILY -> stringResource(R.string.cycle_daily)
@@ -446,7 +334,7 @@ fun UpcomingRenewalsTimeline(
                                                             }
                                                             val chooserTitle = toastContext.getString(R.string.dashboard_send_reminder_to, member.name)
                                                             toastContext.startActivity(Intent.createChooser(sendIntent, chooserTitle))
-                                                        } catch (e: Exception) {
+                                                        } catch (_: Exception) {
                                                             // fallback silently
                                                         }
                                                     },
@@ -516,7 +404,10 @@ fun UpcomingRenewalsTimeline(
                             ) {
                                 val remaining = selectedSub.remainingSessions ?: 0
                                 OutlinedButton(
-                                    onClick = { onCheckInSession(selectedSub) },
+                                    onClick = { 
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onCheckInSession(selectedSub) 
+                                    },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(14.dp),
                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
@@ -528,6 +419,7 @@ fun UpcomingRenewalsTimeline(
                                 }
                                 Button(
                                     onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         onMarkAsPaid(selectedSub)
                                         onSubSelected(null)
                                     },
@@ -546,7 +438,10 @@ fun UpcomingRenewalsTimeline(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 OutlinedButton(
-                                    onClick = { showQrDialog = true },
+                                    onClick = { 
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        showQrDialog = true 
+                                    },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(14.dp),
                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
@@ -557,6 +452,7 @@ fun UpcomingRenewalsTimeline(
                                 }
                                 Button(
                                     onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         onMarkAsPaid(selectedSub)
                                         onSubSelected(null)
                                     },
@@ -572,6 +468,7 @@ fun UpcomingRenewalsTimeline(
                         } else {
                             Button(
                                 onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onMarkAsPaid(selectedSub)
                                     onSubSelected(null)
                                 },
