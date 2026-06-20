@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Haptic Feedback**: Added tactile vibrations (`HapticFeedbackType.TextHandleMove`) for interactive UI elements (Timeline items, Check-in, Mark as Paid, Tab selections) to improve physical satisfaction and UX.
-- **Empty States**: Added a new cute illustration (`cat_saving.png`) for `UpcomingRenewalsTimeline` empty states to replace generic icons and enhance app personality.
+- **Empty States**: Added a new cute illustration (`cat_saving.jpg`) for `UpcomingRenewalsTimeline` empty states to replace generic icons and enhance app personality.
 
 ### Changed
 - **Semantic Colors**: Replaced hardcoded HEX colors (`Color(0xFF...)`) with `MaterialTheme.colorScheme` across `DashboardTimeline.kt` and `DashboardSpendingCard.kt` to natively support dynamic Dark/Light modes.

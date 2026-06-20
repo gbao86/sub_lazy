@@ -19,7 +19,7 @@ Yeah, we've all been there.
 **Current release status (v0.0.10):** UI/UX Overhaul, Dynamic Semantic Colors, Component Modularity, Smooth Number Ticker Animations, and Tactile Haptic Feedback.
 
 <p align="center">
-  <img src="assets/cat_coding.png" width="220" alt="Lazy Cat coding"/>
+  <img src="assets/cat_coding.jpg" width="220" alt="Lazy Cat coding"/>
   <br>
   <i>Me trying to track all my subscriptions... 🐱</i>
 </p>
