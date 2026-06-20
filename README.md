@@ -58,7 +58,7 @@ Yeah, we've all been there.
 - **Home Screen Widget**: A modern **Jetpack Glance** widget that displays your upcoming bills right on your launcher screen.
 
 <p align="center">
-  <img src="assets/cat_saving.png" width="220" alt="Lazy Cat with savings"/>
+  <img src="assets/cat_saving.jpg" width="220" alt="Lazy Cat with savings"/>
   <br>
   <i>Current state of my bank account after subscription renewals... 💰</i>
 </p>
