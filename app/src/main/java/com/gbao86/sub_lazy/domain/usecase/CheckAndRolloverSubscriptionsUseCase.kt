@@ -14,59 +14,23 @@ package com.gbao86.sub_lazy.domain.usecase
 
 import com.gbao86.sub_lazy.data.ISubscriptionRepository
 import com.gbao86.sub_lazy.data.Subscription
-import com.gbao86.sub_lazy.data.model.BillingCycle
-import com.gbao86.sub_lazy.ui.DateUtils
-import com.gbao86.sub_lazy.worker.NotificationScheduler
 import javax.inject.Inject
 
 class CheckAndRolloverSubscriptionsUseCase @Inject constructor(
     private val repository: ISubscriptionRepository,
-    private val notificationScheduler: NotificationScheduler
+    private val rolloverUseCase: RolloverSubscriptionUseCase
 ) {
     suspend operator fun invoke(list: List<Subscription>): Result<Unit> {
         val now = System.currentTimeMillis()
         list.forEach { sub ->
             if (sub.nextBillingDate < now) {
                 var currentSub = sub
-                var shouldDelete = false
                 while (currentSub.nextBillingDate < now) {
-                    if (currentSub.cycle == BillingCycle.ONE_TIME) {
-                        shouldDelete = true
-                        break
-                    }
-
-                    val limit = currentSub.remainingTimes
-                    if (limit != null && limit > 0) {
-                        val newLimit = limit - 1
-                        if (newLimit <= 0) {
-                            shouldDelete = true
-                            break
+                    when (val result = rolloverUseCase(currentSub)) {
+                        is RolloverSubscriptionUseCase.RolloverResult.Deleted -> break
+                        is RolloverSubscriptionUseCase.RolloverResult.Updated -> {
+                            currentSub = result.subscription
                         }
-                        currentSub = currentSub.copy(remainingTimes = newLimit)
-                    }
-
-                    val nextDate = DateUtils.getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
-                    if (nextDate <= currentSub.nextBillingDate) {
-                        shouldDelete = true
-                        break
-                    }
-                    currentSub = currentSub.copy(nextBillingDate = nextDate)
-                }
-
-                if (shouldDelete) {
-                    repository.delete(sub).onSuccess {
-                        notificationScheduler.cancelNotification(sub.id)
-                    }
-                } else {
-                    if (currentSub.isShared) {
-                        // Reset all shared members' paid status for the new billing cycle
-                        repository.getSharedMembersForSubscriptionOnce(currentSub.id).onSuccess { members ->
-                            val resetMembers = members.map { it.copy(hasPaid = false) }
-                            repository.saveSharedMembers(currentSub.id, resetMembers)
-                        }
-                    }
-                    repository.update(currentSub).onSuccess {
-                        notificationScheduler.scheduleNotification(currentSub)
                     }
                 }
             }

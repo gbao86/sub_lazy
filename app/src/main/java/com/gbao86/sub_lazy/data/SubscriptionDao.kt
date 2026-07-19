@@ -16,10 +16,7 @@ import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 import com.gbao86.sub_lazy.data.model.SubscriptionCategory
 
-data class CategorySpending(
-    val category: SubscriptionCategory,
-    val totalAmount: Double
-)
+import com.gbao86.sub_lazy.data.model.CategorySpending
 
 @Dao
 interface SubscriptionDao {

@@ -18,9 +18,9 @@ import java.util.Locale
 object CurrencyFormatter {
     fun convert(amount: Double, fromCurrency: String, toCurrency: String): Double {
         if (fromCurrency.equals(toCurrency, ignoreCase = true)) return amount
-        val context = ExchangeRateManager.getAppContext()
-        return if (context != null) {
-            ExchangeRateManager.convert(context, amount, fromCurrency, toCurrency)
+        val mgr = ExchangeRateManager.instance
+        return if (mgr != null) {
+            mgr.convert(amount, fromCurrency, toCurrency)
         } else {
             val rateFrom = ExchangeRateManager.getDefaultRate(fromCurrency)
             val rateTo = ExchangeRateManager.getDefaultRate(toCurrency)

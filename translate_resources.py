@@ -12,6 +12,7 @@ import os
 import xml.etree.ElementTree as ET
 import urllib.request
 import urllib.parse
+import urllib.error
 import json
 import re
 import time
@@ -107,7 +108,7 @@ def translate_batch(batch_texts, target_lang):
         with urllib.request.urlopen(req, timeout=15) as response:
             result = json.loads(response.read().decode('utf-8'))
             translated_joined = "".join([part[0] for part in result[0] if part[0]])
-    except Exception as e:
+    except urllib.error.URLError as e:
         print(f"  Batch translation failed for {target_lang}: {e}")
         return None
 
@@ -209,7 +210,7 @@ def translate_single_fallback(text, target_lang):
         with urllib.request.urlopen(req, timeout=10) as response:
             result = json.loads(response.read().decode('utf-8'))
             translated = "".join([part[0] for part in result[0] if part[0]])
-    except Exception as e:
+    except urllib.error.URLError as e:
         return None
 
     # Restore
@@ -259,28 +260,37 @@ def main():
             
         print(f"  Found {len(missing_keys)} missing strings. Batch translating...")
         
-        # Batch size of 20 strings to keep URL lengths safe
-        batch_size = 25
+        batch_size = 10
         batches = [missing_keys[i:i + batch_size] for i in range(0, len(missing_keys), batch_size)]
         
         for batch_idx, batch in enumerate(batches):
             print(f"    Translating batch {batch_idx + 1}/{len(batches)} (size {len(batch)})...")
             batch_texts = [master_strings[k] for k in batch]
             
-            translated_batch = translate_batch(batch_texts, g_lang)
+            translated_batch = None
+            max_retries = 3
+            backoff = 2
+            
+            for attempt in range(max_retries):
+                translated_batch = translate_batch(batch_texts, g_lang)
+                if translated_batch:
+                    break
+                print(f"      Attempt {attempt + 1} failed. Retrying in {backoff} seconds...")
+                time.sleep(backoff)
+                backoff *= 2
             
             if translated_batch:
                 for idx, key in enumerate(batch):
                     target_strings[key] = translated_batch[idx]
             else:
                 # Fallback to single translations for this batch
-                print(f"    Batch translation failed. Running single fallback for this batch...")
+                print(f"    Batch translation failed after retries. Running single fallback for this batch...")
                 for key in batch:
                     trans = translate_single_fallback(master_strings[key], g_lang)
                     target_strings[key] = trans if trans is not None else master_strings[key]
-                    time.sleep(0.1)
+                    time.sleep(1)
             
-            time.sleep(0.5) # Slight throttle between batches
+            time.sleep(1) # Slight throttle between batches
                 
         write_strings_xml(target_path, target_strings, master_keys_ordered)
     print("\nTranslation complete!")

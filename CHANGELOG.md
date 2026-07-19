@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.11] - 2026-07-19
+
+### Changed
+- **Dependency Injection (Hilt)**: Fixed dual singleton instances by migrating `AppDatabase` and `ExchangeRateManager` completely to Hilt DI. Modified `BillNotificationListener` and `NotificationWorker` to utilize Hilt `@EntryPoint` and `@HiltWorker` correctly, eliminating manual DI bypassing.
+- **Architecture (Use Cases)**: Deduplicated subscription rollover and resetting logic by extracting it into a unified, testable `RolloverSubscriptionUseCase`. Other use cases (`CheckAndRolloverSubscriptionsUseCase`, `MarkPaymentAsPaidUseCase`) now delegate to this shared unit.
+- **Code Quality**: Extracted `SharedPreferences` usage into a central `UserPreferences` class to remove magic strings and standardize preference fetching.
+- **Service Naming**: Renamed `GeminiService.kt` to `BillOcrService.kt` to accurately reflect its offline ML-Kit OCR capability.
+- **Translation Script**: Improved `translate_resources.py` with smaller batch sizes and exponential backoff to handle rate limits more gracefully.
+
+### Fixed
+- **Testing**: Added unit test coverage for `DateUtils`, `FinanceCalculator`, and `RolloverSubscriptionUseCase` to ensure stability of financial logic.
+- **Imports & Linting**: Cleaned up God-class imports in `DashboardViewModel` and `DashboardScreen`, moved model classes like `CategorySpending` to appropriate packages.
+
 ## [0.0.10] - 2026-06-20
 
 ### Added

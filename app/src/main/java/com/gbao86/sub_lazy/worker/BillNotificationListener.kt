@@ -21,10 +21,15 @@ import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import com.gbao86.sub_lazy.MainActivity
 import com.gbao86.sub_lazy.R
-import com.gbao86.sub_lazy.data.AppDatabase
 import com.gbao86.sub_lazy.data.PaymentHistory
+import com.gbao86.sub_lazy.data.ISubscriptionRepository
+import com.gbao86.sub_lazy.domain.usecase.RolloverSubscriptionUseCase
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
-import com.gbao86.sub_lazy.ui.DateUtils
+import com.gbao86.sub_lazy.worker.NotificationScheduler
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import com.gbao86.sub_lazy.data.model.BillingCycle
 import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +41,13 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Locale
 import java.util.regex.Pattern
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface BillNotificationEntryPoint {
+    fun repository(): ISubscriptionRepository
+    fun rolloverUseCase(): RolloverSubscriptionUseCase
+}
 
 class BillNotificationListener : NotificationListenerService() {
 
@@ -97,13 +109,15 @@ class BillNotificationListener : NotificationListenerService() {
         val amount = detectAmount(combinedText) ?: 0.0
         if (amount <= 0.0) return
 
-        // Check if subscription exists in local Room DB to auto-mark as paid
-        val db = AppDatabase.getDatabase(applicationContext)
-        val dao = db.subscriptionDao()
+        val entryPoint = EntryPointAccessors.fromApplication(
+            applicationContext, BillNotificationEntryPoint::class.java
+        )
+        val repository = entryPoint.repository()
+        val rolloverUseCase = entryPoint.rolloverUseCase()
 
         serviceScope.launch {
             try {
-                val subs = dao.getAllSubscriptions().first()
+                val subs = repository.allSubscriptions.first()
                 val matchedSub = subs.find { it.name.equals(serviceName, ignoreCase = true) }
 
                 if (matchedSub != null) {
@@ -116,36 +130,11 @@ class BillNotificationListener : NotificationListenerService() {
                         paymentDate = System.currentTimeMillis(),
                         cycle = matchedSub.cycle
                     )
-                    dao.insertPaymentHistory(record)
+                    repository.insertPaymentHistory(record)
 
                     // Rollover renewal date
-                    if (matchedSub.cycle == BillingCycle.ONE_TIME) {
-                        dao.deleteSubscription(matchedSub)
-                        NotificationScheduler(applicationContext).cancelNotification(matchedSub.id)
-                    } else {
-                        var currentSub = matchedSub
-                        var shouldDelete = false
-
-                        val limit = currentSub.remainingTimes
-                        if (limit != null && limit > 0) {
-                            val newLimit = limit - 1
-                            if (newLimit <= 0) {
-                                shouldDelete = true
-                            } else {
-                                currentSub = currentSub.copy(remainingTimes = newLimit)
-                            }
-                        }
-
-                        if (shouldDelete) {
-                            dao.deleteSubscription(matchedSub)
-                            NotificationScheduler(applicationContext).cancelNotification(matchedSub.id)
-                        } else {
-                            val finalNextDate = DateUtils.getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
-                            currentSub = currentSub.copy(nextBillingDate = finalNextDate)
-                            dao.updateSubscription(currentSub)
-                            NotificationScheduler(applicationContext).scheduleNotification(currentSub)
-                        }
-                    }
+                    rolloverUseCase(matchedSub)
+                    
                     showAutoPaidNotification(matchedSub.name, amount, matchedSub.currency.code)
                 } else {
                     // Pre-fill screen if it's a new subscription

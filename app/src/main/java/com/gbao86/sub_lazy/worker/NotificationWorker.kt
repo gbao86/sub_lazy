@@ -21,17 +21,20 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import androidx.hilt.work.HiltWorker
 import com.gbao86.sub_lazy.MainActivity
 import com.gbao86.sub_lazy.R
-import com.gbao86.sub_lazy.data.AppDatabase
+import com.gbao86.sub_lazy.data.SubscriptionDao
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
-
 import com.gbao86.sub_lazy.data.model.SubscriptionCategory
-import com.gbao86.sub_lazy.data.model.SubscriptionCurrency
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 
-class NotificationWorker(
-    context: Context,
-    params: WorkerParameters
+@HiltWorker
+class NotificationWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted params: WorkerParameters,
+    private val subscriptionDao: SubscriptionDao
 ) : CoroutineWorker(context, params) {
 
     private val TAG = "NotificationWorker"
@@ -41,8 +44,7 @@ class NotificationWorker(
             val subscriptionId = inputData.getLong("subscriptionId", -1L)
             if (subscriptionId == -1L) return Result.failure()
 
-            val db = AppDatabase.getDatabase(applicationContext)
-            val subscription = db.subscriptionDao().getSubscriptionById(subscriptionId) ?: return Result.failure()
+            val subscription = subscriptionDao.getSubscriptionById(subscriptionId) ?: return Result.failure()
 
             val locale = applicationContext.resources.configuration.locales[0]
             val amountFormatted = CurrencyFormatter.format(subscription.amount, subscription.currency.code, locale)

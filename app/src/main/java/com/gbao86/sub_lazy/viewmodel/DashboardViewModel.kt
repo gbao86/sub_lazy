@@ -16,11 +16,15 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gbao86.sub_lazy.data.CategorySpending
+import com.gbao86.sub_lazy.data.model.CategorySpending
 import com.gbao86.sub_lazy.data.SharedMember
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.data.ISubscriptionRepository
 import com.gbao86.sub_lazy.data.PaymentHistory
+import com.gbao86.sub_lazy.data.BackupRestoreManager
+import com.gbao86.sub_lazy.data.BackupResult
+import com.gbao86.sub_lazy.data.UserPreferences
+import com.google.android.gms.auth.UserRecoverableAuthException
 import com.gbao86.sub_lazy.domain.usecase.*
 import com.gbao86.sub_lazy.ui.FinanceCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,7 +38,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -46,36 +49,24 @@ class DashboardViewModel @Inject constructor(
     private val markPaymentAsPaidUseCase: MarkPaymentAsPaidUseCase,
     private val checkInSessionUseCase: CheckInSessionUseCase,
     private val toggleMemberPaidStatusUseCase: ToggleMemberPaidStatusUseCase,
-    private val backupRestoreManager: com.gbao86.sub_lazy.data.BackupRestoreManager,
+    private val backupRestoreManager: BackupRestoreManager,
+    private val userPreferences: UserPreferences,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    private val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-
-    private fun getStoredBalance(): Double {
-        val strVal = sharedPref.getString("user_balance_str", null)
-        if (strVal != null) {
-            val parsed = strVal.toDoubleOrNull()
-            if (parsed != null) return parsed
-        }
-        // Migrate legacy Float value (stored as string for precision)
-        val legacyStr = sharedPref.getString("user_balance_long", null)
-        return legacyStr?.toDoubleOrNull() ?: 2000000.0
-    }
-
-    private val _userBalance = MutableStateFlow(getStoredBalance())
+    private val _userBalance = MutableStateFlow(userPreferences.userBalance)
     val userBalance: StateFlow<Double> = _userBalance.asStateFlow()
 
-    private val _budgetResetDay = MutableStateFlow(sharedPref.getInt("budget_reset_day", 1))
+    private val _budgetResetDay = MutableStateFlow(userPreferences.budgetResetDay)
     val budgetResetDay: StateFlow<Int> = _budgetResetDay.asStateFlow()
 
     private val preferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
-            "user_balance", "user_balance_str" -> {
-                _userBalance.value = getStoredBalance()
+            UserPreferences.KEY_BALANCE_STR, UserPreferences.KEY_BALANCE_LONG -> {
+                _userBalance.value = userPreferences.userBalance
             }
-            "budget_reset_day" -> {
-                _budgetResetDay.value = sharedPref.getInt("budget_reset_day", 1)
+            UserPreferences.KEY_BUDGET_RESET_DAY -> {
+                _budgetResetDay.value = userPreferences.budgetResetDay
             }
         }
     }
@@ -104,24 +95,22 @@ class DashboardViewModel @Inject constructor(
         }
 
     fun updateUserBalance(balance: Double) {
-        sharedPref.edit()
-            .putString("user_balance_str", balance.toString())
-            .apply()
+        userPreferences.userBalance = balance
         _userBalance.value = balance
     }
 
     fun updateBudgetResetDay(day: Int) {
-        sharedPref.edit().putInt("budget_reset_day", day).apply()
+        userPreferences.budgetResetDay = day
         _budgetResetDay.value = day
     }
 
     override fun onCleared() {
         super.onCleared()
-        sharedPref.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
+        userPreferences.unregisterChangeListener(preferenceChangeListener)
     }
 
     init {
-        sharedPref.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
+        userPreferences.registerChangeListener(preferenceChangeListener)
 
         // Rollover or delete past subscriptions on startup
         viewModelScope.launch {
@@ -163,10 +152,10 @@ class DashboardViewModel @Inject constructor(
         toggleMemberPaidStatusUseCase(subscription, memberName)
     }
 
-    private val _isProcessing = kotlinx.coroutines.flow.MutableStateFlow(false)
-    val isProcessing: kotlinx.coroutines.flow.StateFlow<Boolean> = _isProcessing.asStateFlow()
+    private val _isProcessing = MutableStateFlow(false)
+    val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
 
-    fun exportData(uri: android.net.Uri, onComplete: (com.gbao86.sub_lazy.data.BackupResult) -> Unit) {
+    fun exportData(uri: android.net.Uri, onComplete: (BackupResult) -> Unit) {
         if (_isProcessing.value) return
         viewModelScope.launch {
             _isProcessing.value = true
@@ -179,7 +168,7 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun importData(uri: android.net.Uri, onComplete: (com.gbao86.sub_lazy.data.BackupResult) -> Unit) {
+    fun importData(uri: android.net.Uri, onComplete: (BackupResult) -> Unit) {
         if (_isProcessing.value) return
         viewModelScope.launch {
             _isProcessing.value = true
@@ -205,12 +194,12 @@ class DashboardViewModel @Inject constructor(
                 } else {
                     val e = result.exceptionOrNull()
                     e?.printStackTrace()
-                    val intent = if (e is com.google.android.gms.auth.UserRecoverableAuthException) e.intent else null
+                    val intent = if (e is UserRecoverableAuthException) e.intent else null
                     onComplete(false, e?.message ?: "Unknown error", intent)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                val intent = if (e is com.google.android.gms.auth.UserRecoverableAuthException) e.intent else null
+                val intent = if (e is UserRecoverableAuthException) e.intent else null
                 onComplete(false, e.message, intent)
             } finally {
                 _isProcessing.value = false

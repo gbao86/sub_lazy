@@ -15,14 +15,11 @@ package com.gbao86.sub_lazy.domain.usecase
 import com.gbao86.sub_lazy.data.ISubscriptionRepository
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.data.PaymentHistory
-import com.gbao86.sub_lazy.data.model.BillingCycle
-import com.gbao86.sub_lazy.ui.DateUtils
-import com.gbao86.sub_lazy.worker.NotificationScheduler
 import javax.inject.Inject
 
 class MarkPaymentAsPaidUseCase @Inject constructor(
     private val repository: ISubscriptionRepository,
-    private val notificationScheduler: NotificationScheduler
+    private val rolloverUseCase: RolloverSubscriptionUseCase
 ) {
     suspend operator fun invoke(subscription: Subscription): Result<Unit> {
         val record = PaymentHistory(
@@ -34,45 +31,7 @@ class MarkPaymentAsPaidUseCase @Inject constructor(
             cycle = subscription.cycle
         )
         return repository.insertPaymentHistory(record).mapCatching {
-            if (subscription.cycle == BillingCycle.ONE_TIME) {
-                repository.delete(subscription).onSuccess {
-                    notificationScheduler.cancelNotification(subscription.id)
-                }
-            } else {
-                var shouldDelete = false
-                var currentSub = subscription
-
-                val limit = currentSub.remainingTimes
-                if (limit != null && limit > 0) {
-                    val newLimit = limit - 1
-                    if (newLimit <= 0) {
-                        shouldDelete = true
-                    } else {
-                        currentSub = currentSub.copy(remainingTimes = newLimit)
-                    }
-                }
-
-                if (shouldDelete) {
-                    repository.delete(subscription).onSuccess {
-                        notificationScheduler.cancelNotification(subscription.id)
-                    }
-                } else {
-                    val finalNextDate = DateUtils.getNextBillingDate(currentSub.nextBillingDate, currentSub.cycle)
-                    currentSub = currentSub.copy(nextBillingDate = finalNextDate)
-
-                    // Reset all shared members' paid status for the new billing cycle
-                    if (currentSub.isShared) {
-                        repository.getSharedMembersForSubscriptionOnce(currentSub.id).onSuccess { members ->
-                            val resetMembers = members.map { it.copy(hasPaid = false) }
-                            repository.saveSharedMembers(currentSub.id, resetMembers)
-                        }
-                    }
-
-                    repository.update(currentSub).onSuccess {
-                        notificationScheduler.scheduleNotification(currentSub)
-                    }
-                }
-            }
+            rolloverUseCase(subscription)
             Unit
         }
     }

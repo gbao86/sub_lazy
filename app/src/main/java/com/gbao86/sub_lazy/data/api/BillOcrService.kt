@@ -24,14 +24,14 @@ import java.util.Calendar
 import com.gbao86.sub_lazy.ui.DateUtils
 import com.gbao86.sub_lazy.data.model.BillingCycle
 
-class GeminiService(private val context: Context) {
+class BillOcrService(private val context: Context) {
 
-    interface GeminiCallback {
+    interface BillOcrCallback {
         fun onSuccess(result: ParsedSubscription)
         fun onError(message: String)
     }
 
-    interface GeminiBatchCallback {
+    interface BillOcrBatchCallback {
         fun onSuccess(results: List<ParsedSubscription>)
         fun onError(message: String)
     }
@@ -45,7 +45,7 @@ class GeminiService(private val context: Context) {
         val currency: String = "VND"
     )
 
-    fun analyzeImage(imageUri: Uri, callback: GeminiCallback) {
+    fun analyzeImage(imageUri: Uri, callback: BillOcrCallback) {
         try {
             val image = InputImage.fromFilePath(context, imageUri)
             val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -67,7 +67,7 @@ class GeminiService(private val context: Context) {
         }
     }
 
-    fun analyzeText(emailContent: String, callback: GeminiCallback) {
+    fun analyzeText(emailContent: String, callback: BillOcrCallback) {
         val parsed = parseTextLocally(emailContent)
         if (parsed != null) {
             callback.onSuccess(parsed)
@@ -76,7 +76,7 @@ class GeminiService(private val context: Context) {
         }
     }
 
-    fun analyzeEmailsBatch(emailsText: String, callback: GeminiBatchCallback) {
+    fun analyzeEmailsBatch(emailsText: String, callback: BillOcrBatchCallback) {
         val list = parseMultipleSubscriptionsLocally(emailsText)
         if (list.isNotEmpty()) {
             callback.onSuccess(list)

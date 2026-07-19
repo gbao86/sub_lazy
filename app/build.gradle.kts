@@ -15,8 +15,8 @@ android {
         applicationId = "com.gbao86.sub_lazy"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "0.0.10"
+        versionCode = 11
+        versionName = "0.0.11"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockito.kotlin)
     testImplementation(libs.androidx.core)
     testImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -112,6 +113,8 @@ dependencies {
     "ksp"(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.hilt.work)
+    "ksp"(libs.androidx.hilt.compiler)
     
     // Glance App Widget
     implementation(libs.androidx.glance.appwidget)

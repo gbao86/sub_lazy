@@ -6,7 +6,7 @@ import android.os.Build
 import com.gbao86.sub_lazy.BuildConfig
 import androidx.room.withTransaction
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -30,7 +30,7 @@ class BackupRestoreManager @Inject constructor(
     private val appDatabase: AppDatabase,
     private val subscriptionDao: SubscriptionDao
 ) {
-    private val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
+    private val moshi = Moshi.Builder().build()
     private val adapter = moshi.adapter(BackupData::class.java)
 
     suspend fun exportData(context: Context, uri: Uri): BackupResult = withContext(Dispatchers.IO) {

@@ -13,6 +13,7 @@ is strictly prohibited without the express written permission of the author.
 package com.gbao86.sub_lazy.di
 
 import android.content.Context
+import androidx.room.Room
 import com.gbao86.sub_lazy.data.AppDatabase
 import com.gbao86.sub_lazy.data.SubscriptionDao
 import com.gbao86.sub_lazy.data.ISubscriptionRepository
@@ -22,6 +23,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
 import javax.inject.Singleton
 
 @Module
@@ -31,7 +33,27 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
-        return AppDatabase.getDatabase(context)
+        return Room.databaseBuilder(
+            context.applicationContext,
+            AppDatabase::class.java,
+            "subscription_database"
+        )
+        .addMigrations(
+            AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3,
+            AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5,
+            AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7,
+            AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9
+        )
+        .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
     }
 
     @Provides

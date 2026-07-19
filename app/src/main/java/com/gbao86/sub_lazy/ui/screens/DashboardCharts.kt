@@ -40,7 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gbao86.sub_lazy.R
-import com.gbao86.sub_lazy.data.CategorySpending
+import com.gbao86.sub_lazy.data.model.CategorySpending
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.CategoryUtils

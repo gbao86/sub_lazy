@@ -35,8 +35,13 @@ import com.gbao86.sub_lazy.ui.navigation.Route
 import com.gbao86.sub_lazy.ui.theme.Sub_lazyTheme
 import dagger.hilt.android.AndroidEntryPoint
 
+import javax.inject.Inject
+
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    @Inject
+    lateinit var exchangeRateManager: com.gbao86.sub_lazy.ui.ExchangeRateManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState != null) {
@@ -50,7 +55,7 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         lifecycleScope.launch(Dispatchers.IO) {
-            com.gbao86.sub_lazy.ui.ExchangeRateManager.fetchRates(this@MainActivity)
+            exchangeRateManager.fetchRates()
         }
         val sharedPref = getSharedPreferences("app_prefs", MODE_PRIVATE)
         val isOnboardingCompleted = sharedPref.getBoolean("onboarding_completed", false)

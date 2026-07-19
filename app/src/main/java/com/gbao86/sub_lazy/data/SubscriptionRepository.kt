@@ -14,6 +14,7 @@ package com.gbao86.sub_lazy.data
 
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
+import com.gbao86.sub_lazy.data.model.CategorySpending
 
 interface ISubscriptionRepository {
     val allSubscriptions: Flow<List<Subscription>>

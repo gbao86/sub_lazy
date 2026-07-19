@@ -10,8 +10,6 @@ Commercial exploitation, sale, or distribution of this software or any derivativ
 is strictly prohibited without the express written permission of the author.
 */
 
-@file:Suppress("DEPRECATION")
-
 package com.gbao86.sub_lazy.ui.screens
 
 import android.widget.Toast
@@ -66,7 +64,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gbao86.sub_lazy.ui.toComposeColor
 import com.gbao86.sub_lazy.R
-import com.gbao86.sub_lazy.data.CategorySpending
+import com.gbao86.sub_lazy.data.model.CategorySpending
 import com.gbao86.sub_lazy.data.Subscription
 import com.gbao86.sub_lazy.data.model.BillingCycle
 import com.gbao86.sub_lazy.data.model.SubscriptionCategory
@@ -85,7 +83,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import com.gbao86.sub_lazy.data.api.GeminiService
+import com.gbao86.sub_lazy.data.api.BillOcrService
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
@@ -257,7 +255,7 @@ fun DashboardContent(
 
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
-    val geminiService = remember { GeminiService(context) }
+    val billOcrService = remember { BillOcrService(context) }
 
     var linkedAccountEmail by remember {
         mutableStateOf(
@@ -299,8 +297,8 @@ fun DashboardContent(
     ) { uri ->
         if (uri != null) {
             isAnalyzing = true
-            geminiService.analyzeImage(uri, object : GeminiService.GeminiCallback {
-                override fun onSuccess(result: GeminiService.ParsedSubscription) {
+            billOcrService.analyzeImage(uri, object : BillOcrService.BillOcrCallback {
+                override fun onSuccess(result: BillOcrService.ParsedSubscription) {
                     isAnalyzing = false
                     coroutineScope.launch(Dispatchers.Main) {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)

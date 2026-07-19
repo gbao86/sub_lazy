@@ -22,6 +22,8 @@ import com.gbao86.sub_lazy.ui.screens.DashboardScreen
 import com.gbao86.sub_lazy.ui.screens.OnboardingScreen
 import com.gbao86.sub_lazy.ui.screens.SubscriptionListScreen
 import androidx.core.content.edit
+import android.content.Context
+import com.gbao86.sub_lazy.data.UserPreferences
 import kotlinx.serialization.Serializable
 
 sealed interface Route {
@@ -58,8 +60,8 @@ fun NavGraph(navController: NavHostController, startDestination: Any = Route.Onb
             val context = androidx.compose.ui.platform.LocalContext.current
             OnboardingScreen(
                 onFinishOnboarding = {
-                    val sharedPref = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
-                    sharedPref.edit { putBoolean("onboarding_completed", true) }
+                    val sharedPref = context.getSharedPreferences(UserPreferences.PREFS_NAME, Context.MODE_PRIVATE)
+                    sharedPref.edit { putBoolean(UserPreferences.KEY_ONBOARDING_COMPLETED, true) }
 
                     navController.navigate(Route.Dashboard) {
                         popUpTo<Route.Onboarding> { inclusive = true }

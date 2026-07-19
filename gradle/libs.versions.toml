@@ -39,8 +39,9 @@ moshiKotlinCodegen = "1.15.2"
 datastorePreferences = "1.1.7"
 workRuntimeKtx = "2.10.0"
 hilt = "2.57.2"
+mockitoKotlin = "5.4.0"
 kotlinxSerializationJson = "1.7.3"
-
+hiltWork = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -94,7 +95,9 @@ androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navig
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version = "1.1.1" }
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version = "1.1.1" }
-
+mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version.ref = "mockitoKotlin" }
+androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
+androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
