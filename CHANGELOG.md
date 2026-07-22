@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Code Quality**: Extracted `SharedPreferences` usage into a central `UserPreferences` class to remove magic strings and standardize preference fetching.
 - **Service Naming**: Renamed `GeminiService.kt` to `BillOcrService.kt` to accurately reflect its offline ML-Kit OCR capability.
 - **Translation Script**: Improved `translate_resources.py` with smaller batch sizes and exponential backoff to handle rate limits more gracefully.
+- **Android 16 SDK**: Bumped `compileSdk` and `targetSdk` to `36` (Android 16), keeping `minSdk = 26` (Android 8.0).
+- **SplashScreen API**: Integrated `androidx.core:core-splashscreen:1.0.1` with a dedicated `Theme.Sub_lazy.Starting` theme and `installSplashScreen()` in `MainActivity`, ensuring branded splash screens on Android 12+.
+- **Predictive Back Gesture**: Enabled `android:enableOnBackInvokedCallback="true"` in `AndroidManifest.xml` to support the predictive back gesture on Android 14+.
+- **Edge-to-edge (Android 15+)**: Replaced `navigationBarsPadding()` with `systemBarsPadding()` in `AddEditSubscriptionScreen` and `DashboardDialogs` to prevent double-padding when Android 15 enforces edge-to-edge by default.
+- **Widget Android 12+**: Added `targetCellWidth`, `targetCellHeight`, and `description` attributes to `subscription_widget_info.xml` for improved widget sizing and picker display on Android 12+.
+- **Build Performance**: Removed `android.enableJetifier=true` from `gradle.properties` since the project is fully AndroidX, improving build speed.
 
 ### Fixed
 - **Testing**: Added unit test coverage for `DateUtils`, `FinanceCalculator`, and `RolloverSubscriptionUseCase` to ensure stability of financial logic.

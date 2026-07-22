@@ -292,4 +292,5 @@
     <string name="list_tag_session">Sessions · %1$d/%2$d left</string>
     <string name="list_tag_shared">Shared Plan</string>
     <string name="list_tag_trial">Trial Plan</string>
+    <string name="widget_desc">Hiển thị các gói đăng ký sắp đến hạn</string>
 </resources>

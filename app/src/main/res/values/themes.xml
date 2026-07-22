@@ -5,4 +5,10 @@
         <item name="android:windowContentTransitions">false</item>
         <item name="android:windowActivityTransitions">false</item>
     </style>
+
+    <style name="Theme.Sub_lazy.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/window_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.Sub_lazy</item>
+    </style>
 </resources>

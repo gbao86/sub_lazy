@@ -69,7 +69,7 @@ fun BudgetEditorSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
+                .systemBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
@@ -172,7 +172,7 @@ fun AddActionBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp)
-                .navigationBarsPadding(),
+                .systemBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ListItem(
