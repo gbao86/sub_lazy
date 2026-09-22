@@ -30,8 +30,15 @@ android {
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
             } else {
-                // Fallback to debug keystore for CI/testing releases so APK is always installable
-                initWith(getByName("debug"))
+                val defaultKeystore = file("keystore/release.jks")
+                if (defaultKeystore.exists()) {
+                    storeFile = defaultKeystore
+                    storePassword = "sublazypassword"
+                    keyAlias = "sublazy"
+                    keyPassword = "sublazypassword"
+                } else {
+                    initWith(getByName("debug"))
+                }
             }
         }
     }
