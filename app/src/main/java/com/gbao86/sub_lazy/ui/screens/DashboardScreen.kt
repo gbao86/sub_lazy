@@ -98,7 +98,8 @@ import android.content.Context
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     onNavigateToAdd: (String?, Double?, String?, String?, String?, String?, String?, String?) -> Unit,
-    onNavigateToList: () -> Unit
+    onNavigateToList: () -> Unit,
+    onNavigateToDetail: ((Long) -> Unit)? = null
 ) {
     val totalMonthlyCost by viewModel.totalMonthlyCost.collectAsStateWithLifecycle(initialValue = 0.0)
     val spendingByCategory by viewModel.spendingByCategory.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -115,10 +116,10 @@ fun DashboardScreen(
         if (uri != null) {
             viewModel.exportData(uri) { result ->
                 when (result) {
-                    is com.gbao86.sub_lazy.data.BackupResult.Success -> android.widget.Toast.makeText(context, "Export thành công!", android.widget.Toast.LENGTH_SHORT).show()
-                    is com.gbao86.sub_lazy.data.BackupResult.InvalidBackupFile -> android.widget.Toast.makeText(context, "Tệp xuất không hợp lệ. Vui lòng thử lại.", android.widget.Toast.LENGTH_SHORT).show()
-                    is com.gbao86.sub_lazy.data.BackupResult.PermissionDenied -> android.widget.Toast.makeText(context, "Không có quyền lưu file. Vui lòng cấp quyền bộ nhớ.", android.widget.Toast.LENGTH_SHORT).show()
-                    else -> android.widget.Toast.makeText(context, "Đã xảy ra lỗi không xác định khi xuất file.", android.widget.Toast.LENGTH_SHORT).show()
+                    is com.gbao86.sub_lazy.data.BackupResult.Success -> android.widget.Toast.makeText(context, context.getString(R.string.toast_export_success), android.widget.Toast.LENGTH_SHORT).show()
+                    is com.gbao86.sub_lazy.data.BackupResult.InvalidBackupFile -> android.widget.Toast.makeText(context, context.getString(R.string.toast_export_invalid), android.widget.Toast.LENGTH_SHORT).show()
+                    is com.gbao86.sub_lazy.data.BackupResult.PermissionDenied -> android.widget.Toast.makeText(context, context.getString(R.string.toast_export_permission_denied), android.widget.Toast.LENGTH_SHORT).show()
+                    else -> android.widget.Toast.makeText(context, context.getString(R.string.toast_export_error), android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -128,10 +129,10 @@ fun DashboardScreen(
         if (uri != null) {
             viewModel.importData(uri) { result ->
                 when (result) {
-                    is com.gbao86.sub_lazy.data.BackupResult.Success -> android.widget.Toast.makeText(context, "Khôi phục dữ liệu thành công!", android.widget.Toast.LENGTH_SHORT).show()
-                    is com.gbao86.sub_lazy.data.BackupResult.InvalidBackupFile -> android.widget.Toast.makeText(context, "Tệp sao lưu không hợp lệ hoặc đã bị hỏng.", android.widget.Toast.LENGTH_LONG).show()
-                    is com.gbao86.sub_lazy.data.BackupResult.PermissionDenied -> android.widget.Toast.makeText(context, "Không thể đọc tệp. Vui lòng kiểm tra lại quyền truy cập.", android.widget.Toast.LENGTH_SHORT).show()
-                    else -> android.widget.Toast.makeText(context, "Khôi phục thất bại. Vui lòng thử lại sau.", android.widget.Toast.LENGTH_SHORT).show()
+                    is com.gbao86.sub_lazy.data.BackupResult.Success -> android.widget.Toast.makeText(context, context.getString(R.string.toast_import_success), android.widget.Toast.LENGTH_SHORT).show()
+                    is com.gbao86.sub_lazy.data.BackupResult.InvalidBackupFile -> android.widget.Toast.makeText(context, context.getString(R.string.toast_import_invalid), android.widget.Toast.LENGTH_LONG).show()
+                    is com.gbao86.sub_lazy.data.BackupResult.PermissionDenied -> android.widget.Toast.makeText(context, context.getString(R.string.toast_import_permission_denied), android.widget.Toast.LENGTH_SHORT).show()
+                    else -> android.widget.Toast.makeText(context, context.getString(R.string.toast_import_failed), android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -141,13 +142,13 @@ fun DashboardScreen(
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             viewModel.syncToDrive { success, errorMessage, _ ->
                 if (success) {
-                    android.widget.Toast.makeText(context, "Đồng bộ Drive thành công!", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, context.getString(R.string.toast_sync_drive_success), android.widget.Toast.LENGTH_SHORT).show()
                 } else {
-                    android.widget.Toast.makeText(context, "Đồng bộ thất bại: ${errorMessage ?: "Lỗi không xác định"}", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, context.getString(R.string.toast_sync_drive_failed, errorMessage ?: "Unknown"), android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         } else {
-            android.widget.Toast.makeText(context, "Bạn đã hủy cấp quyền Google Drive.", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context, context.getString(R.string.toast_drive_permission_cancelled), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -167,16 +168,17 @@ fun DashboardScreen(
             onToggleMemberPaidStatus = { sub, name -> viewModel.toggleMemberPaidStatus(sub, name) },
             onNavigateToAdd = onNavigateToAdd,
             onNavigateToList = onNavigateToList,
+            onNavigateToDetail = onNavigateToDetail,
             onExport = { exportLauncher.launch("sub_lazy_backup.json") },
             onImport = { importLauncher.launch(arrayOf("application/json")) },
             onSyncToDrive = {
                 viewModel.syncToDrive { success, errorMessage, intent ->
                     if (success) {
-                        android.widget.Toast.makeText(context, "Đồng bộ Drive thành công!", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(context, context.getString(R.string.toast_sync_drive_success), android.widget.Toast.LENGTH_SHORT).show()
                     } else if (intent != null) {
                         recoverDriveAuthLauncher.launch(intent)
                     } else {
-                        android.widget.Toast.makeText(context, "Đồng bộ thất bại: ${errorMessage ?: "Lỗi không xác định"}", android.widget.Toast.LENGTH_LONG).show()
+                        android.widget.Toast.makeText(context, context.getString(R.string.toast_sync_drive_failed, errorMessage ?: "Unknown"), android.widget.Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -220,6 +222,7 @@ fun DashboardContent(
     onToggleMemberPaidStatus: (Subscription, String) -> Unit,
     onNavigateToAdd: (String?, Double?, String?, String?, String?, String?, String?, String?) -> Unit,
     onNavigateToList: () -> Unit,
+    onNavigateToDetail: ((Long) -> Unit)? = null,
     onExport: () -> Unit = {},
     onImport: () -> Unit = {},
     onSyncToDrive: () -> Unit = {}
@@ -512,6 +515,7 @@ fun DashboardContent(
                                             onMarkAsPaid = onMarkAsPaid,
                                             onCheckInSession = onCheckInSession,
                                             onToggleMemberPaidStatus = onToggleMemberPaidStatus,
+                                            onEditSubscription = onNavigateToDetail,
                                             sharedMembersMap = sharedMembersMap,
                                             modifier = Modifier.fillMaxWidth()
                                         )

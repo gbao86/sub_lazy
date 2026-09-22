@@ -371,18 +371,18 @@ fun SettingsDialog(
                 }
                 
                 HorizontalDivider()
-                Text("Backup & Khôi phục", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.dashboard_backup_restore_title), fontWeight = FontWeight.Bold)
                 
                 Button(onClick = onSyncToDrive, modifier = Modifier.fillMaxWidth(), enabled = accountName != null) {
-                    Text("Đồng bộ lên Google Drive")
+                    Text(stringResource(R.string.dashboard_sync_drive))
                 }
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = onExport, modifier = Modifier.weight(1f)) {
-                        Text("Export JSON")
+                        Text(stringResource(R.string.dashboard_export_json))
                     }
                     OutlinedButton(onClick = onImport, modifier = Modifier.weight(1f)) {
-                        Text("Import JSON")
+                        Text(stringResource(R.string.dashboard_import_json))
                     }
                 }
             }

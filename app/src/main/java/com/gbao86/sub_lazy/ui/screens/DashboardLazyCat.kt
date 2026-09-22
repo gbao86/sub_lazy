@@ -165,6 +165,18 @@ fun BudgetRunwayStatus(
     isPanicked: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
+    val errorBorderColor = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+    val errorTextColor = MaterialTheme.colorScheme.error
+
+    val successColor = Color(0xFF10B981)
+    val successContainerColor = successColor.copy(alpha = 0.12f)
+    val successBorderColor = successColor.copy(alpha = 0.45f)
+
+    val warningColor = Color(0xFFF59E0B)
+    val warningContainerColor = warningColor.copy(alpha = 0.12f)
+    val warningBorderColor = warningColor.copy(alpha = 0.45f)
+
     when (runwayResult) {
         is BankruptcyRunwayResult.Infinite -> {
             Text(
@@ -179,7 +191,7 @@ fun BudgetRunwayStatus(
             if (totalMonthlyCostActive > userBalance) {
                 val pulseTransition = rememberInfiniteTransition(label = "pulse_deficit")
                 val pulseAlpha by pulseTransition.animateFloat(
-                    initialValue = 0.6f,
+                    initialValue = 0.5f,
                     targetValue = 1f,
                     animationSpec = infiniteRepeatable(
                         animation = tween(1000, easing = EaseInOutSine),
@@ -188,55 +200,56 @@ fun BudgetRunwayStatus(
                     label = "pulse"
                 )
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFFFEBEE).copy(alpha = pulseAlpha),
-                    border = BorderStroke(1.5.dp, Color(0xFFC62828)),
+                    shape = RoundedCornerShape(16.dp),
+                    color = errorContainerColor.copy(alpha = pulseAlpha * 0.35f),
+                    border = BorderStroke(1.5.dp, errorBorderColor),
                     modifier = modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Rounded.Dangerous, contentDescription = "Dangerous status", tint = Color(0xFFC62828))
+                        Icon(Icons.Rounded.Dangerous, contentDescription = "Dangerous status", tint = errorTextColor)
                         Column {
                             Text(
                                 stringResource(R.string.budget_deficit_title),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFFC62828)
+                                color = errorTextColor
                             )
                             Text(
                                 stringResource(R.string.budget_deficit_desc),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Color(0xFFC62828)
+                                color = errorTextColor.copy(alpha = 0.9f)
                             )
                         }
                     }
                 }
             } else {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFE8F5E9),
+                    shape = RoundedCornerShape(16.dp),
+                    color = successContainerColor,
+                    border = BorderStroke(1.dp, successBorderColor),
                     modifier = modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Rounded.CheckCircle, contentDescription = "Healthy status", tint = Color(0xFF2E7D32))
+                        Icon(Icons.Rounded.CheckCircle, contentDescription = "Healthy status", tint = successColor)
                         Column {
                             Text(
                                 stringResource(R.string.budget_safe_title),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF2E7D32)
+                                color = successColor
                             )
                             Text(
                                 stringResource(R.string.budget_safe_desc),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Color(0xFF2E7D32)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -255,28 +268,28 @@ fun BudgetRunwayStatus(
                 label = "pulse"
             )
             Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = Color(0xFFFFEBEE).copy(alpha = pulseAlpha),
-                border = BorderStroke(1.5.dp, Color(0xFFC62828)),
+                shape = RoundedCornerShape(16.dp),
+                color = errorContainerColor.copy(alpha = pulseAlpha * 0.35f),
+                border = BorderStroke(1.5.dp, errorBorderColor),
                 modifier = modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(Icons.Rounded.Warning, contentDescription = "Warning status", tint = Color(0xFFC62828))
+                    Icon(Icons.Rounded.Warning, contentDescription = "Warning status", tint = errorTextColor)
                     Column {
                         Text(
                             stringResource(R.string.budget_exhausted_title),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFFC62828)
+                            color = errorTextColor
                         )
                         Text(
                             stringResource(R.string.budget_exhausted_desc),
                             style = MaterialTheme.typography.labelMedium,
-                            color = Color(0xFFC62828)
+                            color = errorTextColor.copy(alpha = 0.9f)
                         )
                     }
                 }
@@ -289,13 +302,14 @@ fun BudgetRunwayStatus(
             val calendarTarget = Calendar.getInstance().apply { timeInMillis = runwayResult.targetTime }
             val formattedTargetDate = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(calendarTarget.time)
 
+            val statusColor = if (isPanicked) errorTextColor else warningColor
+            val statusContainer = if (isPanicked) errorContainerColor else warningContainerColor
+            val statusBorder = if (isPanicked) errorBorderColor else warningBorderColor
+
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = if (isPanicked) Color(0xFFFFEBEE) else Color(0xFFFFF8E1),
-                border = BorderStroke(
-                    width = 1.5.dp,
-                    color = if (isPanicked) Color(0xFFD32F2F) else Color(0xFFFBC02D)
-                ),
+                color = statusContainer,
+                border = BorderStroke(width = 1.2.dp, color = statusBorder),
                 modifier = modifier.fillMaxWidth()
             ) {
                 Column(
@@ -309,27 +323,28 @@ fun BudgetRunwayStatus(
                     ) {
                         Icon(
                             imageVector = if (isPanicked) Icons.Rounded.Dangerous else Icons.Rounded.ReportProblem,
-                            contentDescription = "Close dialog",
-                            tint = if (isPanicked) Color(0xFFD32F2F) else Color(0xFFFBC02D)
+                            contentDescription = "Runway status",
+                            tint = statusColor
                         )
                         Text(
                             text = if (isPanicked) stringResource(R.string.budget_running_out_title)
                                    else stringResource(R.string.budget_running_out_warning),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (isPanicked) Color(0xFFD32F2F) else Color(0xFFFBC02D)
+                            color = statusColor
                         )
                     }
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color.Black.copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
                         modifier = Modifier.padding(vertical = 4.dp)
                     ) {
                         Text(
                             text = stringResource(R.string.budget_countdown_pattern, days, hours, minutes),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (isPanicked) Color(0xFFFF3333) else Color(0xFFFFD700),
+                            color = statusColor,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }

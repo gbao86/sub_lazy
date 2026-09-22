@@ -47,7 +47,11 @@ private val PremiumDarkColorScheme = darkColorScheme(
     surfaceVariant         = DarkSurfaceVariant,
     onSurfaceVariant       = DarkOnSurfaceVariant,
     outline                = DarkOutline,
-    outlineVariant         = DarkOutlineVariant
+    outlineVariant         = DarkOutlineVariant,
+    error                  = DarkError,
+    onError                = DarkOnError,
+    errorContainer         = DarkErrorContainer,
+    onErrorContainer       = DarkOnErrorContainer
 )
 
 private val PremiumLightColorScheme = lightColorScheme(
@@ -70,7 +74,11 @@ private val PremiumLightColorScheme = lightColorScheme(
     surfaceVariant         = LightSurfaceVariant,
     onSurfaceVariant       = LightOnSurfaceVariant,
     outline                = LightOutline,
-    outlineVariant         = LightOutlineVariant
+    outlineVariant         = LightOutlineVariant,
+    error                  = LightError,
+    onError                = LightOnError,
+    errorContainer         = LightErrorContainer,
+    onErrorContainer       = LightOnErrorContainer
 )
 
 @Suppress("DEPRECATION")

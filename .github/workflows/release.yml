@@ -1,0 +1,84 @@
+name: Release APK
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (tùy chọn, ví dụ v0.0.12)'
+        required: false
+        default: ''
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Build Release & Debug APKs
+        run: ./gradlew assembleRelease assembleDebug
+        env:
+          KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Prepare Release Assets
+        id: prepare_apks
+        run: |
+          # 1. Trích xuất versionName từ app/build.gradle.kts
+          APP_VERSION=$(grep -o 'versionName = "[^"]*"' app/build.gradle.kts | cut -d'"' -f2)
+          if [ -z "$APP_VERSION" ]; then
+            APP_VERSION="0.0.12"
+          fi
+
+          # 2. Xác định Tag Name
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="v${APP_VERSION}"
+          fi
+          
+          mkdir -p release-assets
+          cp app/build/outputs/apk/release/app-release.apk "release-assets/SubLazy-${TAG}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "release-assets/SubLazy-${TAG}-debug.apk"
+          
+          echo "tag_name=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Create or Update GitHub Release with APK Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prepare_apks.outputs.tag_name }}
+          name: "Sub Lazy ${{ steps.prepare_apks.outputs.tag_name }}"
+          generate_release_notes: true
+          make_latest: true
+          files: |
+            release-assets/SubLazy-*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

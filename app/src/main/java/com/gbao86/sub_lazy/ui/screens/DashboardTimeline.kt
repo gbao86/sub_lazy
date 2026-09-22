@@ -74,7 +74,8 @@ fun UpcomingRenewalsTimeline(
     onCheckInSession: (Subscription) -> Unit,
     onToggleMemberPaidStatus: (Subscription, String) -> Unit,
     modifier: Modifier = Modifier,
-    sharedMembersMap: Map<Long, List<SharedMember>> = emptyMap()
+    sharedMembersMap: Map<Long, List<SharedMember>> = emptyMap(),
+    onEditSubscription: ((Long) -> Unit)? = null
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val upcoming = subscriptions.sortedBy { it.nextBillingDate }.take(6)
@@ -104,7 +105,7 @@ fun UpcomingRenewalsTimeline(
                     modifier = Modifier.size(120.dp)
                 )
                 Text(
-                    text = "Thảnh thơi! Chưa có hoá đơn nào sắp tới.",
+                    text = stringResource(R.string.dashboard_no_upcoming),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -273,6 +274,22 @@ fun UpcomingRenewalsTimeline(
                                     color = if (days <= 3L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                                 )
+                            }
+                            if (onEditSubscription != null) {
+                                IconButton(
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onEditSubscription(selectedSub.id)
+                                    },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Edit,
+                                        contentDescription = stringResource(R.string.dashboard_btn_edit),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                         }
 

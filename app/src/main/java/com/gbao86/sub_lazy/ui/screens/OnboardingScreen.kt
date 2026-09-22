@@ -266,7 +266,7 @@ fun OnboardingScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Chọn dịch vụ bạn đang dùng",
+                        text = stringResource(R.string.onboarding_select_services),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -279,12 +279,12 @@ fun OnboardingScreen(
                         Tab(
                             selected = selectedTemplateTab == 0,
                             onClick = { selectedTemplateTab = 0 },
-                            text = { Text("Kỹ thuật số", fontWeight = FontWeight.Bold) }
+                            text = { Text(stringResource(R.string.template_tab_digital), fontWeight = FontWeight.Bold) }
                         )
                         Tab(
                             selected = selectedTemplateTab == 1,
                             onClick = { selectedTemplateTab = 1 },
-                            text = { Text("Đời sống", fontWeight = FontWeight.Bold) }
+                            text = { Text(stringResource(R.string.template_tab_lifestyle), fontWeight = FontWeight.Bold) }
                         )
                     }
                 }

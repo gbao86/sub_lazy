@@ -101,11 +101,18 @@ class DateUtilsTest {
     }
 
     @Test
-    fun `getNextBillingDate always returns future date`() {
+    fun `getNextBillingDate always returns future date for recurring cycles`() {
         val now = System.currentTimeMillis()
-        BillingCycle.entries.forEach { cycle ->
+        BillingCycle.entries.filter { it != BillingCycle.ONE_TIME }.forEach { cycle ->
             val next = DateUtils.getNextBillingDate(now, cycle)
             assertTrue("Cycle $cycle should return future date", next > now)
         }
+    }
+
+    @Test
+    fun `getNextBillingDate one time returns same date`() {
+        val now = System.currentTimeMillis()
+        val next = DateUtils.getNextBillingDate(now, BillingCycle.ONE_TIME)
+        assertEquals(now, next)
     }
 }

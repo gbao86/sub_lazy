@@ -35,7 +35,7 @@ object DateUtils {
             BillingCycle.EVERY_3_MONTHS -> zonedDateTime.plusMonths(3)
             BillingCycle.EVERY_6_MONTHS -> zonedDateTime.plusMonths(6)
             BillingCycle.YEARLY         -> zonedDateTime.plusYears(1)
-            else                        -> zonedDateTime.plusMonths(1)
+            BillingCycle.ONE_TIME       -> zonedDateTime
         }
         return nextZonedDateTime.toInstant().toEpochMilli()
     }

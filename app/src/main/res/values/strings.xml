@@ -293,4 +293,32 @@
     <string name="list_tag_shared">Shared Plan</string>
     <string name="list_tag_trial">Trial Plan</string>
     <string name="widget_desc">Hiển thị các gói đăng ký sắp đến hạn</string>
+
+    <!-- UI/UX Enhancements & Dialogs -->
+    <string name="dashboard_no_upcoming">Relax! No bills coming up soon.</string>
+    <string name="dashboard_btn_edit">Edit</string>
+    <string name="dashboard_backup_restore_title">Backup &amp; Restore</string>
+    <string name="dashboard_sync_drive">Sync to Google Drive</string>
+    <string name="dashboard_export_json">Export JSON</string>
+    <string name="dashboard_import_json">Import JSON</string>
+    <string name="toast_export_success">Data exported successfully!</string>
+    <string name="toast_export_invalid">Invalid export file. Please try again.</string>
+    <string name="toast_export_permission_denied">Storage permission denied.</string>
+    <string name="toast_export_error">An unknown error occurred while exporting.</string>
+    <string name="toast_import_success">Data restored successfully!</string>
+    <string name="toast_import_invalid">Backup file is invalid or corrupted.</string>
+    <string name="toast_import_permission_denied">Cannot read file. Please check permissions.</string>
+    <string name="toast_import_failed">Restore failed. Please try again.</string>
+    <string name="toast_sync_drive_success">Synced to Google Drive successfully!</string>
+    <string name="toast_sync_drive_failed">Drive sync failed: %1$s</string>
+    <string name="toast_drive_permission_cancelled">Google Drive permission request was cancelled.</string>
+    <string name="onboarding_select_services">Select services you are using</string>
+    <string name="list_sort_by">Sort by</string>
+    <string name="list_sort_date">Due Date</string>
+    <string name="list_sort_price_high">Price: High to Low</string>
+    <string name="list_sort_price_low">Price: Low to High</string>
+    <string name="list_sort_name">Name: A to Z</string>
+    <string name="list_subtotal_format">%1$d services · %2$s</string>
+    <string name="add_edit_error_empty_name">Please enter a service name</string>
+    <string name="add_edit_error_empty_price">Please enter a valid price</string>
 </resources>

@@ -88,6 +88,9 @@ fun NavGraph(navController: NavHostController, startDestination: Any = Route.Onb
                 },
                 onNavigateToList = {
                     navController.navigate(Route.SubscriptionList)
+                },
+                onNavigateToDetail = { id ->
+                    navController.navigate(Route.AddEditSubscription(id = id))
                 }
             )
         }

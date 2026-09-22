@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.12] - 2026-09-22
+
+### Added
+- **Interactive Sorting in Subscription List**: Added a Material 3 sorting menu in `SubscriptionListScreen` supporting 4 sorting modes: Due Date, Price (High to Low), Price (Low to High), and Name (A to Z).
+- **Dynamic Category Subtotal**: Added real-time subtotal banner in `SubscriptionListScreen` displaying the total monthly equivalent expenditure and item count for the filtered category or search query.
+- **1-Tap Direct Edit from Timeline**: Added direct edit button on selected subscription card inside `UpcomingRenewalsTimeline`, wiring seamless navigation into `AddEditSubscriptionScreen`.
+- **Automated CI/CD & GitHub Releases**: Configured automated GitHub Actions workflow (`release.yml`) for building optimized Release APKs and publishing them directly to GitHub Releases assets on code updates.
+- **Continuous Integration Artifacts**: Added automatic 14-day artifact retention for debug APK builds on pushes to `main` via `ci.yml`.
+
+### Changed
+- **Material 3 Semantic Color System**: Expanded `Color.kt` and `Theme.kt` with comprehensive semantic color tokens (`DarkError`, `DarkErrorContainer`, `LightError`, `LightErrorContainer`, etc.) and mapped into `PremiumDarkColorScheme` and `PremiumLightColorScheme`.
+- **Dark Mode UI/UX Polish**: Refactored `DashboardLazyCat.kt` (`BudgetRunwayStatus`) to remove hardcoded light pastel backgrounds (`0xFFFFEBEE`, `0xFFE8F5E9`), adopting theme-adaptive container and border colors for a polished dark mode experience.
+- **100% Comprehensive Localization (i18n)**: Externalized all remaining hardcoded Vietnamese strings across `OnboardingScreen`, `DashboardDialogs`, `DashboardScreen`, and `DashboardTimeline` into `strings.xml` and `values-vi/strings.xml`.
+- **Automated Release Signing Fallback**: Configured `build.gradle.kts` release signing with an automated fallback to debug keystore for CI builds, guaranteeing that released APKs can be directly installed on Android devices.
+
+### Fixed
+- **One-Time Billing Cycle Logic**: Fixed `DateUtils.getNextBillingDate` falling through to monthly rollover for `BillingCycle.ONE_TIME`, preventing one-off payments from erroneously advancing by 1 month.
+- **Unit Test Suite**: Updated `DateUtilsTest` to properly assert non-recurring behavior for `ONE_TIME` while ensuring recurring cycles advance to future dates (42/42 tests passing).
+- **Kotlin Annotation Target Warning**: Replaced `@ApplicationContext` on constructor property with `@param:ApplicationContext` in `ExchangeRateManager` to eliminate compiler warnings.
+
 ## [0.0.11] - 2026-07-19
 
 ### Changed

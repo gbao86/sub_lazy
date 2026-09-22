@@ -14,6 +14,7 @@ package com.gbao86.sub_lazy.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.ScrollableDefaults
@@ -28,6 +29,9 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -60,6 +64,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.gbao86.sub_lazy.ui.CurrencyFormatter
 import com.gbao86.sub_lazy.ui.DateUtils
+import com.gbao86.sub_lazy.ui.FinanceCalculator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.core.graphics.toColorInt
@@ -67,6 +72,13 @@ import java.text.Normalizer
 import java.util.Calendar
 import java.util.regex.Pattern
 import java.time.Year
+
+enum class SubscriptionSortOption {
+    DUE_DATE,
+    PRICE_DESC,
+    PRICE_ASC,
+    NAME
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -184,6 +196,8 @@ fun SubscriptionListScreen(
         } else {
             var searchQuery by remember { mutableStateOf("") }
             var selectedCategoryFilter by remember { mutableStateOf<SubscriptionCategory?>(null) }
+            var selectedSortOption by remember { mutableStateOf(SubscriptionSortOption.DUE_DATE) }
+            var showSortMenu by remember { mutableStateOf(false) }
 
             // Category Filter Chips — scrollable row with auto-scroll to selected chip
             val uniqueCategories = remember(subscriptions) {
@@ -232,31 +246,139 @@ fun SubscriptionListScreen(
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                // Search Bar
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text(stringResource(R.string.list_search_hint)) },
-                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "Search icon") },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Rounded.Clear, contentDescription = "Clear search text")
-                            }
-                        }
-                    },
-                    shape = RoundedCornerShape(18.dp),
+                // Search Bar + Sort Action Button
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text(stringResource(R.string.list_search_hint)) },
+                        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "Search icon") },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Rounded.Clear, contentDescription = "Clear search text")
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(18.dp),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        )
                     )
-                )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Box {
+                        IconButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                showSortMenu = true
+                            },
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(
+                                    if (selectedSortOption != SubscriptionSortOption.DUE_DATE)
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                                    else
+                                        MaterialTheme.colorScheme.surface
+                                )
+                                .border(
+                                    1.dp,
+                                    if (selectedSortOption != SubscriptionSortOption.DUE_DATE)
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                    else
+                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                    RoundedCornerShape(18.dp)
+                                )
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Rounded.Sort,
+                                contentDescription = stringResource(R.string.list_sort_by),
+                                tint = if (selectedSortOption != SubscriptionSortOption.DUE_DATE)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.list_sort_date)) },
+                                onClick = {
+                                    selectedSortOption = SubscriptionSortOption.DUE_DATE
+                                    showSortMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Rounded.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
+                                },
+                                trailingIcon = {
+                                    if (selectedSortOption == SubscriptionSortOption.DUE_DATE) {
+                                        Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.list_sort_price_high)) },
+                                onClick = {
+                                    selectedSortOption = SubscriptionSortOption.PRICE_DESC
+                                    showSortMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.AutoMirrored.Rounded.TrendingUp, contentDescription = null, modifier = Modifier.size(18.dp))
+                                },
+                                trailingIcon = {
+                                    if (selectedSortOption == SubscriptionSortOption.PRICE_DESC) {
+                                        Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.list_sort_price_low)) },
+                                onClick = {
+                                    selectedSortOption = SubscriptionSortOption.PRICE_ASC
+                                    showSortMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.AutoMirrored.Rounded.TrendingDown, contentDescription = null, modifier = Modifier.size(18.dp))
+                                },
+                                trailingIcon = {
+                                    if (selectedSortOption == SubscriptionSortOption.PRICE_ASC) {
+                                        Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.list_sort_name)) },
+                                onClick = {
+                                    selectedSortOption = SubscriptionSortOption.NAME
+                                    showSortMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Rounded.SortByAlpha, contentDescription = null, modifier = Modifier.size(18.dp))
+                                },
+                                trailingIcon = {
+                                    if (selectedSortOption == SubscriptionSortOption.NAME) {
+                                        Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
 
                 LazyRow(
                     state = chipListState,
@@ -325,15 +447,26 @@ fun SubscriptionListScreen(
                         .weight(1f)
                 ) { pageIndex ->
                     val pageCategory = if (pageIndex == 0) null else uniqueCategories.getOrNull(pageIndex - 1)
-                    val pageSubs = remember(subscriptions, searchQuery, pageCategory) {
-                        subscriptions.filter { sub ->
+                    val pageSubs = remember(subscriptions, searchQuery, pageCategory, selectedSortOption) {
+                        val filtered = subscriptions.filter { sub ->
                             val normalizedName = sub.name.removeDiacritics().lowercase()
                             val normalizedQuery = searchQuery.removeDiacritics().lowercase()
                             val matchesSearch = normalizedName.contains(normalizedQuery)
                             val matchesCategory = pageCategory == null || sub.category == pageCategory
                             matchesSearch && matchesCategory
                         }
+                        when (selectedSortOption) {
+                            SubscriptionSortOption.DUE_DATE -> filtered.sortedBy { it.nextBillingDate }
+                            SubscriptionSortOption.PRICE_DESC -> filtered.sortedByDescending { FinanceCalculator.calculateMonthlyEquivalentCostInVnd(it) }
+                            SubscriptionSortOption.PRICE_ASC -> filtered.sortedBy { FinanceCalculator.calculateMonthlyEquivalentCostInVnd(it) }
+                            SubscriptionSortOption.NAME -> filtered.sortedBy { it.name.lowercase() }
+                        }
                     }
+
+                    val subtotalMonthlyCost = remember(pageSubs) {
+                        pageSubs.sumOf { FinanceCalculator.calculateMonthlyEquivalentCostInVnd(it) }
+                    }
+                    val locale = LocalConfiguration.current.locales[0]
 
                     if (pageSubs.isEmpty()) {
                         // Search Empty State
@@ -374,6 +507,45 @@ fun SubscriptionListScreen(
                             contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp, top = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            item {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 14.dp, vertical = 9.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = stringResource(
+                                                R.string.list_subtotal_format,
+                                                pageSubs.size,
+                                                CurrencyFormatter.format(subtotalMonthlyCost, "VND", locale)
+                                            ),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = when (selectedSortOption) {
+                                                SubscriptionSortOption.DUE_DATE -> stringResource(R.string.list_sort_date)
+                                                SubscriptionSortOption.PRICE_DESC -> stringResource(R.string.list_sort_price_high)
+                                                SubscriptionSortOption.PRICE_ASC -> stringResource(R.string.list_sort_price_low)
+                                                SubscriptionSortOption.NAME -> stringResource(R.string.list_sort_name)
+                                            },
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+
                             itemsIndexed(
                                 items = pageSubs,
                                 key = { _, sub -> sub.id }

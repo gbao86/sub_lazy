@@ -70,6 +70,10 @@ val DarkSurfaceVariant      = SlateElevated
 val DarkOnSurfaceVariant    = SlateSubtext
 val DarkOutline             = SlateBorder
 val DarkOutlineVariant      = Color(0xFF1E2D4A)
+val DarkError               = RoseAlert
+val DarkOnError             = Color.White
+val DarkErrorContainer      = Color(0xFF5C0E1D)
+val DarkOnErrorContainer    = Color(0xFFFFDADE)
 
 // ── Light Color Scheme ───────────────────────────────────────────────────────
 
@@ -96,3 +100,8 @@ val LightSurfaceVariant      = CloudElevated
 val LightOnSurfaceVariant    = CloudSubtext
 val LightOutline             = CloudBorder
 val LightOutlineVariant      = Color(0xFFE8EEF8)
+val LightError               = Color(0xFFBA1A1A)
+val LightOnError             = Color.White
+val LightErrorContainer      = Color(0xFFFFDAD6)
+val LightOnErrorContainer    = Color(0xFF410002)
+

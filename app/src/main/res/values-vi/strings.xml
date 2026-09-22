@@ -246,4 +246,32 @@
     <string name="list_tag_session">Số buổi · Còn %1$d/%2$d buổi</string>
     <string name="list_tag_shared">Gói dùng chung</string>
     <string name="list_tag_trial">Gói dùng thử</string>
+
+    <!-- UI/UX Enhancements & Dialogs -->
+    <string name="dashboard_no_upcoming">Thảnh thơi! Chưa có hoá đơn nào sắp tới.</string>
+    <string name="dashboard_btn_edit">Chỉnh sửa</string>
+    <string name="dashboard_backup_restore_title">Sao lưu &amp; Khôi phục</string>
+    <string name="dashboard_sync_drive">Đồng bộ lên Google Drive</string>
+    <string name="dashboard_export_json">Xuất JSON</string>
+    <string name="dashboard_import_json">Khôi phục JSON</string>
+    <string name="toast_export_success">Xuất dữ liệu thành công!</string>
+    <string name="toast_export_invalid">Tệp xuất không hợp lệ. Vui lòng thử lại.</string>
+    <string name="toast_export_permission_denied">Không có quyền lưu file. Vui lòng cấp quyền bộ nhớ.</string>
+    <string name="toast_export_error">Đã xảy ra lỗi không xác định khi xuất file.</string>
+    <string name="toast_import_success">Khôi phục dữ liệu thành công!</string>
+    <string name="toast_import_invalid">Tệp sao lưu không hợp lệ hoặc đã bị hỏng.</string>
+    <string name="toast_import_permission_denied">Không thể đọc tệp. Vui lòng kiểm tra lại quyền truy cập.</string>
+    <string name="toast_import_failed">Khôi phục thất bại. Vui lòng thử lại sau.</string>
+    <string name="toast_sync_drive_success">Đồng bộ Google Drive thành công!</string>
+    <string name="toast_sync_drive_failed">Đồng bộ thất bại: %1$s</string>
+    <string name="toast_drive_permission_cancelled">Bạn đã hủy cấp quyền Google Drive.</string>
+    <string name="onboarding_select_services">Chọn dịch vụ bạn đang dùng</string>
+    <string name="list_sort_by">Sắp xếp</string>
+    <string name="list_sort_date">Hạn gần nhất</string>
+    <string name="list_sort_price_high">Giá: Cao đến thấp</string>
+    <string name="list_sort_price_low">Giá: Thấp đến cao</string>
+    <string name="list_sort_name">Tên: A - Z</string>
+    <string name="list_subtotal_format">%1$d dịch vụ · %2$s</string>
+    <string name="add_edit_error_empty_name">Vui lòng nhập tên dịch vụ</string>
+    <string name="add_edit_error_empty_price">Vui lòng nhập giá tiền hợp lệ</string>
 </resources>
