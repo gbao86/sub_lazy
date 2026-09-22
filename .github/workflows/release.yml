@@ -2,10 +2,10 @@ name: Release APK
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
+    paths:
+      - 'app/build.gradle.kts' # Tự động tạo Release khi bạn cập nhật phiên bản trong build.gradle.kts
   workflow_dispatch:
     inputs:
       tag_name:

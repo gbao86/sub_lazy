@@ -4,6 +4,27 @@
 
 # Sub Lazy 📱
 
+<p align="center">
+  <a href="https://github.com/gbao86/sub_lazy/releases/latest">
+    <img src="https://img.shields.io/badge/⚡_DOWNLOAD_LATEST_APK-v0.0.12-10B981?style=for-the-badge&logo=android&logoColor=white" alt="Download Latest APK" height="42"/>
+  </a>
+  <a href="https://github.com/gbao86/sub_lazy/releases">
+    <img src="https://img.shields.io/github/v/release/gbao86/sub_lazy?style=for-the-badge&label=All%20Releases&color=7C3AED&logo=github" alt="All Releases" height="42"/>
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/gbao86/sub_lazy/releases/latest">
+    <img src="https://img.shields.io/badge/Direct_Install-SubLazy--v0.0.12.apk-2563EB?style=flat-square&logo=android&logoColor=white" alt="Direct APK"/>
+  </a>
+  <img src="https://img.shields.io/badge/Platform-Android_8.0%2B-3DDC84?style=flat-square&logo=googleplay&logoColor=white" alt="Platform"/>
+  <img src="https://img.shields.io/badge/App_Size-~6.4_MB-06B6D4?style=flat-square" alt="Size"/>
+  <img src="https://img.shields.io/badge/License-Non--Commercial-F59E0B?style=flat-square" alt="License"/>
+</p>
+
+> [!TIP]
+> 📥 **Tải về và cài đặt trực tiếp:** Nhấp vào nút **[⚡ DOWNLOAD LATEST APK](https://github.com/gbao86/sub_lazy/releases/latest)** ở trên để tải file `.apk` mới nhất và cài đặt ngay trên điện thoại Android (hỗ trợ Android 8.0 trở lên).
+
 [![Version](https://img.shields.io/badge/Version-0.0.12-blue.svg?style=for-the-badge)](./CHANGELOG.md)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.20-purple.svg?style=for-the-badge&logo=kotlin)](https://kotlinlang.org/)
 [![Android](https://img.shields.io/badge/Android-SDK%2026%2B-green.svg?style=for-the-badge&logo=android)](https://developer.android.com/)
