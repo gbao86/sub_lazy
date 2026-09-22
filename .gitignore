@@ -21,3 +21,6 @@ local.properties
 *.hprof
 review_report.md
 *.log
+*.jks
+*.keystore
+keystore/
