@@ -23,7 +23,7 @@
 </p>
 
 > [!TIP]
-> 📥 **Tải về và cài đặt trực tiếp:** Nhấp vào nút **[⚡ DOWNLOAD LATEST APK](https://github.com/gbao86/sub_lazy/releases/latest)** ở trên để tải file `.apk` mới nhất và cài đặt ngay trên điện thoại Android (hỗ trợ Android 8.0 trở lên).
+> 📥 **Quick Installation:** Click the **[⚡ DOWNLOAD LATEST APK](https://github.com/gbao86/sub_lazy/releases/latest)** button above to download the latest `.apk` file and install it directly on your Android device (Android 8.0+ supported).
 
 [![Version](https://img.shields.io/badge/Version-0.0.12-blue.svg?style=for-the-badge)](./CHANGELOG.md)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.20-purple.svg?style=for-the-badge&logo=kotlin)](https://kotlinlang.org/)
@@ -68,7 +68,7 @@ Yeah, we've all been there.
 - **Trial Sandbox**: In-app step-by-step cancellation walkthrough paths for major subscription platforms (Google Play, Apple Store, YouTube, Spotify, Netflix).
 - **Smart Form Auto-Detection & Visual Icon Mapping**: Live mapping of descriptive Material icons based on title names (e.g. TV, headphones, vehicle, pets, tools) and automatic configuration of billing categories/cycles as the user types.
 - **Manual Payment Tracking & VietQR Quick Pay**: Users can click "Mark as Paid" directly from the timeline card details. This records the payment in the database, rolls over the renewal date, and decrements remaining limits. For subscriptions with bank transfer details, the app automatically generates a standard Napas **VietQR** transfer code so users can scan and pay instantly.
-- **Subscription List Screen**: Shows monthly equivalent costs, renewal schedules, color-coded countdown indicators, and a **remaining count badge** (e.g. `Còn 3 lần`) for limited subscriptions. Swift swipe-to-delete has a double-confirm dialog.
+- **Subscription List Screen**: Shows monthly equivalent costs, renewal schedules, color-coded countdown indicators, and a **remaining count badge** (e.g. `3 times left`) for limited subscriptions. Swift swipe-to-delete has a double-confirm dialog.
 - **Add / Edit Subscriptions**: Fully customizable forms. Includes pricing, renewal date picker, category dropdown, billing cycle selection (**Daily**, **Weekly**, **Monthly**, **Every 3 Months**, **Every 6 Months**, **Yearly**, **One-time**), and a **currency toggle (VND/USD)** using Material 3 card controls.
 - **Auto-Delete Limit (1-time / N-times count)**: Users can configure subscriptions to delete automatically after a set number of payments (1 time, custom N times, or unlimited). The app automatically rolls over renewal dates, decrements remaining cycles, or deletes expired subscriptions on startup.
 - **Dynamic Localization & Multi-Currency**:
